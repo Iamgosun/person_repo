@@ -1,164 +1,324 @@
-# Post-hoc Probabilistic Vision-Language Models
+# 面向适配器训练的 BayesVLM 实验性改造版本
 
-[![arXiv](https://img.shields.io/badge/arXiv-2412.06014-b31b1b.svg)](https://arxiv.org/abs/2412.06014)
-[![Project Page](https://img.shields.io/badge/Project-Page-blue)](https://aaltoml.github.io/BayesVLM/)
-[![Hugging Face](https://img.shields.io/badge/Hugging%20Face-Models-yellow)](https://huggingface.co/collections/aalto-ml/bayesvlm)
+本仓库基于原始项目 [AaltoML/BayesVLM](https://github.com/AaltoML/BayesVLM) 进行修改。
+
+## 项目说明
+
+原始 BayesVLM 的核心目标是进行 **后验式（post-hoc）概率视觉-语言建模**，重点在于通过 Hessian 近似与协方差构造，为 CLIP / SigLIP 模型提供不确定性估计能力。
+
+本仓库在此基础上做了一个**实验性扩展**，当前的主要目的不是复现原论文全部内容，而是：
+
+- 为 **适配器（adapter）训练** 提供更方便的代码基础
+- 尝试将 **Bayesian 文本先验** 引入适配器训练流程
+- 为后续的 **LP（Linear Probe）等轻量适配器训练** 做准备
+- 探索不确定性感知的下游分类建模方式
+
+因此，这个仓库更适合被理解为：
+
+> 一个基于 BayesVLM 的、面向适配器训练的实验性开发版本
+
+---
+
+## 当前状态
+
+当前代码**还没有完全编写完成**，仍处于实验和整理阶段。
+
+请特别注意：
+
+- 代码主线目标是为适配器训练做准备
+- 部分模块已经搭起来了，但整体流程还没有完全打通
+- 有些脚本是实验性质的
+- 有些路径和配置仍然带有本地实验痕迹
+- 当前 README 已经和上游项目不同，下面内容以本仓库实际代码结构为准
+
+因此，本仓库目前**不是一个已经完整封装好的正式训练框架**，而是一个用于研究和开发的中间版本。
+
+---
+
+## 与原始 BayesVLM 的主要区别
+
+相较于原始项目，本仓库主要增加或改造了以下方向：
+
+1. **为适配器训练增加统一入口和中间封装**
+2. **构建类别级文本高斯先验**
+3. **尝试把文本不确定性引入适配器训练流程**
+4. **探索语义后验网络（semantic posterior network）这类不确定性感知分类头**
+5. **保留 BayesVLM 的 Hessian / covariance 基础能力，同时向下游训练靠拢**
+
+换句话说，原始项目偏重于：
+
+- 后验式概率 VLM 推断
+- 零样本评估
+- Hessian 与协方差建模
+
+而本仓库当前更偏重于：
+
+- 适配器友好的代码组织
+- 训练入口实验
+- 文本先验构造
+- 面向 LP 的扩展准备
+- 不确定性感知的分类模块探索
+
+---
+
+## 关键修改 / 新增文件说明
+
+下面列出本仓库中最值得关注的修改文件，并说明它们的作用。
+
+### 1. `train.py`
+
+这是当前仓库中的一个**自定义实验入口脚本**，不是上游 README 中原有的标准入口。
+
+主要作用：
+
+- 读取 Hessian 文件
+- 优化图像侧 / 文本侧的先验精度
+- 计算图像与文本投影层协方差
+- 初始化 `VLMAdapter`
+- 输出类别统计信息
+- 作为“BayesVLM + 适配器训练”方向的实验主入口之一
+
+这个脚本更像是你当前开发过程中的一个**总控脚本**，用于把 BayesVLM 的不确定性建模能力和适配器训练思路接起来。
+
+当前特点：
+
+- 带有实验性质
+- 仍有部分本地路径写死
+- 一些评估代码还处于注释或未完全整理状态
+
+---
+
+### 2. `bayesvlm/adapter.py与vlm_adapter.py`
+
+这是本仓库面向适配器训练最重要的改造文件之一。
+
+主要作用：
+
+- 加载 CLIP 图像编码器和文本编码器（不使用原论文提供的，而是在text_encoder.py与image_encoder.py重新编写模型逻辑）
+- 构建类别级文本分布
+- 组织适配器相关输入
+- 为后续适配器训练提供统一接口
+- 当前已经预留了 LP 类型适配器的接入方式
+
+这个文件的意义在于：
+
+> 它把原始 BayesVLM 的“概率文本表示”往“适配器训练可用接口”方向推进了一步。
+
+也就是说，这个模块是你把 BayesVLM 改造成“更方便用于 LP 等适配器训练”的核心连接层。
+
+当前状态：
+
+- 方向明确
+- 已经具备基础结构
+- 但整体训练闭环还没彻底完成
+
+---
+
+### 3. `bayesvlm/text_priors.py`
+
+这是本仓库中非常关键的一个新增模块。
+
+主要作用：
+
+- 根据类别名构造 prompt
+- 使用文本编码器编码 prompt
+- 结合文本侧协方差，构造 prompt 后验高斯分布
+- 将多个 prompt 的高斯分布聚合成**类别级高斯先验**
+- 为后续适配器或分类头提供分布化的文本表征
+
+为什么重要：
+
+原始 CLIP 常常只把文本类别表示看成一个向量，而这里的改造目标是：
+
+> 不只使用单点文本嵌入，而是使用“带不确定性的类别文本分布”。
+
+这对后续适配器训练和不确定性建模都很重要。
+
+---
+
+### 4. `bayesvlm/semantic_postnet.py`
+
+这是一个实验性的**语义后验网络**模块。
+
+主要作用：
+
+- 将图像嵌入投影到潜空间
+- 将潜空间图像表示与类别级文本高斯先验结合
+- 计算类别条件密度
+- 将密度转换为类似 Dirichlet evidence 的输出
+- 给出概率预测和不确定性相关量
+
+这个模块不是单纯的 LP 适配器，而是你在“适配器训练之外”同步探索的一条更偏概率建模的分支。
+
+它体现了这样一个想法：
+
+> 不只训练一个线性分类头，而是尝试构建一个显式刻画证据与不确定性的分类器。
+
+当前状态：
+
+- 研究性质较强
+- 更适合做实验
+- 不是最终版适配器训练方案
+
+---
+
+### 5. `bayesvlm/flows.py`
+
+这是 `semantic_postnet.py` 的支撑模块。
+
+主要作用：
+
+- 实现基于 RealNVP 风格的 flow
+- 构建共享的高斯流密度模型
+- 用于潜空间下的类别条件密度估计
+
+这个模块主要服务于语义后验网络，不是面向 LP 训练的主入口，但属于你当前扩展概率分类头的重要组成部分。
+
+---
+
+### 6. `train_semantic_postnet.py`
+
+这是与 `semantic_postnet.py` 配套的训练脚本。
+
+主要作用：
+
+- 预计算图像特征
+- 构建文本侧类别高斯先验
+- 训练语义后验网络
+- 评估 ID（分布内）性能
+- 可选评估 OOD（分布外）行为
+
+这个脚本代表了你在本仓库中探索的另一条路径：
+
+- 一条是为 LP 等适配器训练准备接口
+- 另一条是直接探索不确定性感知分类头的训练流程
+
+因此，这个脚本可以看作是一个**实验分支训练入口**。
+
+---
+
+### 7. `bayesvlm/unfenxi.py`
+
+这是一个用于分析类别文本不确定性的辅助工具。
+
+主要作用：
+
+- 统计每个类别协方差的 trace、logdet、特征值范围
+- 找出最不确定的维度
+- 便于调试文本高斯先验是否构造合理
+
+这个文件更偏向：
+
+- 调试
+- 分析
+- 可解释性检查
+
+它不是主流程必须文件，但对于开发阶段理解文本先验质量很有帮助。
 
 
-![image](pipeline.png)
 
-# Setup Instructions
-1. Ensure you have Python version `>= 3.11` installed.
-2. Install the required packages by running:
-   ```bash
-   pip install -r requirements.txt
-   ```
-3. Set `DATA_BASE_DIR` in your `.env` file. You can use the structure from the `.env.example` file.
-   ```
-   DATA_BASE_DIR=/path/to/datasets
-   ```
-4. Add the project root directory to the `PYTHONPATH` environment variable.
-   ```bash
-   export PYTHONPATH=$PYTHONPATH:/path/to/project/root
-   ```
-4. (Optional) If you use a M1 Mac with `mps` support you'll need to set the following environment variable:
-   ```bash
-   export PYTORCH_ENABLE_MPS_FALLBACK=1
-   ```
-# Running the Code
-To run the hessian estimation code, use the following command:
-```bash
-python scripts/hessian_estimation.py
-```
+---
 
-To run the code for zero-shot experiments, use the following command:
-```bash
-python scripts/zeroshot.py
-```
+### 8. `downwights.sh`
 
-To run the code for the active-learning experiments, use the following command:
-```bash
-python scripts/activelearning.py
-```
+这是一个本地模型准备脚本。
 
-Note that each of those commands has additional arguments that allow the adjustment of the Hessian estimation and zero-shot/active learning experiments.
+主要作用：
 
-# Hessians
-The precomputed Hessians for the models used in the paper are available in the `hessians/` folder. You can select a specific hessian by setting `--hessian_dir` in the provided scripts.
+- 从 Hugging Face 下载需要的 CLIP 权重文件
+- 保存到本地目录
+- 校验本地模型是否可正常加载
 
-# Notebooks
-A notebook stepping through the zero-shot code is available in `notebooks/zeroshot.ipynb`.
+这个脚本的意义主要在于：
 
-# Data Setup
-The data is stored in the `DATA_BASE_DIR` folder and is structured as follows:
-```bash
-DATA_BASE_DIR/
-├── cifar10/
-├── cifar100/
-├── eurosat/
-├── flowers102/
-├── food101/
-├── homeoffice/
-├── imagenet_r/
-├── imagenet_val_wds/
-├── laion400m/
-├── sun397/
-├── ucf101/
-```
-Please set the `DATA_BASE_DIR` environment variable accordingly.
-
-### CIFAR-10
-The `CIFAR-10` dataset is automatically downloaded by the huggingface `datasets` library.
-
-### CIFAR-100
-The `CIFAR-100` dataset is automatically downloaded by the huggingface `datasets` library.
-
-### EuroSAT
-From https://github.com/vishaal27/SuS-X/blob/main/data/DATA.md
-- Create a folder named `eurosat/` under `DATA_BASE_DIR`.
-- Download the dataset from http://madm.dfki.de/files/sentinel/EuroSAT.zip and extract it to `DATA_BASE_DIR/eurosat/`.
-- Download `split_zhou_EuroSAT.json` from [here](https://drive.google.com/file/d/1Ip7yaCWFi0eaOFUGga0lUdVi_DDQth1o/view?usp=sharing) and put it under `DATA_BASE_DIR/eurosat`.
-
-The directory structure should look like
-```
-eurosat/
-|–– 2750/
-|–– split_zhou_EuroSAT.json
-```
-
-### Flowers102
-The `Flowers102` dataset is automatically downloaded by the `torchvision` library.
-
-### Food101
-The `Food101` dataset is automatically downloaded by the `torchvision` library.
-
-### HomeOffice
-Download the dataset from https://www.hemanthdv.org/officeHomeDataset.html and extract it to `DATA_BASE_DIR/homeoffice/`.
-
-The directory structure should look like
-```
-homeoffice/
-|–– Art/
-|–– Clipart/
-|–– Product/
-|–– Real World/
-|–– ImageInfo.csv
-|–– imagelist.txt
-```
-
-### Stanford Cars
-Follow the instructions https://github.com/pytorch/vision/issues/7545#issuecomment-1631441616 to download the dataset and extract it to `DATA_BASE_DIR/stanford_cars/`.
-
-### DTD
-The `DTD` dataset is automatically downloaded by the `torchvision` library.
-
-### Imagenet Web-Dataset (val)
-We supply the script `scripts/download_imagenet.py` to download all validation tar files for the ImageNet dataset from the Hugging Face Datasets Hub.
-After running the script, the directory structure should look like
-```
-imagenet_val_wds/
-|–– imagenet1k-validation-00.tar
-|–– imagenet1k-validation-01.tar
-|–– ...
-|–– imagenet1k-validation-63.tar
-```
-
-### Imagenet-R
-Download the dataset from https://github.com/hendrycks/imagenet-r and extract it to `./data/imagenet-r/`.
-
-### Laion400M
-The `laion400M` dataset can be downloaded using the [img2dataset](https://github.com/rom1504/img2dataset) tool. The instructions for the `laion400m` dataset are available [here](https://github.com/rom1504/img2dataset/blob/main/dataset_examples/laion400m.md).
-Before running the `img2dataset` script, we removed all data points marked as `NSFW` in the metadata.
-
-### SUN397
-- Create a folder named  `sun397/` under `./data`.
-- Download the images http://vision.princeton.edu/projects/2010/SUN/SUN397.tar.gz.
-- Download the partitions https://vision.princeton.edu/projects/2010/SUN/download/Partitions.zip.
-- Extract these files under `./data/sun397/`.
-- Download `split_zhou_SUN397.json` from this [link](https://drive.google.com/file/d/1y2RD81BYuiyvebdN-JymPfyWYcd8_MUq/view?usp=sharing) and put it under `./data/sun397`.
-
-The directory structure should look like
-```
-sun397/
-|–– SUN397/
-|–– split_zhou_SUN397.json
-|–– ... # a bunch of .txt files
-```
-
-### UCF101
-- Create a folder named `ucf101/` under `./data`.
-- Download the zip file `UCF-101-midframes.zip` from [here](https://drive.google.com/file/d/10Jqome3vtUA2keJkNanAiFpgbyC9Hc2O/view?usp=sharing) and extract it to `./data/ucf101/`. This zip file contains the extracted middle video frames.
-- Download `split_zhou_UCF101.json` from this [link](https://drive.google.com/file/d/1I0S0q91hJfsV9Gf4xDIjgDq4AqBNJb1y/view?usp=sharing) and put it under `./data/ucf101`.
-
-The directory structure should look like
-```
-ucf101/
-|–– UCF-101-midframes/
-|–– split_zhou_UCF101.json
-```
+- 方便本地实验
+- 为训练脚本提供本地模型依赖
+- 减少环境准备的重复工作
 
 
-## Citation
+---
+
+
+## 哪些文件不是本次改造的核心重点
+
+虽然仓库中可能还有一些文件带有注释补充、路径调整或轻微修改，但它们不是这次 README 的重点。
+
+例如某些数据模块或基础工具文件，和上游版本相比并没有发生明显的核心思路变化。  
+本仓库最重要的变化仍然集中在以下三类内容：
+
+1. **适配器训练入口与封装**
+2. **文本高斯先验构造**
+3. **不确定性感知分类模块探索**
+
+---
+
+## 推荐阅读顺序
+
+为了更快理解本仓库的修改思路，建议按下面顺序阅读：
+
+1. `train.py`
+2. `bayesvlm/vlm_adapter.py`
+3. `bayesvlm/text_priors.py`
+4. `train_semantic_postnet.py`
+5. `bayesvlm/semantic_postnet.py`
+6. `bayesvlm/flows.py`
+7. `bayesvlm/unfenxi.py`
+
+这个顺序比直接按上游 README 运行代码更能反映你当前仓库的真实开发重点。
+
+---
+
+## 当前存在的问题和限制
+
+由于本仓库仍在开发中，目前已知存在以下限制：
+
+- 适配器训练主流程尚未完全闭环
+- 某些模块还处于实验阶段
+- 部分脚本带有本地路径依赖
+- README 与上游项目已有明显偏离，不能直接套用原说明
+- 并不是所有代码都已经整理成可直接复现实验的最终形式
+
+因此，当前仓库更适合作为：
+
+- 开发版本
+- 研究原型
+- 适配器训练改造中间态
+
+而不是最终成品。
+
+---
+
+## 后续开发方向
+
+本仓库后续预计会继续围绕以下方向完善：
+
+- 补全面向 LP 的训练流程
+- 进一步统一适配器接口
+- 清理实验性脚本中的本地依赖
+- 整理训练、评估和保存流程
+- 将文本先验与适配器训练更稳定地结合起来
+
+---
+
+## 致谢
+
+本仓库基于原始项目：
+
+- [AaltoML/BayesVLM](https://github.com/AaltoML/BayesVLM)
+
+原项目为本仓库提供了：
+
+- Hessian 近似与协方差构造基础
+- 概率视觉语言建模框架
+- 零样本概率预测的核心思想
+
+本仓库的工作是在其基础上，进一步朝着**适配器训练友好化**方向推进。
+
+---
+
+## 引用
+
+如果你的工作使用了原始 BayesVLM 的思想，请引用原论文：
 
 ```bibtex
 @inproceedings{baumann2026bayesvlm,
@@ -167,7 +327,3 @@ ucf101/
   booktitle = {International Conference on Learning Representations {(ICLR)}},
   year      = {2026},
 }
-```
-
-## License
-This software is provided under the MIT license.
