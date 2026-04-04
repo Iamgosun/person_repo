@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+.autodl/
+
+# 忽略数据集和模型（重要！）
+**/datasets/
+**/models/
+**/saved_models/
+*.safetensors
+*.pth

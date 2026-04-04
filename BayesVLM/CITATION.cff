@@ -1,0 +1,26 @@
+cff-version: 1.2.0
+message: "If you use this software or build upon this work, please cite it as below."
+preferred-citation:
+  type: conference-paper
+  title: "Post-hoc Probabilistic Vision-Language Models"
+  authors:
+    - family-names: "Baumann"
+      given-names: "Anton"
+    - family-names: "Li"
+      given-names: "Rui"
+    - family-names: "Klasson"
+      given-names: "Marcus"
+    - family-names: "Mentu"
+      given-names: "Santeri"
+    - family-names: "Karthik"
+      given-names: "Shyamgopal"
+    - family-names: "Akata"
+      given-names: "Zeynep"
+    - family-names: "Solin"
+      given-names: "Arno"
+    - family-names: "Trapp"
+      given-names: "Martin"
+  conference:
+    name: "International Conference on Learning Representations"
+    acronym: "ICLR"
+  year: 2026
