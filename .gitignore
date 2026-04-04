@@ -8,3 +8,5 @@ __pycache__/
 **/saved_models/
 *.safetensors
 *.pth
+Posterior-Network/
+*.pt
