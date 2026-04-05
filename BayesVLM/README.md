@@ -2,6 +2,8 @@
 
 ## Executive Summary
 
+
+## 注意本项目是在BayesVLM项目代码上重新编写的，batch["text"]是源码的方式，但我的CoOp与适配器不需要使用它，而是另外取。并且适配器还没有写完
 本次研究**优先且首先使用已启用的连接器：GitHub（api_tool: github）**，并且**仅审查你指定的仓库 `Iamgosun/person_repo`** 的源码与脚本；在完成对仓库的覆盖性梳理后，才补充检索少量高质量公开资料（优先官方文档与原始论文/项目页）用于解释 CIFAR-10、CLIP/BayesVLM、DataLoader 参数语义等背景概念。citeturn16search1turn16search32turn5search1turn10search1turn8search2
 
 结论上，这个仓库的“CIFAR-10 基准”并不是传统意义上从零训练一个 CNN 分类器，而是围绕 **BayesVLM（ICLR 2026）** 思路做的实验性改造：用 CLIP/SigLIP 的图像/文本编码器（多为冻结），通过 **Hessian→投影层后验协方差** 做不确定性传播，再在下游进行零样本评估或轻量训练（如 CoOp soft prompt、或实验性的 PostNet 式密度证据头）。仓库自带的 CIFAR-10 DataModule 默认**不负责下载原始 CIFAR-10**，而是假设你已将数据整理成 `ImageFolder(train/..., test/...)` 的目录结构；仓库还留有一个基于 Hugging Face Datasets 自动下载的 CIFAR-10 版本文件，但默认工厂未启用它。citeturn10search1turn9search0turn8search2turn5search1

@@ -260,14 +260,16 @@ class CLIPTextEncoder(torch.nn.Module):
 
         return text_embeds
 
-    def forward(self, batch, return_activations=False):
+
+    def forward(self, texts, return_activations=False):
         """
-        中文说明：
-        兼容两种输入：
-        1）batch["text"]
-        2）直接传入字符串列表
+        只接受：
+        1) list[str] / tuple[str]
+        不再接受 batch dict
         """
-        texts = batch["text"] if isinstance(batch, dict) else batch
+        if isinstance(texts, str):
+            texts = [texts]
+
         tokenized = self.tokenize(
             texts=texts,
             padding=True,
@@ -275,6 +277,20 @@ class CLIPTextEncoder(torch.nn.Module):
             return_tensors="pt",
         )
         return self.forward_tokenized(tokenized, return_activations=return_activations)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 class SiglipTextEncoder(torch.nn.Module):
