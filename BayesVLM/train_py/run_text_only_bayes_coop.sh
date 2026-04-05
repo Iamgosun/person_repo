@@ -33,14 +33,14 @@ for DATASET in "${DATASETS[@]}"; do
         --data_root "${DATA_ROOT}" \
         --pseudo_data_count 4 \
         --lambda_txt_init 300.0 \
-        --lambda_opt_steps 500 \
+        --lambda_opt_steps 1000 \
         --n_ctx 16 \
         --ctx_init "a photo of a" \
         --shots_per_class "${SHOTS_PER_CLASS}" \
-        --lr 1e-3 \
-        --weight_decay 1e-4 \
+        --lr 1e-4 \
+        --weight_decay 1e-5 \
         --epochs 20 \
-        --batch_size 32 \
+        --batch_size 256 \
         --num_workers 4 \
         --save_dir "${OUTPUT_ROOT}" \
         --method_name "${METHOD_NAME}" \
