@@ -34,17 +34,31 @@ def _make_clIP_causal_attention_mask(
     return mask
 
 
+
 def _make_padding_attention_mask(
     attention_mask: torch.Tensor,
     dtype: torch.dtype,
 ) -> torch.Tensor:
     """
     中文说明：
-    把 [B, L] 的 0/1 mask 转成 additive attention mask。
+    把 [B, L] 的 0/1 mask 转成 CLIP encoder 需要的 [B, 1, L, L] additive mask。
+    其中：
+    - 1 表示有效 token
+    - 0 表示 padding token
     """
+    batch_size, seq_len = attention_mask.shape
+
+    # 先变成 [B, 1, 1, L]
     mask = 1.0 - attention_mask[:, None, None, :].to(dtype)
+
+    # 再扩成 [B, 1, L, L]
+    mask = mask.expand(batch_size, 1, seq_len, seq_len)
+
+    # 转成 additive mask，padding 位置给极小值
     mask = mask * torch.finfo(dtype).min
     return mask
+
+
 
 
 class CLIPTextEncoder(torch.nn.Module):
