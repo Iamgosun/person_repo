@@ -12,16 +12,21 @@ from bayesvlm.utils import load_model
 
 class VLMAdapter(nn.Module):
     """
-    确定性 CLIP/SigLIP adapter 封装。
+    CLIP/SigLIP adapter 封装。
 
-    设计目标：
-    1. 与 few-shot CoOp 保持同口径：冻结 image/text encoder 与 VLM 标量参数；
-    2. adapter 只接收确定性的类别文本 prototype；
-    3. forward 输出普通 logits，方便与 few-shot CoOp 做公平对比。
+    设计目标
+    --------
+    1. image/text encoder 与 VLM 标量参数保持冻结；
+    2. adapter 接收类别文本 prototype 作为先验；
+    3. 保留 raw-image loader 训练方式；
+    4. 不再把“deterministic backbone”错误地收窄成
+       “adapter 默认也必须是纯确定性前向”。
 
-    兼容性说明：
-    - 保留 ``text_covariance`` 入参，避免旧调用直接报错，但该参数在确定性版本里不会被使用。
-    - 既支持外部传入 ``image_encoder/text_encoder/vlm``，也支持根据 cfg 自动调用 ``load_model``。
+    兼容性
+    ------
+    - 保留 ``text_covariance`` 入参，避免旧调用报错；
+    - 既支持外部传入 ``image_encoder/text_encoder/vlm``，
+      也支持根据 cfg 自动调用 ``load_model``。
     """
 
     def __init__(
@@ -63,7 +68,7 @@ class VLMAdapter(nn.Module):
         self.adapter_input_kind = getattr(self.adapter_cls, "input_kind", "vector")
         self.adapter = self._build_adapter()
 
-        # 兼容旧代码，保留直接访问 logit_scale/logit_bias 的方式。
+        # 兼容旧代码
         self.logit_scale = self.vlm.logit_scale
         self.logit_bias = getattr(self.vlm, "logit_bias", None)
 
@@ -83,7 +88,10 @@ class VLMAdapter(nn.Module):
 
         model_str = str(self._cfg_get("model", self._cfg_get("model_str", "clip-base")))
         device = str(self._cfg_get("device", "cpu"))
-        local_model_path = self._cfg_get("local_model_path", self._cfg_get("model_name_or_path", None))
+        local_model_path = self._cfg_get(
+            "local_model_path",
+            self._cfg_get("model_name_or_path", None),
+        )
 
         image_encoder, text_encoder, vlm = load_model(
             model_str=model_str,
@@ -120,7 +128,7 @@ class VLMAdapter(nn.Module):
     def train(self, mode: bool = True):
         """
         只让 adapter 切换 train/eval；
-        frozen 的 image/text/vlm backbone 始终保持 eval 模式。
+        frozen backbone 始终保持 eval。
         """
         super().train(mode)
         self.image_encoder.eval()
@@ -169,19 +177,62 @@ class VLMAdapter(nn.Module):
 
         return torch.stack(class_features, dim=0)
 
+    def _adapter_kwargs(self) -> dict:
+        kwargs = {}
+        name = self.adapter_name
+
+        if name == "TR":
+            kwargs["alpha"] = float(self._cfg_get("taskres_alpha", 0.5))
+
+        elif name == "CLIPA":
+            kwargs["ratio"] = float(self._cfg_get("clipa_ratio", 0.2))
+            hidden_dim = self._cfg_get("clipa_hidden_dim", None)
+            if hidden_dim is not None:
+                hidden_dim = int(hidden_dim)
+                if hidden_dim > 0:
+                    kwargs["hidden_dim"] = hidden_dim
+
+        elif name == "TIPA":
+            kwargs["alpha"] = float(self._cfg_get("tipa_alpha", 1.0))
+            kwargs["beta"] = float(self._cfg_get("tipa_beta", 1.0))
+
+        elif name == "GAUSSIAN_PER_CLASS":
+            kwargs["prior_sigma"] = float(self._cfg_get("gaussian_prior_sigma", 0.01))
+            kwargs["mc_samples"] = int(self._cfg_get("gaussian_mc_samples", 3))
+            kwargs["anneal_start_epoch"] = int(
+                self._cfg_get("gaussian_anneal_start_epoch", 20)
+            )
+            kwargs["total_epochs"] = int(
+                self._cfg_get("epochs", self._cfg_get("max_epoch", 300))
+            )
+
+        return kwargs
+
     def _build_adapter(self) -> nn.Module:
         if self.adapter_input_kind != "vector":
             raise ValueError(
-                f"Current deterministic VLMAdapter only supports vector adapters, got {self.adapter_input_kind}."
+                f"Current VLMAdapter only supports vector adapters, "
+                f"got {self.adapter_input_kind}."
             )
         return build_adapter(
             adapter_name=self.adapter_name,
             base_text_features=self.base_text_features,
             initialization=self.initialization,
+            **self._adapter_kwargs(),
         )
 
     def trainable_parameters(self):
         return self.adapter.parameters()
+
+    def set_epoch(self, epoch: int) -> None:
+        if hasattr(self.adapter, "set_epoch"):
+            self.adapter.set_epoch(epoch)
+
+    def adapter_regularization_loss(self):
+        if hasattr(self.adapter, "regularization_loss"):
+            return self.adapter.regularization_loss()
+        zero = torch.zeros((), device=self._runtime_device(), dtype=torch.float32)
+        return zero, {}
 
     def _encode_image(self, image: torch.Tensor) -> torch.Tensor:
         image = image.to(
@@ -198,7 +249,10 @@ class VLMAdapter(nn.Module):
     def _apply_adapter(self, image_features: torch.Tensor) -> torch.Tensor:
         logits = self.adapter(image_features, self.vlm.logit_scale)
         if getattr(self.vlm, "logit_bias", None) is not None:
-            logits = logits + self.vlm.logit_bias.to(device=logits.device, dtype=logits.dtype)
+            logits = logits + self.vlm.logit_bias.to(
+                device=logits.device,
+                dtype=logits.dtype,
+            )
         return logits
 
     def forward(
@@ -224,7 +278,11 @@ class VLMAdapter(nn.Module):
         return self._apply_adapter(features)
 
     @torch.no_grad()
-    def zero_shot_logits(self, batch=None, image: torch.Tensor | None = None) -> torch.Tensor:
+    def zero_shot_logits(
+        self,
+        batch=None,
+        image: torch.Tensor | None = None,
+    ) -> torch.Tensor:
         if image is None:
             if batch is None:
                 raise ValueError("batch 和 image 不能同时为空")
@@ -236,6 +294,10 @@ class VLMAdapter(nn.Module):
             dtype=image_features.dtype,
         )
         logits = self.vlm(image_features, base_text_features)
+
         if getattr(self.vlm, "logit_bias", None) is not None:
-            logits = logits + self.vlm.logit_bias.to(device=logits.device, dtype=logits.dtype)
+            logits = logits + self.vlm.logit_bias.to(
+                device=logits.device,
+                dtype=logits.dtype,
+            )
         return logits

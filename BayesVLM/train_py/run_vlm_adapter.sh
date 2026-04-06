@@ -8,18 +8,21 @@ cd "${ROOT_DIR}"
 
 export PYTHONPATH="${ROOT_DIR}:${PYTHONPATH:-}"
 
-DATASETS=("cifar10")
+DATASETS=("food101" )
 SHOTS_PER_CLASS_LIST=(1)
 SEEDS=(1 2 3)
 
+  # "LP:MEAN"
+  # "LP:RANDOM"
+  # "TR:TR"
+  # "ClipA:ClipA"
+  # "TipA:TipA"
+  # "CrossModal:CrossModal"
+  # "GAUSSIAN_PER_CLASS:GAUSSIAN_PER_CLASS"
+
 METHODS=(
-  "LP:MEAN"
   "LP:RANDOM"
-  "TR:TR"
-  "ClipA:ClipA"
-  "TipA:TipA"
-  "CrossModal:CrossModal"
-  "GAUSSIAN_PER_CLASS:GAUSSIAN_PER_CLASS"
+
 )
 
 MODEL="clip-base"

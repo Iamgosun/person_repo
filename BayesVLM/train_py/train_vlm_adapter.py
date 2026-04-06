@@ -88,7 +88,7 @@ def print_class_counts(ds, split_name="train"):
 
 def build_fewshot_subset(ds, shots_per_class: int, seed: int):
     """
-    和 train_text_only_bayes_coop 保持一致：
+    与 text_only_bayes_coop 保持一致：
     从训练集按每类 K-shot 抽样；如果 shots_per_class <= 0，则直接返回原训练集。
     """
     if shots_per_class <= 0:
@@ -159,7 +159,12 @@ def flatten_metrics_history(metrics_history: List[Dict[str, Any]]) -> List[Dict[
             for key, value in item[split].items():
                 row[f"{split}_{key}"] = value
 
-        for extra_key in ["loss_kl", "loss_crossmodal_text"]:
+        for extra_key in [
+            "loss_kl",
+            "loss_kl_raw",
+            "kl_weight",
+            "loss_crossmodal_text",
+        ]:
             if extra_key in item:
                 row[extra_key] = item[extra_key]
 
@@ -338,17 +343,8 @@ def maybe_init_special_adapter(
         model.adapter.init_tipadapter(train_features, train_labels)
 
 
-def compute_regularization_loss(model: VLMAdapter, adapter_name: str):
-    adapter_key = adapter_name.upper()
-    aux: Dict[str, float] = {}
-    zero = torch.zeros((), device=model.logit_scale.device, dtype=torch.float32)
-
-    if adapter_key == "GAUSSIAN_PER_CLASS" and hasattr(model.adapter, "kl_divergence"):
-        kl = model.adapter.kl_divergence()
-        aux["loss_kl"] = float(kl.detach().item())
-        return kl, aux
-
-    return zero, aux
+def compute_regularization_loss(model: VLMAdapter):
+    return model.adapter_regularization_loss()
 
 
 def compute_crossmodal_text_loss(
@@ -358,7 +354,7 @@ def compute_crossmodal_text_loss(
 ) -> torch.Tensor:
     """
     保留 CrossModal 的“文本 prototype 辅助监督”思想，
-    但不再把主训练流程改成 feature-dataset。
+    但不把主训练流程改回 feature-dataset。
     """
     text_proto = model.base_text_features.to(device=device, dtype=torch.float32)
     num_classes = text_proto.shape[0]
@@ -494,6 +490,14 @@ def main(
     prediction_topk: int = 5,
     hessian_dir: str | None = None,
     pseudo_data_count: int = 4,
+    taskres_alpha: float = 0.5,
+    clipa_ratio: float = 0.2,
+    clipa_hidden_dim: int = 0,
+    tipa_alpha: float = 1.0,
+    tipa_beta: float = 1.0,
+    gaussian_prior_sigma: float = 0.01,
+    gaussian_mc_samples: int = 3,
+    gaussian_anneal_start_epoch: int = 20,
 ):
     set_seed(seed)
 
@@ -520,8 +524,8 @@ def main(
         print(f"[run] run_dir={run_dir}")
 
         if hessian_dir:
-            print(f"[note] 当前 vlm_adapter 仍是确定性对比实验，hessian_dir={hessian_dir} 将被忽略。")
-        print(f"[note] pseudo_data_count={pseudo_data_count} 仅为兼容旧接口保留，不参与当前 adapter 主训练。")
+            print(f"[note] hessian_dir={hessian_dir} 当前 raw-image adapter 训练不会直接使用。")
+        print(f"[note] pseudo_data_count={pseudo_data_count} 仅为兼容旧接口保留。")
 
         if model_str not in MODEL_NAME_MAP:
             raise ValueError(f"无效模型名：{model_str}，可选值为 {list(MODEL_NAME_MAP.keys())}")
@@ -552,7 +556,6 @@ def main(
         print_class_counts(test_ds, split_name="test")
         save_json(run_dir / "class_names.json", {"class_names": class_names})
 
-        # 关键修改：直接复用 text_only_bayes_coop 的 raw-image loader protocol
         train_loader = build_loader(train_ds, batch_size=batch_size, num_workers=num_workers, shuffle=True)
         train_eval_loader = build_loader(train_ds, batch_size=batch_size, num_workers=num_workers, shuffle=False)
         val_loader = build_loader(val_ds, batch_size=batch_size, num_workers=num_workers, shuffle=False)
@@ -571,6 +574,16 @@ def main(
         cfg.adapter_name = adapter_name
         cfg.initialization = initialization
         cfg.device = device
+        cfg.epochs = epochs
+
+        cfg.taskres_alpha = taskres_alpha
+        cfg.clipa_ratio = clipa_ratio
+        cfg.clipa_hidden_dim = None if clipa_hidden_dim <= 0 else clipa_hidden_dim
+        cfg.tipa_alpha = tipa_alpha
+        cfg.tipa_beta = tipa_beta
+        cfg.gaussian_prior_sigma = gaussian_prior_sigma
+        cfg.gaussian_mc_samples = gaussian_mc_samples
+        cfg.gaussian_anneal_start_epoch = gaussian_anneal_start_epoch
 
         model = VLMAdapter(
             cfg=cfg,
@@ -625,6 +638,14 @@ def main(
             "prediction_topk": prediction_topk,
             "hessian_dir_ignored": hessian_dir,
             "pseudo_data_count_ignored": pseudo_data_count,
+            "taskres_alpha": taskres_alpha,
+            "clipa_ratio": clipa_ratio,
+            "clipa_hidden_dim": None if clipa_hidden_dim <= 0 else clipa_hidden_dim,
+            "tipa_alpha": tipa_alpha,
+            "tipa_beta": tipa_beta,
+            "gaussian_prior_sigma": gaussian_prior_sigma,
+            "gaussian_mc_samples": gaussian_mc_samples,
+            "gaussian_anneal_start_epoch": gaussian_anneal_start_epoch,
             "zero_shot_test": zero_shot_test,
             "run_dir": str(run_dir),
         }
@@ -637,10 +658,12 @@ def main(
         print("[train] 开始 adapter 训练 ...")
         for epoch in range(1, epochs + 1):
             model.train()
+            model.set_epoch(epoch)
 
             epoch_loss_sum = 0.0
             epoch_count = 0
             epoch_crossmodal_text_sum = 0.0
+            epoch_reg_sum = 0.0
 
             for batch in train_loader:
                 labels = batch["class_id"].to(device)
@@ -648,10 +671,10 @@ def main(
                 optimizer.zero_grad(set_to_none=True)
 
                 logits = model(batch=batch)
-                loss = F.cross_entropy(logits, labels)
+                ce_loss = F.cross_entropy(logits, labels)
 
-                reg_loss, reg_info = compute_regularization_loss(model, adapter_name=adapter_name)
-                total_loss = loss + reg_loss
+                reg_loss, reg_info = compute_regularization_loss(model)
+                total_loss = ce_loss + reg_loss
 
                 if adapter_name.upper() == "CROSSMODAL":
                     aux_text_loss = compute_crossmodal_text_loss(
@@ -666,6 +689,7 @@ def main(
                 optimizer.step()
 
                 epoch_loss_sum += total_loss.item() * labels.size(0)
+                epoch_reg_sum += reg_loss.item() * labels.size(0)
                 epoch_count += labels.size(0)
 
             train_metrics = evaluate_model(model, train_eval_loader, len(class_names), device=device)
@@ -680,15 +704,22 @@ def main(
                 "test": test_metrics,
             }
 
-            if adapter_name.upper() == "GAUSSIAN_PER_CLASS" and hasattr(model.adapter, "kl_divergence"):
-                row["loss_kl"] = float(model.adapter.kl_divergence().detach().item())
+            if epoch_count > 0:
+                row["loss_reg"] = epoch_reg_sum / epoch_count
+
+            if "loss_kl_raw" in reg_info:
+                row["loss_kl_raw"] = reg_info["loss_kl_raw"]
+            if "loss_kl" in reg_info:
+                row["loss_kl"] = reg_info["loss_kl"]
+            if "kl_weight" in reg_info:
+                row["kl_weight"] = reg_info["kl_weight"]
 
             if adapter_name.upper() == "CROSSMODAL":
                 row["loss_crossmodal_text"] = epoch_crossmodal_text_sum / max(epoch_count, 1)
 
             metrics_history.append(row)
 
-            print(
+            log_msg = (
                 f"[Epoch {epoch:03d}] "
                 f"train_acc={train_metrics['acc']:.4f} "
                 f"val_acc={val_metrics['acc']:.4f} "
@@ -696,6 +727,11 @@ def main(
                 f"val_nlpd={val_metrics['nlpd']:.4f} "
                 f"val_ece={val_metrics['ece']:.4f}"
             )
+            if "kl_weight" in row:
+                log_msg += f" kl_weight={row['kl_weight']:.4f}"
+            if "loss_kl_raw" in row:
+                log_msg += f" loss_kl_raw={row['loss_kl_raw']:.4f}"
+            print(log_msg)
 
             if val_metrics["loss"] < best_val_loss:
                 best_val_loss = val_metrics["loss"]
@@ -810,9 +846,17 @@ if __name__ == "__main__":
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--device", type=str, default="cuda")
 
-    # 仅为兼容旧接口保留，不参与当前 adapter 主训练。
     parser.add_argument("--hessian_dir", type=str, default=None)
     parser.add_argument("--pseudo_data_count", type=int, default=4)
+
+    parser.add_argument("--taskres_alpha", type=float, default=0.5)
+    parser.add_argument("--clipa_ratio", type=float, default=0.2)
+    parser.add_argument("--clipa_hidden_dim", type=int, default=0)
+    parser.add_argument("--tipa_alpha", type=float, default=1.0)
+    parser.add_argument("--tipa_beta", type=float, default=1.0)
+    parser.add_argument("--gaussian_prior_sigma", type=float, default=0.01)
+    parser.add_argument("--gaussian_mc_samples", type=int, default=3)
+    parser.add_argument("--gaussian_anneal_start_epoch", type=int, default=20)
 
     args = parser.parse_args()
 
@@ -836,4 +880,12 @@ if __name__ == "__main__":
         prediction_topk=args.prediction_topk,
         hessian_dir=args.hessian_dir,
         pseudo_data_count=args.pseudo_data_count,
+        taskres_alpha=args.taskres_alpha,
+        clipa_ratio=args.clipa_ratio,
+        clipa_hidden_dim=args.clipa_hidden_dim,
+        tipa_alpha=args.tipa_alpha,
+        tipa_beta=args.tipa_beta,
+        gaussian_prior_sigma=args.gaussian_prior_sigma,
+        gaussian_mc_samples=args.gaussian_mc_samples,
+        gaussian_anneal_start_epoch=args.gaussian_anneal_start_epoch,
     )
