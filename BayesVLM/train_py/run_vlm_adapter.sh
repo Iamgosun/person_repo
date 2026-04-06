@@ -11,7 +11,7 @@ export PYTHONPATH="${ROOT_DIR}:${PYTHONPATH:-}"
 # =========================
 # sweep config
 # =========================
-DATASETS=("cifar10") #cifar10 food101
+DATASETS=("food101") #cifar10 food101
 SHOTS_PER_CLASS_LIST=(16)
 SEEDS=(1)
 

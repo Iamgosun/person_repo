@@ -8,13 +8,12 @@ cd "${ROOT_DIR}"
 
 export PYTHONPATH="${ROOT_DIR}:${PYTHONPATH:-}"
 
-METHOD_NAME="text_only_bayes_coop"
+METHOD_NAME="deterministic_coop"
 OUTPUT_ROOT="./output"
 DATA_ROOT="./datasets"
 MODEL_PATH="./models/clip-vit-b32"
-HESSIAN_DIR="./hessians/hessian_CLIP-ViT-B-32-laion2B-s34B-b79K"
 
-# 新增：图像特征缓存目录
+# 图像特征缓存目录
 CACHE_ROOT="./cache/image_features"
 
 # 是否强制重建图像特征缓存：
@@ -25,29 +24,30 @@ REBUILD_IMAGE_CACHE=0
 # 如需彻底关闭图像特征缓存，改成 1
 DISABLE_IMAGE_CACHE=0
 
-# 建议先用你当前最稳的 dataset 起跑 food101 cifar10
+# 建议先用你当前最稳的 dataset 起跑
 DATASETS=("food101")
-SHOTS_PER_CLASS_LIST=(16)
+SHOTS_PER_CLASS_LIST=(1)
 SEEDS=(1)
 
-# 第一次重构后排查建议保守一点
-PSEUDO_DATA_COUNT=4
-LAMBDA_TXT_INIT=300.0
-LAMBDA_OPT_STEPS=1000
-N_CTX=16
-CTX_INIT="a photo of a"
+# 做最干净的 deterministic CoOp 对照时，
+# 若 ctx_init="a photo of a"，建议 n_ctx 先设成 4
+N_CTX=3
+CTX_INIT="a photo of"
+FIXED_SUFFIX=", a type of food."
 
-LR=1e-4
-WEIGHT_DECAY=1e-5
+
+
+
+LR=1e-3
+WEIGHT_DECAY=1e-4
 EPOCHS=100
 BATCH_SIZE=256
-
 NUM_WORKERS=8
 
 PREDICTION_TOPK=5
 DEVICE="cuda"
 PYTHON_BIN="python"
-TRAIN_SCRIPT="train_py/train_text_only_bayes_coop.py"
+TRAIN_SCRIPT="train_py/train_deterministic_coop.py"
 
 EXTRA_ARGS=()
 
@@ -72,16 +72,13 @@ for DATASET in "${DATASETS[@]}"; do
 
       "${PYTHON_BIN}" -u "${TRAIN_SCRIPT}" \
         --dataset "${DATASET}" \
-        --hessian_dir "${HESSIAN_DIR}" \
         --model clip-base \
         --local_model_path "${MODEL_PATH}" \
         --data_root "${DATA_ROOT}" \
         --image_feature_cache_root "${CACHE_ROOT}" \
-        --pseudo_data_count "${PSEUDO_DATA_COUNT}" \
-        --lambda_txt_init "${LAMBDA_TXT_INIT}" \
-        --lambda_opt_steps "${LAMBDA_OPT_STEPS}" \
         --n_ctx "${N_CTX}" \
         --ctx_init "${CTX_INIT}" \
+        --fixed_suffix "${FIXED_SUFFIX}" \
         --shots_per_class "${SHOTS_PER_CLASS}" \
         --lr "${LR}" \
         --weight_decay "${WEIGHT_DECAY}" \

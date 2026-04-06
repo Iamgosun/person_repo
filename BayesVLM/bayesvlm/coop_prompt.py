@@ -18,22 +18,28 @@ class CoOpPromptLearner(nn.Module):
     4. 这里依赖解耦后的 text_encoder.py 提供的 embedding 级前向接口。
     """
 
+
     def __init__(
         self,
         class_names: Sequence[str],
         text_encoder: CLIPTextEncoder | SiglipTextEncoder,
         n_ctx: int = 16,
-        ctx_init: str = "a photo of a",
+        ctx_init: str = "a photo of",
         class_token_position: str = "end",
+        fixed_suffix: str = "",
     ):
+
+
+
         super().__init__()
         self.class_names = [str(name).replace("_", " ") for name in class_names]
         self.text_encoder = text_encoder
         self.n_ctx = int(n_ctx)
         self.class_token_position = class_token_position
-
+        self.fixed_suffix = fixed_suffix
         self.tokenizer = text_encoder.tokenizer
         self.token_embedding = text_encoder.get_token_embedding_layer()
+
 
         self.max_length = int(getattr(self.tokenizer, "model_max_length", 77))
         self.bos_token_id = int(self._get_special_token_id("bos_token_id", fallback="cls_token_id", default=0))
@@ -59,6 +65,21 @@ class CoOpPromptLearner(nn.Module):
             )
             ids = tokenized["input_ids"][0].detach().cpu()
             self.name_token_ids.append(ids)
+
+
+        # 固定后缀 token（不带 special tokens）
+        if self.fixed_suffix is not None and len(self.fixed_suffix.strip()) > 0:
+            suffix_tokenized = self.tokenizer(
+                self.fixed_suffix,
+                add_special_tokens=False,
+                return_tensors="pt",
+            )
+            self.suffix_token_ids = suffix_tokenized["input_ids"][0].detach().cpu()
+        else:
+            self.suffix_token_ids = torch.empty(0, dtype=torch.long)
+
+
+
 
     def _get_special_token_id(self, primary: str, fallback: str | None = None, default: int = 0) -> int:
         value = getattr(self.tokenizer, primary, None)
@@ -116,20 +137,18 @@ class CoOpPromptLearner(nn.Module):
         ).normal_(std=0.02)
         return torch.cat([content_embeds, pad], dim=0)
 
+
+
     def _build_single_prompt(
         self,
         name_ids: torch.Tensor,
     ) -> Tuple[torch.Tensor, torch.Tensor, int]:
-        """
-        中文说明：
-        构造单个类别的 prompt：
-            [BOS] + ctx + class_name_tokens + [EOS] + [PAD] ...
-        默认使用 class_token_position='end'。
-        """
         device = self._device()
         dtype = self._dtype()
 
         name_ids = name_ids.to(device)
+        suffix_ids = self.suffix_token_ids.to(device)
+
         bos_id = torch.tensor([self.bos_token_id], device=device)
         eos_id = torch.tensor([self.eos_token_id], device=device)
         pad_id = torch.tensor([self.pad_token_id], device=device)
@@ -137,23 +156,32 @@ class CoOpPromptLearner(nn.Module):
         bos_embed = self.token_embedding(bos_id).to(dtype)
         eos_embed = self.token_embedding(eos_id).to(dtype)
         name_embed = self.token_embedding(name_ids).to(dtype)
+        suffix_embed = self.token_embedding(suffix_ids).to(dtype) if suffix_ids.numel() > 0 else torch.empty(
+            0, self.ctx.shape[1], device=device, dtype=dtype
+        )
         ctx_embed = self.ctx.to(dtype)
 
-        # 中文说明：
-        # 给 [BOS]、ctx、类名、[EOS] 留位置；如果类名过长就截断。
-        max_name_len = max(1, self.max_length - self.n_ctx - 2)
+        # 预留 [BOS] + ctx + class + suffix + [EOS]
+        max_name_len = max(1, self.max_length - self.n_ctx - suffix_embed.shape[0] - 2)
         name_embed = name_embed[:max_name_len]
 
         if self.class_token_position == "front":
-            seq_embed = torch.cat([bos_embed, name_embed, ctx_embed, eos_embed], dim=0)
+            seq_embed = torch.cat(
+                [bos_embed, name_embed, ctx_embed, suffix_embed, eos_embed],
+                dim=0,
+            )
         elif self.class_token_position == "middle":
             half = self.n_ctx // 2
             seq_embed = torch.cat(
-                [bos_embed, ctx_embed[:half], name_embed, ctx_embed[half:], eos_embed],
+                [bos_embed, ctx_embed[:half], name_embed, ctx_embed[half:], suffix_embed, eos_embed],
                 dim=0,
             )
         else:
-            seq_embed = torch.cat([bos_embed, ctx_embed, name_embed, eos_embed], dim=0)
+            # 默认 end: learned ctx 在前，类名在中，固定 suffix 在后
+            seq_embed = torch.cat(
+                [bos_embed, ctx_embed, name_embed, suffix_embed, eos_embed],
+                dim=0,
+            )
 
         valid_len = int(seq_embed.shape[0])
         eos_pos = valid_len - 1
@@ -170,6 +198,8 @@ class CoOpPromptLearner(nn.Module):
         attention_mask = torch.zeros(self.max_length, device=device, dtype=torch.long)
         attention_mask[:valid_len] = 1
         return seq_embed, attention_mask, eos_pos
+
+
 
     def build_prompts(self) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """
