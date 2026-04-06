@@ -11,8 +11,8 @@ export PYTHONPATH="${ROOT_DIR}:${PYTHONPATH:-}"
 # =========================
 # sweep config
 # =========================
-DATASETS=("cifar10")
-SHOTS_PER_CLASS_LIST=(1)
+DATASETS=("cifar10") #cifar10 food101
+SHOTS_PER_CLASS_LIST=(16)
 SEEDS=(1)
 
 # 可选：
@@ -50,10 +50,10 @@ DISABLE_IMAGE_CACHE=0
 PREDICTION_TOPK=5
 DEVICE="cuda"
 
-# 第一次排查建议先设 0，确认没问题后再改回 4
-NUM_WORKERS=0
+
+NUM_WORKERS=8
 BATCH_SIZE=256
-EPOCHS=5
+EPOCHS=100
 LR=1e-3
 WEIGHT_DECAY=1e-4
 

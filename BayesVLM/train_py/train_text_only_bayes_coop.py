@@ -4,10 +4,9 @@ import argparse
 import json
 import time
 from pathlib import Path
+import sys
 
 import torch
-import sys
-from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
@@ -53,6 +52,35 @@ def _resolve_path(path_str: str) -> Path:
         return p2
 
     raise FileNotFoundError(f"路径不存在：{path_str}")
+
+
+def _normalize_path_for_cache(path_str: str | None) -> str | None:
+    """
+    用于 cache spec 的稳定路径：
+    - 如果真的是本地路径，则转成绝对路径，避免 ./x 和 /abs/x 产生不同 cache key
+    - 如果不是本地路径（例如未来传 HuggingFace repo id），就保留原字符串
+    """
+    if path_str is None:
+        return None
+
+    p = Path(path_str)
+    if p.exists():
+        return str(p.resolve())
+
+    p2 = (Path.cwd() / path_str).resolve()
+    if p2.exists():
+        return str(p2)
+
+    return path_str
+
+
+def _stable_transform_name(model_type: str, image_size: int) -> str:
+    """
+    不再使用 repr(transform)，因为其中可能包含函数对象地址，导致不同进程 cache key 不稳定。
+    """
+    if model_type == "siglip":
+        return f"siglip_transform(image_size={image_size})"
+    return f"default_transform(image_size={image_size})"
 
 
 def _check_txt_hessian_dir(hessian_dir: Path) -> dict:
@@ -110,6 +138,11 @@ def main(
     with tee_output(run_dir / "train.log"):
         run_start_time = time.time()
 
+        hessian_dir_path = _resolve_path(hessian_dir)
+        data_root_path = _resolve_path(data_root)
+        image_feature_cache_root_path = Path(image_feature_cache_root).resolve()
+        local_model_path_for_cache = _normalize_path_for_cache(local_model_path)
+
         print(f"[run] method={method_name}")
         print(f"[run] dataset={dataset}")
         print(f"[run] shots_per_class={shots_per_class}")
@@ -117,8 +150,12 @@ def main(
         print(f"[run] device={device}")
         print(f"[run] run_dir={run_dir}")
         print(f"[run] cache_image_features={cache_image_features}")
-        print(f"[run] image_feature_cache_root={image_feature_cache_root}")
+        print(f"[run] image_feature_cache_root={image_feature_cache_root_path}")
         print(f"[run] rebuild_image_feature_cache={rebuild_image_feature_cache}")
+        print(f"[run] local_model_path(raw)={local_model_path}")
+        print(f"[run] local_model_path(cache_key)={local_model_path_for_cache}")
+        print(f"[run] data_root(raw)={data_root}")
+        print(f"[run] data_root(cache_key)={data_root_path}")
 
         if model_str not in MODEL_NAME_MAP:
             raise ValueError(f"无效模型名：{model_str}，可选值为 {list(MODEL_NAME_MAP.keys())}")
@@ -126,7 +163,6 @@ def main(
         if dataset not in SUPPORTED_MODULES:
             raise ValueError(f"无效数据集：{dataset}，可选值为 {sorted(SUPPORTED_MODULES.keys())}")
 
-        hessian_dir_path = _resolve_path(hessian_dir)
         hessian_check = _check_txt_hessian_dir(hessian_dir_path)
         if not hessian_check["ok"]:
             existing_files = []
@@ -146,10 +182,15 @@ def main(
         model_type, _ = get_model_type_and_size(model_str)
         transform_image_size = get_image_size(model_str)
         transform = get_transform(model_type, transform_image_size)
+        transform_name = _stable_transform_name(model_type, transform_image_size)
+
+        print(f"[run] model_type={model_type}")
+        print(f"[run] image_size={transform_image_size}")
+        print(f"[run] transform_name(cache_key)={transform_name}")
 
         data = prepare_experiment_data(
             dataset=dataset,
-            data_root=data_root,
+            data_root=str(data_root_path),
             batch_size=batch_size,
             num_workers=num_workers,
             train_transform=transform,
@@ -181,21 +222,19 @@ def main(
                 shuffle=False,
             )
 
-            transform_name = repr(transform)
-
             train_full_features = get_or_build_image_feature_bundle(
                 image_encoder=image_encoder,
                 loader=raw_train_loader_for_cache,
                 ds=data.raw_train_ds,
-                cache_root=image_feature_cache_root,
+                cache_root=image_feature_cache_root_path,
                 spec=ImageFeatureCacheSpec(
                     dataset=dataset,
                     split="train_full",
                     model_str=model_str,
-                    local_model_path=local_model_path,
+                    local_model_path=local_model_path_for_cache,
                     image_size=transform_image_size,
                     transform_name=transform_name,
-                    data_root=data_root,
+                    data_root=str(data_root_path),
                 ),
                 force_rebuild=rebuild_image_feature_cache,
             )
@@ -204,15 +243,15 @@ def main(
                 image_encoder=image_encoder,
                 loader=data.val_loader,
                 ds=data.val_ds,
-                cache_root=image_feature_cache_root,
+                cache_root=image_feature_cache_root_path,
                 spec=ImageFeatureCacheSpec(
                     dataset=dataset,
                     split="val",
                     model_str=model_str,
-                    local_model_path=local_model_path,
+                    local_model_path=local_model_path_for_cache,
                     image_size=transform_image_size,
                     transform_name=transform_name,
-                    data_root=data_root,
+                    data_root=str(data_root_path),
                 ),
                 force_rebuild=rebuild_image_feature_cache,
             )
@@ -221,15 +260,15 @@ def main(
                 image_encoder=image_encoder,
                 loader=data.test_loader,
                 ds=data.test_ds,
-                cache_root=image_feature_cache_root,
+                cache_root=image_feature_cache_root_path,
                 spec=ImageFeatureCacheSpec(
                     dataset=dataset,
                     split="test",
                     model_str=model_str,
-                    local_model_path=local_model_path,
+                    local_model_path=local_model_path_for_cache,
                     image_size=transform_image_size,
                     transform_name=transform_name,
-                    data_root=data_root,
+                    data_root=str(data_root_path),
                 ),
                 force_rebuild=rebuild_image_feature_cache,
             )
@@ -237,6 +276,11 @@ def main(
             _, train_indices = unwrap_dataset_and_indices(data.train_ds)
             if train_indices is None:
                 train_indices = list(range(len(data.train_ds)))
+
+            print(
+                f"[cache] raw_train_samples={len(data.raw_train_ds)} | "
+                f"fewshot_train_samples={len(train_indices)}"
+            )
 
             train_subset_features = train_full_features.subset(train_indices)
 
@@ -320,8 +364,10 @@ def main(
             "dataset": dataset,
             "hessian_dir": str(hessian_dir_path),
             "model_str": model_str,
-            "local_model_path": local_model_path,
-            "data_root": data_root,
+            "local_model_path_raw": local_model_path,
+            "local_model_path_cache_key": local_model_path_for_cache,
+            "data_root_raw": data_root,
+            "data_root_cache_key": str(data_root_path),
             "pseudo_data_count": pseudo_data_count,
             "lambda_txt_init": lambda_txt_init,
             "lambda_opt_steps": lambda_opt_steps,
@@ -341,8 +387,9 @@ def main(
             "prediction_topk": prediction_topk,
             "run_dir": str(run_dir),
             "cache_image_features": cache_image_features,
-            "image_feature_cache_root": image_feature_cache_root,
+            "image_feature_cache_root": str(image_feature_cache_root_path),
             "rebuild_image_feature_cache": rebuild_image_feature_cache,
+            "transform_name_cache_key": transform_name,
             "hessian_check": hessian_check,
         }
         save_json(run_dir / "config.json", config)
@@ -375,21 +422,10 @@ def main(
                 epoch_loss_sum += loss.item() * labels.size(0)
                 epoch_count += labels.size(0)
 
-            train_metrics = evaluate_text_only_bayes_coop(
-                model=model,
-                loader=train_eval_loader,
-                num_classes=len(data.class_names),
-                device=device,
-            )
+            # 每个 epoch 只跑 val
             val_metrics = evaluate_text_only_bayes_coop(
                 model=model,
                 loader=val_loader,
-                num_classes=len(data.class_names),
-                device=device,
-            )
-            test_metrics = evaluate_text_only_bayes_coop(
-                model=model,
-                loader=test_loader,
                 num_classes=len(data.class_names),
                 device=device,
             )
@@ -397,17 +433,14 @@ def main(
             row = {
                 "epoch": epoch,
                 "train_loss_step_mean": epoch_loss_sum / max(epoch_count, 1),
-                "train": train_metrics,
                 "val": val_metrics,
-                "test": test_metrics,
             }
             metrics_history.append(row)
 
             print(
                 f"[Epoch {epoch:03d}] "
-                f"train_acc={train_metrics['acc']:.4f} "
+                f"train_loss={row['train_loss_step_mean']:.4f} "
                 f"val_acc={val_metrics['acc']:.4f} "
-                f"test_acc={test_metrics['acc']:.4f} "
                 f"val_nlpd={val_metrics['nlpd']:.4f} "
                 f"val_ece={val_metrics['ece']:.4f}"
             )
@@ -419,12 +452,13 @@ def main(
                     "config": config,
                     "best_epoch": epoch,
                     "best_val_metrics": val_metrics,
-                    "best_test_metrics": test_metrics,
                 }
                 torch.save(best_state, run_dir / "best_prompt_learner.pt")
 
             save_json(run_dir / "metrics_history.json", metrics_history)
             save_csv(run_dir / "metrics_history.csv", flatten_metrics_history(metrics_history))
+
+
 
         print("[3] 训练结束，加载最优 prompt 并导出最终预测 ...")
         best_ckpt_path = run_dir / "best_prompt_learner.pt"
@@ -487,12 +521,12 @@ def main(
             "seed": seed,
             "best_epoch": best_state["best_epoch"],
             "best_val_metrics_saved": best_state["best_val_metrics"],
-            "best_test_metrics_saved": best_state["best_test_metrics"],
             "final_train_metrics_recomputed": final_train_metrics,
             "final_val_metrics_recomputed": final_val_metrics,
             "final_test_metrics_recomputed": final_test_metrics,
             "run_dir": str(run_dir),
             "elapsed_seconds": round(time.time() - run_start_time, 2),
+
             "artifacts": {
                 "log_file": "train.log",
                 "config_file": "config.json",
@@ -508,6 +542,9 @@ def main(
                 "test_predictions_pt": "test_predictions.pt",
             },
         }
+
+
+
         save_json(run_dir / "summary.json", summary)
 
         print("[done] 最终结果：")

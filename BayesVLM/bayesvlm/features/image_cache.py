@@ -117,6 +117,23 @@ def _cache_file_paths(cache_dir: Path) -> list[Path]:
     ]
 
 
+def _required_core_cache_files(cache_dir: Path) -> list[Path]:
+    return [
+        cache_dir / "embeddings_img.pt",
+        cache_dir / "activations_img.pt",
+        cache_dir / "residuals_img.pt",
+        cache_dir / "class_ids_img.pt",
+        cache_dir / "image_ids.pt",
+        cache_dir / "sample_keys.json",
+        cache_dir / "manifest.json",
+    ]
+
+
+def _manifest_diff_keys(current_manifest: dict, expected_manifest: dict) -> list[str]:
+    keys = sorted(set(current_manifest.keys()) | set(expected_manifest.keys()))
+    return [k for k in keys if current_manifest.get(k) != expected_manifest.get(k)]
+
+
 def clear_feature_cache(cache_dir: str | Path) -> None:
     cache_dir = Path(cache_dir)
     for p in _cache_file_paths(cache_dir):
@@ -168,24 +185,37 @@ def get_or_build_image_feature_bundle(
         **asdict(spec),
         "num_samples": len(sample_keys),
         "sample_keys_sha256": _sha256_str_list(sample_keys),
-        "feature_format_version": 1,
+        "feature_format_version": 2,
     }
 
-    has_core_files = all([
-        (cache_dir / "embeddings_img.pt").exists(),
-        (cache_dir / "activations_img.pt").exists(),
-        (cache_dir / "residuals_img.pt").exists(),
-        (cache_dir / "class_ids_img.pt").exists(),
-        (cache_dir / "sample_keys.json").exists(),
-        manifest_path.exists(),
-    ])
+    required_files = _required_core_cache_files(cache_dir)
+    missing_core_files = [str(p.name) for p in required_files if not p.exists()]
+    has_core_files = len(missing_core_files) == 0
 
-    if (not force_rebuild) and has_core_files:
+    print(
+        "[cache] "
+        f"dataset={spec.dataset} split={spec.split} "
+        f"cache_dir={cache_dir}"
+    )
+
+    if force_rebuild:
+        print("[cache] force_rebuild=True，忽略已有缓存并重建。")
+    elif has_core_files:
         current_manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
         if current_manifest == expected_manifest:
+            print("[cache] 命中缓存，直接加载。")
             return load_image_feature_bundle(cache_dir)
 
-    # 只要 manifest 不匹配，就先清旧缓存。
+        diff_keys = _manifest_diff_keys(current_manifest, expected_manifest)
+        print("[cache] manifest 不匹配，准备重建。")
+        print(f"[cache] manifest_diff_keys={diff_keys}")
+        for k in diff_keys:
+            print(f"[cache]   {k}: current={current_manifest.get(k)} | expected={expected_manifest.get(k)}")
+    else:
+        print("[cache] 未命中缓存，缺少核心文件。")
+        print(f"[cache] missing_core_files={missing_core_files}")
+
+    # 只要 manifest 不匹配，或核心文件不完整，就先清旧缓存。
     # 否则 precompute_image_features() 自己也会误命中旧 pt 文件。
     clear_feature_cache(cache_dir)
 
@@ -211,6 +241,8 @@ def get_or_build_image_feature_bundle(
         json.dumps(expected_manifest, ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
+
+    print("[cache] 已完成重建并写入 manifest。")
 
     return ImageFeatureBundle(
         outputs=outputs,

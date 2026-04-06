@@ -190,7 +190,15 @@ def main(
             shuffle=False,
         )
 
-        transform_name = repr(transform)
+        # transform_name = repr(transform)
+
+        def _stable_transform_name(model_type: str, image_size: int) -> str:
+            if model_type == "siglip":
+                return f"siglip_transform(image_size={image_size})"
+            return f"default_transform(image_size={image_size})"
+
+        transform_name = _stable_transform_name(model_type, transform_image_size)
+
 
         train_full_features = get_or_build_image_feature_bundle(
             image_encoder=image_encoder,
@@ -405,21 +413,10 @@ def main(
                 epoch_reg_sum += reg_loss.item() * labels.size(0)
                 epoch_count += labels.size(0)
 
-            train_metrics = evaluate_vlm_adapter(
-                model=model,
-                loader=train_eval_loader,
-                num_classes=len(data.class_names),
-                device=device,
-            )
+            # 每个 epoch 只跑 val
             val_metrics = evaluate_vlm_adapter(
                 model=model,
                 loader=val_loader,
-                num_classes=len(data.class_names),
-                device=device,
-            )
-            test_metrics = evaluate_vlm_adapter(
-                model=model,
-                loader=test_loader,
                 num_classes=len(data.class_names),
                 device=device,
             )
@@ -428,9 +425,7 @@ def main(
                 "epoch": epoch,
                 "train_loss_step_mean": epoch_loss_sum / max(epoch_count, 1),
                 "loss_reg": epoch_reg_sum / max(epoch_count, 1),
-                "train": train_metrics,
                 "val": val_metrics,
-                "test": test_metrics,
             }
 
             for key in ["loss_kl_raw", "loss_kl", "kl_weight"]:
@@ -444,12 +439,14 @@ def main(
 
             log_msg = (
                 f"[Epoch {epoch:03d}] "
-                f"train_acc={train_metrics['acc']:.4f} "
+                f"train_loss={row['train_loss_step_mean']:.4f} "
+                f"loss_reg={row['loss_reg']:.4f} "
                 f"val_acc={val_metrics['acc']:.4f} "
-                f"test_acc={test_metrics['acc']:.4f} "
                 f"val_nlpd={val_metrics['nlpd']:.4f} "
                 f"val_ece={val_metrics['ece']:.4f}"
             )
+            if "loss_crossmodal_text" in row:
+                log_msg += f" loss_crossmodal_text={row['loss_crossmodal_text']:.4f}"
             if "kl_weight" in row:
                 log_msg += f" kl_weight={row['kl_weight']:.4f}"
             if "loss_kl_raw" in row:
@@ -462,7 +459,6 @@ def main(
                     "adapter": copy.deepcopy(model.adapter.state_dict()),
                     "best_epoch": epoch,
                     "best_val_metrics": val_metrics,
-                    "best_test_metrics": test_metrics,
                     "config": config,
                 }
                 torch.save(best_state, run_dir / "best_adapter.pt")
@@ -532,7 +528,6 @@ def main(
             "best_epoch": best_state["best_epoch"],
             "zero_shot_test": zero_shot_test,
             "best_val_metrics_saved": best_state["best_val_metrics"],
-            "best_test_metrics_saved": best_state["best_test_metrics"],
             "final_train_metrics_recomputed": final_train_metrics,
             "final_val_metrics_recomputed": final_val_metrics,
             "final_test_metrics_recomputed": final_test_metrics,
@@ -553,6 +548,7 @@ def main(
                 "test_predictions_pt": "test_predictions.pt",
             },
         }
+
         save_json(run_dir / "summary.json", summary)
 
         print("[done] 最终结果：")
