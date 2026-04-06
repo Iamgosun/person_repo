@@ -3,18 +3,21 @@ from __future__ import annotations
 import argparse
 import copy
 import json
-import random
 import time
 from pathlib import Path
+from typing import Any
 
-import numpy as np
 import torch
-import torch.nn.functional as F
 
 from bayesvlm.constants import MODEL_NAME_MAP
-from bayesvlm.data.dataset_ops import print_class_counts
+from bayesvlm.data.dataset_ops import print_class_counts, unwrap_dataset_and_indices
 from bayesvlm.data.factory import SUPPORTED_MODULES
-from bayesvlm.data.pipeline import prepare_experiment_data
+from bayesvlm.data.pipeline import build_loader, prepare_experiment_data
+from bayesvlm.features.feature_dataset import build_feature_loader
+from bayesvlm.features.image_cache import (
+    ImageFeatureCacheSpec,
+    get_or_build_image_feature_bundle,
+)
 from bayesvlm.methods.vlm_adapter import (
     build_vlm_adapter_model,
     compute_adapter_regularization_loss,
@@ -22,10 +25,10 @@ from bayesvlm.methods.vlm_adapter import (
     dump_vlm_adapter_predictions,
     evaluate_vlm_adapter,
     evaluate_zero_shot_vlm_adapter,
-    maybe_init_special_adapter,
 )
 from bayesvlm.training.history import flatten_metrics_history
 from bayesvlm.training.io import save_csv, save_json, tee_output
+from bayesvlm.training.runtime import ensure_run_dir, set_seed
 from bayesvlm.utils import (
     get_image_size,
     get_model_type_and_size,
@@ -33,8 +36,43 @@ from bayesvlm.utils import (
     load_model,
 )
 
-from bayesvlm.training.runtime import ensure_run_dir, set_seed
 
+def _resolve_path(path_str: str | None) -> str | None:
+    if path_str is None:
+        return None
+    p = Path(path_str)
+    if p.exists():
+        return str(p.resolve())
+    return str((Path.cwd() / path_str).resolve())
+
+
+@torch.no_grad()
+def _maybe_init_tipa_from_feature_loader(
+    model: Any,
+    adapter_name: str,
+    train_eval_loader,
+    device: str,
+) -> None:
+    if adapter_name.upper() != "TIPA":
+        return
+
+    if not hasattr(model.adapter, "init_tipadapter"):
+        return
+
+    print("[TipA] 使用缓存后的 image_embeds 初始化 cache_keys / cache_values")
+
+    all_features = []
+    all_labels = []
+
+    for batch in train_eval_loader:
+        feats = batch["image_embeds"].to(device)
+        labels = batch["class_id"].to(device)
+        all_features.append(feats.detach().cpu())
+        all_labels.append(labels.detach().cpu())
+
+    features = torch.cat(all_features, dim=0)
+    labels = torch.cat(all_labels, dim=0)
+    model.adapter.init_tipadapter(features, labels)
 
 
 def main(
@@ -65,6 +103,9 @@ def main(
     gaussian_prior_sigma: float = 0.01,
     gaussian_mc_samples: int = 3,
     gaussian_anneal_start_epoch: int = 20,
+    cache_image_features: bool = True,
+    image_feature_cache_root: str = "./cache/image_features",
+    rebuild_image_feature_cache: bool = False,
 ) -> None:
     set_seed(seed)
 
@@ -79,8 +120,6 @@ def main(
             f"shot_{shots_per_class}",
         ],
     )
-
-
     run_dir.mkdir(parents=True, exist_ok=True)
 
     with tee_output(run_dir / "train.log"):
@@ -94,9 +133,12 @@ def main(
         print(f"[run] seed={seed}")
         print(f"[run] device={device}")
         print(f"[run] run_dir={run_dir}")
+        print(f"[run] cache_image_features={cache_image_features}")
+        print(f"[run] image_feature_cache_root={image_feature_cache_root}")
+        print(f"[run] rebuild_image_feature_cache={rebuild_image_feature_cache}")
 
         if hessian_dir:
-            print(f"[note] hessian_dir={hessian_dir} 当前 raw-image adapter 训练不会直接使用。")
+            print(f"[note] hessian_dir={hessian_dir} 当前 cached adapter 训练不会直接使用。")
         print(f"[note] pseudo_data_count={pseudo_data_count} 仅为兼容旧接口保留。")
 
         if model_str not in MODEL_NAME_MAP:
@@ -133,6 +175,105 @@ def main(
             local_model_path=local_model_path,
         )
 
+        if not cache_image_features:
+            raise ValueError(
+                "这个 train_adapter.py 是按缓存图像特征路线写的。"
+                "若要回退 raw-image 训练，请继续使用你现有的 train_vlm_adapter.py。"
+            )
+
+        print("[0] 构建/加载共享图像特征缓存 ...")
+
+        raw_train_loader_for_cache = build_loader(
+            data.raw_train_ds,
+            batch_size=batch_size,
+            num_workers=num_workers,
+            shuffle=False,
+        )
+
+        transform_name = repr(transform)
+
+        train_full_features = get_or_build_image_feature_bundle(
+            image_encoder=image_encoder,
+            loader=raw_train_loader_for_cache,
+            ds=data.raw_train_ds,
+            cache_root=image_feature_cache_root,
+            spec=ImageFeatureCacheSpec(
+                dataset=dataset,
+                split="train_full",
+                model_str=model_str,
+                local_model_path=_resolve_path(local_model_path),
+                image_size=transform_image_size,
+                transform_name=transform_name,
+                data_root=_resolve_path(data_root),
+            ),
+            force_rebuild=rebuild_image_feature_cache,
+        )
+
+        val_features = get_or_build_image_feature_bundle(
+            image_encoder=image_encoder,
+            loader=data.val_loader,
+            ds=data.val_ds,
+            cache_root=image_feature_cache_root,
+            spec=ImageFeatureCacheSpec(
+                dataset=dataset,
+                split="val",
+                model_str=model_str,
+                local_model_path=_resolve_path(local_model_path),
+                image_size=transform_image_size,
+                transform_name=transform_name,
+                data_root=_resolve_path(data_root),
+            ),
+            force_rebuild=rebuild_image_feature_cache,
+        )
+
+        test_features = get_or_build_image_feature_bundle(
+            image_encoder=image_encoder,
+            loader=data.test_loader,
+            ds=data.test_ds,
+            cache_root=image_feature_cache_root,
+            spec=ImageFeatureCacheSpec(
+                dataset=dataset,
+                split="test",
+                model_str=model_str,
+                local_model_path=_resolve_path(local_model_path),
+                image_size=transform_image_size,
+                transform_name=transform_name,
+                data_root=_resolve_path(data_root),
+            ),
+            force_rebuild=rebuild_image_feature_cache,
+        )
+
+        _, train_indices = unwrap_dataset_and_indices(data.train_ds)
+        if train_indices is None:
+            train_indices = list(range(len(data.train_ds)))
+
+        train_subset_features = train_full_features.subset(train_indices)
+
+        train_loader = build_feature_loader(
+            train_subset_features,
+            batch_size=batch_size,
+            num_workers=num_workers,
+            shuffle=True,
+        )
+        train_eval_loader = build_feature_loader(
+            train_subset_features,
+            batch_size=batch_size,
+            num_workers=num_workers,
+            shuffle=False,
+        )
+        val_loader = build_feature_loader(
+            val_features,
+            batch_size=batch_size,
+            num_workers=num_workers,
+            shuffle=False,
+        )
+        test_loader = build_feature_loader(
+            test_features,
+            batch_size=batch_size,
+            num_workers=num_workers,
+            shuffle=False,
+        )
+
         cfg = {
             "model": model_str,
             "model_name_or_path": local_model_path,
@@ -160,16 +301,16 @@ def main(
             device=device,
         )
 
-        maybe_init_special_adapter(
+        _maybe_init_tipa_from_feature_loader(
             model=model,
             adapter_name=adapter_name,
-            train_eval_loader=data.train_eval_loader,
+            train_eval_loader=train_eval_loader,
             device=device,
         )
 
         zero_shot_test = evaluate_zero_shot_vlm_adapter(
             model=model,
-            loader=data.test_loader,
+            loader=test_loader,
             num_classes=len(data.class_names),
             device=device,
         )
@@ -214,6 +355,9 @@ def main(
             "gaussian_mc_samples": gaussian_mc_samples,
             "gaussian_anneal_start_epoch": gaussian_anneal_start_epoch,
             "zero_shot_test": zero_shot_test,
+            "cache_image_features": cache_image_features,
+            "image_feature_cache_root": image_feature_cache_root,
+            "rebuild_image_feature_cache": rebuild_image_feature_cache,
             "run_dir": str(run_dir),
         }
         save_json(run_dir / "config.json", config)
@@ -222,7 +366,7 @@ def main(
         best_state = None
         metrics_history = []
 
-        print("[train] 开始 adapter 训练 ...")
+        print("[train] 开始 cached adapter 训练 ...")
         for epoch in range(1, epochs + 1):
             model.train()
             if hasattr(model, "set_epoch"):
@@ -232,14 +376,15 @@ def main(
             epoch_reg_sum = 0.0
             epoch_crossmodal_text_sum = 0.0
             epoch_count = 0
+            reg_info = {}
 
-            for batch in data.train_loader:
+            for batch in train_loader:
                 labels = batch["class_id"].to(device)
 
                 optimizer.zero_grad(set_to_none=True)
 
                 logits = model(batch=batch)
-                ce_loss = F.cross_entropy(logits, labels)
+                ce_loss = torch.nn.functional.cross_entropy(logits, labels)
 
                 reg_loss, reg_info = compute_adapter_regularization_loss(model)
                 total_loss = ce_loss + reg_loss
@@ -262,19 +407,19 @@ def main(
 
             train_metrics = evaluate_vlm_adapter(
                 model=model,
-                loader=data.train_eval_loader,
+                loader=train_eval_loader,
                 num_classes=len(data.class_names),
                 device=device,
             )
             val_metrics = evaluate_vlm_adapter(
                 model=model,
-                loader=data.val_loader,
+                loader=val_loader,
                 num_classes=len(data.class_names),
                 device=device,
             )
             test_metrics = evaluate_vlm_adapter(
                 model=model,
-                loader=data.test_loader,
+                loader=test_loader,
                 num_classes=len(data.class_names),
                 device=device,
             )
@@ -333,19 +478,19 @@ def main(
 
         final_train_metrics = evaluate_vlm_adapter(
             model=model,
-            loader=data.train_eval_loader,
+            loader=train_eval_loader,
             num_classes=len(data.class_names),
             device=device,
         )
         final_val_metrics = evaluate_vlm_adapter(
             model=model,
-            loader=data.val_loader,
+            loader=val_loader,
             num_classes=len(data.class_names),
             device=device,
         )
         final_test_metrics = evaluate_vlm_adapter(
             model=model,
-            loader=data.test_loader,
+            loader=test_loader,
             num_classes=len(data.class_names),
             device=device,
         )
@@ -354,7 +499,7 @@ def main(
             run_dir=run_dir,
             split_name="train",
             model=model,
-            loader=data.train_eval_loader,
+            loader=train_eval_loader,
             class_names=data.class_names,
             device=device,
             topk=prediction_topk,
@@ -363,7 +508,7 @@ def main(
             run_dir=run_dir,
             split_name="val",
             model=model,
-            loader=data.val_loader,
+            loader=val_loader,
             class_names=data.class_names,
             device=device,
             topk=prediction_topk,
@@ -372,7 +517,7 @@ def main(
             run_dir=run_dir,
             split_name="test",
             model=model,
-            loader=data.test_loader,
+            loader=test_loader,
             class_names=data.class_names,
             device=device,
             topk=prediction_topk,
@@ -451,6 +596,10 @@ if __name__ == "__main__":
     parser.add_argument("--gaussian_mc_samples", type=int, default=3)
     parser.add_argument("--gaussian_anneal_start_epoch", type=int, default=20)
 
+    parser.add_argument("--disable_cache_image_features", action="store_true", default=False)
+    parser.add_argument("--image_feature_cache_root", type=str, default="./cache/image_features")
+    parser.add_argument("--rebuild_image_feature_cache", action="store_true", default=False)
+
     args = parser.parse_args()
 
     main(
@@ -481,4 +630,7 @@ if __name__ == "__main__":
         gaussian_prior_sigma=args.gaussian_prior_sigma,
         gaussian_mc_samples=args.gaussian_mc_samples,
         gaussian_anneal_start_epoch=args.gaussian_anneal_start_epoch,
+        cache_image_features=not args.disable_cache_image_features,
+        image_feature_cache_root=args.image_feature_cache_root,
+        rebuild_image_feature_cache=args.rebuild_image_feature_cache,
     )

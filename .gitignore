@@ -4,6 +4,7 @@ __pycache__/
 
 # 忽略数据集和模型（重要！）
 **/datasets/
+**/cache/
 **/output_adapter/
 **/output/
 **/models/

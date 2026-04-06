@@ -36,6 +36,17 @@ DATA_ROOT="./datasets"
 SAVE_ROOT="./output"
 METHOD_NAME="vlm_adapter"
 
+# 新增：共享图像特征缓存
+CACHE_ROOT="./cache/image_features"
+
+# 0 = 复用图像缓存
+# 1 = 强制重建图像缓存
+REBUILD_IMAGE_CACHE=0
+
+# 0 = 开启图像缓存
+# 1 = 关闭图像缓存
+DISABLE_IMAGE_CACHE=0
+
 PREDICTION_TOPK=5
 DEVICE="cuda"
 
@@ -59,9 +70,20 @@ GAUSSIAN_ANNEAL_START_EPOCH=20
 PYTHON_BIN="python"
 TRAIN_SCRIPT="train_py/train_vlm_adapter.py"
 
+# 兼容旧接口保留，但 cached adapter 脚本本身不会直接用
+HESSIAN_DIR="./hessians/hessian_CLIP-ViT-B-32-laion2B-s34B-b79K"
+PSEUDO_DATA_COUNT=4
+
 # 如果后面想临时加额外参数，就往这里塞
-EXTRA_ARGS=(
-)
+EXTRA_ARGS=()
+
+if [[ "${REBUILD_IMAGE_CACHE}" -eq 1 ]]; then
+  EXTRA_ARGS+=("--rebuild_image_feature_cache")
+fi
+
+if [[ "${DISABLE_IMAGE_CACHE}" -eq 1 ]]; then
+  EXTRA_ARGS+=("--disable_cache_image_features")
+fi
 
 run_one() {
   local dataset="$1"
@@ -73,6 +95,9 @@ run_one() {
   echo "============================================================"
   echo "dataset=${dataset} method=${adapter_name} init=${initialization} shots=${shots} seed=${seed}"
   echo "save_root=${SAVE_ROOT}"
+  echo "cache_root=${CACHE_ROOT}"
+  echo "rebuild_image_cache=${REBUILD_IMAGE_CACHE}"
+  echo "disable_image_cache=${DISABLE_IMAGE_CACHE}"
   echo "============================================================"
 
   "${PYTHON_BIN}" -u "${TRAIN_SCRIPT}" \
@@ -101,6 +126,9 @@ run_one() {
     --gaussian_prior_sigma "${GAUSSIAN_PRIOR_SIGMA}" \
     --gaussian_mc_samples "${GAUSSIAN_MC_SAMPLES}" \
     --gaussian_anneal_start_epoch "${GAUSSIAN_ANNEAL_START_EPOCH}" \
+    --image_feature_cache_root "${CACHE_ROOT}" \
+    --hessian_dir "${HESSIAN_DIR}" \
+    --pseudo_data_count "${PSEUDO_DATA_COUNT}" \
     "${EXTRA_ARGS[@]}"
 }
 

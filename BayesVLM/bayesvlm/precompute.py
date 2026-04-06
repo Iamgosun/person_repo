@@ -1,19 +1,18 @@
-from typing import Iterable, List, Tuple
-from pathlib import Path
-import torch
-from tqdm import tqdm
+from __future__ import annotations
+
 import os
 import sys
+from pathlib import Path
+from typing import Iterable, List, Tuple
 
-from bayesvlm.vlm import (
-    CLIP,
-    EncoderResult,
-    ProbabilisticLogits,
-    CLIPTextEncoder,
-    CLIPImageEncoder,
-    SiglipImageEncoder,
-    SiglipTextEncoder,
-)
+import torch
+from tqdm import tqdm
+
+from bayesvlm.common import EncoderResult, ProbabilisticLogits
+from bayesvlm.image_encoder import CLIPImageEncoder, SiglipImageEncoder
+from bayesvlm.text_encoder import CLIPTextEncoder, SiglipTextEncoder
+from bayesvlm.vlm import CLIP
+
 
 def make_predictions(
     clip: CLIP,
@@ -31,8 +30,8 @@ def make_predictions(
 
     if cache_dir is not None and mean_path.exists() and var_path.exists():
         return ProbabilisticLogits(
-            mean=torch.load(mean_path, map_location='cpu'),
-            var=torch.load(var_path, map_location='cpu'),
+            mean=torch.load(mean_path, map_location="cpu"),
+            var=torch.load(var_path, map_location="cpu"),
         )
 
     clip = clip.eval().to(device)
@@ -55,6 +54,7 @@ def make_predictions(
         logits = clip(img_outputs_batch, text_outputs, map_estimate=map_estimate)
         means.append(logits.mean.detach().cpu())
         vars.append(logits.var.detach().cpu())
+
     means = torch.cat(means, dim=0)
     vars = torch.cat(vars, dim=0)
 
@@ -73,33 +73,40 @@ def precompute_image_features(
 ) -> Tuple[EncoderResult, torch.Tensor, torch.Tensor]:
     if save_predictions and cache_dir is None:
         raise ValueError("cache_dir must be provided if save_predictions is True")
-    
+
     if cache_dir is not None:
         if not cache_dir.exists() and save_predictions:
             print(f"Creating cache directory {cache_dir}")
-            cache_dir.mkdir(parents=True)
+            cache_dir.mkdir(parents=True, exist_ok=True)
 
         embeds_path = cache_dir / "embeddings_img.pt"
         activations_path = cache_dir / "activations_img.pt"
         residuals_path = cache_dir / "residuals_img.pt"
         class_ids_path = cache_dir / "class_ids_img.pt"
         image_ids_path = cache_dir / "image_ids.pt"
-        
-        if embeds_path.exists() and class_ids_path.exists() and activations_path.exists() and image_ids_path.exists() and residuals_path.exists():
+
+        if (
+            embeds_path.exists()
+            and activations_path.exists()
+            and residuals_path.exists()
+            and class_ids_path.exists()
+            and image_ids_path.exists()
+        ):
             result = EncoderResult(
-                embeds=torch.load(embeds_path, map_location='cpu'),
-                activations=torch.load(activations_path, map_location='cpu'),
-                residuals=torch.load(residuals_path, map_location='cpu'),
+                embeds=torch.load(embeds_path, map_location="cpu"),
+                activations=torch.load(activations_path, map_location="cpu"),
+                residuals=torch.load(residuals_path, map_location="cpu"),
             )
-            class_ids = torch.load(class_ids_path, map_location='cpu')
-            img_ids = torch.load(image_ids_path, map_location='cpu')
+            class_ids = torch.load(class_ids_path, map_location="cpu")
+            img_ids = torch.load(image_ids_path, map_location="cpu")
             return result, class_ids, img_ids
-    
+
     img_embeds = []
     img_activations = []
     img_residuals = []
     img_ids = []
     labels = []
+
     for batch in tqdm(loader):
         result = image_encoder(batch, return_activations=True)
         img_embeds.append(result.embeds.detach().cpu())
@@ -121,7 +128,11 @@ def precompute_image_features(
         torch.save(class_ids, class_ids_path)
         torch.save(img_ids, image_ids_path)
 
-    return EncoderResult(embeds=embeds, activations=activations, residuals=residuals), class_ids, img_ids
+    return EncoderResult(
+        embeds=embeds,
+        activations=activations,
+        residuals=residuals,
+    ), class_ids, img_ids
 
 
 def precompute_text_features(
@@ -133,20 +144,20 @@ def precompute_text_features(
 ) -> EncoderResult:
     if cache_dir is None and save_predictions:
         raise ValueError("cache_dir must be provided if save_predictions is True")
-    
+
     if cache_dir is not None:
         embeds_path = cache_dir / "embeddings_txt.pt"
         activations_path = cache_dir / "activations_txt.pt"
         if embeds_path.exists() and activations_path.exists():
             return EncoderResult(
-                embeds=torch.load(embeds_path, map_location='cpu'), 
-                activations=torch.load(activations_path, map_location='cpu'),
+                embeds=torch.load(embeds_path, map_location="cpu"),
+                activations=torch.load(activations_path, map_location="cpu"),
             )
-    
+
     loader = torch.utils.data.DataLoader(
-        class_prompts, 
-        batch_size=batch_size, 
-        num_workers=1, 
+        class_prompts,
+        batch_size=batch_size,
+        num_workers=1,
         shuffle=False,
         collate_fn=_label_collate_fn,
     )
@@ -154,10 +165,11 @@ def precompute_text_features(
     txt_embeds = []
     txt_activations = []
     for batch in tqdm(loader):
-        result = text_encoder(batch, return_activations=True)
+        texts = batch["text"]
+        result = text_encoder(texts, return_activations=True)
         txt_embeds.append(result.embeds.detach().cpu())
         txt_activations.append(result.activations.detach().cpu())
-    
+
     embeds = torch.cat(txt_embeds, dim=0)
     activations = torch.cat(txt_activations, dim=0)
 
@@ -167,16 +179,22 @@ def precompute_text_features(
 
     return EncoderResult(embeds=embeds, activations=activations)
 
+
 def _label_collate_fn(batch: List[str]):
     return dict(text=batch)
 
+
 def compute_features(
-    encoder: CLIPImageEncoder | CLIPTextEncoder,
-    loader: str,
+    encoder,
+    loader,
     tag: str = None,
     cache_dir: str = None,
     return_tensors: bool = False,
 ):
+    """
+    保留旧接口，兼容 hessian/activelearning 等脚本。
+    encoder 可以是 image encoder 或 text encoder。
+    """
     if cache_dir is not None:
         path_activations = f"{cache_dir}/activations_{tag}.pt"
         path_embeddings = f"{cache_dir}/embeddings_{tag}.pt"
@@ -191,7 +209,7 @@ def compute_features(
         result = encoder(batch, return_activations=True)
         activations.append(result.activations.detach().cpu())
         embeddings.append(result.embeds.detach().cpu())
-        
+
     activations = torch.cat(activations)
     embeddings = torch.cat(embeddings)
 
@@ -201,5 +219,5 @@ def compute_features(
 
     if return_tensors:
         return activations, embeddings
-    
+
     return path_activations, path_embeddings

@@ -217,6 +217,7 @@ def collect_text_only_bayes_coop_predictions(
                 "split": split_name,
                 "sample_index": sample_index,
                 "image_id": _get_batch_item(batch, "image_id", i, default=sample_index),
+                "sample_key": _get_batch_item(batch, "sample_key", i, default=None),
                 "image_path": _get_batch_item(batch, "image_path", i, default=None),
                 "text": _get_batch_item(batch, "text", i, default=None),
                 "label_id": label_id,

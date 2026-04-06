@@ -2,17 +2,26 @@ from __future__ import annotations
 
 import argparse
 import json
-import random
 import time
 from pathlib import Path
 
-import numpy as np
 import torch
+import sys
+from pathlib import Path
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 from bayesvlm.constants import MODEL_NAME_MAP
-from bayesvlm.data.dataset_ops import print_class_counts
+from bayesvlm.data.dataset_ops import print_class_counts, unwrap_dataset_and_indices
 from bayesvlm.data.factory import SUPPORTED_MODULES
-from bayesvlm.data.pipeline import prepare_experiment_data
+from bayesvlm.data.pipeline import build_loader, prepare_experiment_data
+from bayesvlm.features.feature_dataset import build_feature_loader
+from bayesvlm.features.image_cache import (
+    ImageFeatureCacheSpec,
+    get_or_build_image_feature_bundle,
+)
 from bayesvlm.hessians import (
     load_hessians,
     optimize_prior_precision,
@@ -25,14 +34,39 @@ from bayesvlm.methods.text_only_bayes_coop import (
 )
 from bayesvlm.training.history import flatten_metrics_history
 from bayesvlm.training.io import save_csv, save_json, tee_output
+from bayesvlm.training.runtime import ensure_run_dir, set_seed
 from bayesvlm.utils import (
     get_image_size,
     get_model_type_and_size,
     get_transform,
     load_model,
 )
-from bayesvlm.training.runtime import ensure_run_dir, set_seed
 
+
+def _resolve_path(path_str: str) -> Path:
+    p = Path(path_str)
+    if p.exists():
+        return p.resolve()
+
+    p2 = (Path.cwd() / path_str).resolve()
+    if p2.exists():
+        return p2
+
+    raise FileNotFoundError(f"路径不存在：{path_str}")
+
+
+def _check_txt_hessian_dir(hessian_dir: Path) -> dict:
+    required = [
+        hessian_dir / "A_txt_analytic.pt",
+        hessian_dir / "B_txt_analytic.pt",
+    ]
+    missing = [str(p) for p in required if not p.exists()]
+
+    return {
+        "ok": len(missing) == 0,
+        "missing_required": missing,
+        "dir": str(hessian_dir),
+    }
 
 
 def main(
@@ -58,10 +92,12 @@ def main(
     seed: int = 42,
     device: str = "cuda",
     prediction_topk: int = 5,
+    cache_image_features: bool = True,
+    image_feature_cache_root: str = "./cache/image_features",
+    rebuild_image_feature_cache: bool = False,
 ) -> None:
     set_seed(seed)
 
- 
     run_dir = ensure_run_dir(
         save_dir=save_dir,
         method_name=method_name,
@@ -80,12 +116,32 @@ def main(
         print(f"[run] seed={seed}")
         print(f"[run] device={device}")
         print(f"[run] run_dir={run_dir}")
+        print(f"[run] cache_image_features={cache_image_features}")
+        print(f"[run] image_feature_cache_root={image_feature_cache_root}")
+        print(f"[run] rebuild_image_feature_cache={rebuild_image_feature_cache}")
 
         if model_str not in MODEL_NAME_MAP:
             raise ValueError(f"无效模型名：{model_str}，可选值为 {list(MODEL_NAME_MAP.keys())}")
 
         if dataset not in SUPPORTED_MODULES:
             raise ValueError(f"无效数据集：{dataset}，可选值为 {sorted(SUPPORTED_MODULES.keys())}")
+
+        hessian_dir_path = _resolve_path(hessian_dir)
+        hessian_check = _check_txt_hessian_dir(hessian_dir_path)
+        if not hessian_check["ok"]:
+            existing_files = []
+            if hessian_dir_path.exists():
+                existing_files = sorted([p.name for p in hessian_dir_path.iterdir()])
+
+            raise FileNotFoundError(
+                "当前 text_only_bayes_coop 训练只会读取 txt Hessian。\n"
+                f"hessian_dir = {hessian_dir_path}\n"
+                f"缺少文件: {hessian_check['missing_required']}\n"
+                f"目录现有文件: {existing_files}\n\n"
+                "该方法至少需要：\n"
+                "  - A_txt_analytic.pt\n"
+                "  - B_txt_analytic.pt\n"
+            )
 
         model_type, _ = get_model_type_and_size(model_str)
         transform_image_size = get_image_size(model_str)
@@ -115,8 +171,109 @@ def main(
             local_model_path=local_model_path,
         )
 
-        print("[1] 加载 Hessian 并优化文本投影层先验精度 ...")
-        A_txt, B_txt = load_hessians(hessian_dir, tag="txt", return_info=False)
+        if cache_image_features:
+            print("[0] 构建/加载共享图像特征缓存 ...")
+
+            raw_train_loader_for_cache = build_loader(
+                data.raw_train_ds,
+                batch_size=batch_size,
+                num_workers=num_workers,
+                shuffle=False,
+            )
+
+            transform_name = repr(transform)
+
+            train_full_features = get_or_build_image_feature_bundle(
+                image_encoder=image_encoder,
+                loader=raw_train_loader_for_cache,
+                ds=data.raw_train_ds,
+                cache_root=image_feature_cache_root,
+                spec=ImageFeatureCacheSpec(
+                    dataset=dataset,
+                    split="train_full",
+                    model_str=model_str,
+                    local_model_path=local_model_path,
+                    image_size=transform_image_size,
+                    transform_name=transform_name,
+                    data_root=data_root,
+                ),
+                force_rebuild=rebuild_image_feature_cache,
+            )
+
+            val_features = get_or_build_image_feature_bundle(
+                image_encoder=image_encoder,
+                loader=data.val_loader,
+                ds=data.val_ds,
+                cache_root=image_feature_cache_root,
+                spec=ImageFeatureCacheSpec(
+                    dataset=dataset,
+                    split="val",
+                    model_str=model_str,
+                    local_model_path=local_model_path,
+                    image_size=transform_image_size,
+                    transform_name=transform_name,
+                    data_root=data_root,
+                ),
+                force_rebuild=rebuild_image_feature_cache,
+            )
+
+            test_features = get_or_build_image_feature_bundle(
+                image_encoder=image_encoder,
+                loader=data.test_loader,
+                ds=data.test_ds,
+                cache_root=image_feature_cache_root,
+                spec=ImageFeatureCacheSpec(
+                    dataset=dataset,
+                    split="test",
+                    model_str=model_str,
+                    local_model_path=local_model_path,
+                    image_size=transform_image_size,
+                    transform_name=transform_name,
+                    data_root=data_root,
+                ),
+                force_rebuild=rebuild_image_feature_cache,
+            )
+
+            _, train_indices = unwrap_dataset_and_indices(data.train_ds)
+            if train_indices is None:
+                train_indices = list(range(len(data.train_ds)))
+
+            train_subset_features = train_full_features.subset(train_indices)
+
+            train_loader = build_feature_loader(
+                train_subset_features,
+                batch_size=batch_size,
+                num_workers=num_workers,
+                shuffle=True,
+            )
+            train_eval_loader = build_feature_loader(
+                train_subset_features,
+                batch_size=batch_size,
+                num_workers=num_workers,
+                shuffle=False,
+            )
+            val_loader = build_feature_loader(
+                val_features,
+                batch_size=batch_size,
+                num_workers=num_workers,
+                shuffle=False,
+            )
+            test_loader = build_feature_loader(
+                test_features,
+                batch_size=batch_size,
+                num_workers=num_workers,
+                shuffle=False,
+            )
+        else:
+            train_loader = data.train_loader
+            train_eval_loader = data.train_eval_loader
+            val_loader = data.val_loader
+            test_loader = data.test_loader
+
+        print("[1] 加载 txt Hessian 并优化文本投影层先验精度 ...")
+        print(f"    hessian_dir = {hessian_dir_path}")
+
+        A_txt, B_txt = load_hessians(str(hessian_dir_path), tag="txt", return_info=False)
 
         lambda_txt = optimize_prior_precision(
             projection=text_encoder.text_projection,
@@ -161,7 +318,7 @@ def main(
         config = {
             "method_name": method_name,
             "dataset": dataset,
-            "hessian_dir": hessian_dir,
+            "hessian_dir": str(hessian_dir_path),
             "model_str": model_str,
             "local_model_path": local_model_path,
             "data_root": data_root,
@@ -183,6 +340,10 @@ def main(
             "num_classes": len(data.class_names),
             "prediction_topk": prediction_topk,
             "run_dir": str(run_dir),
+            "cache_image_features": cache_image_features,
+            "image_feature_cache_root": image_feature_cache_root,
+            "rebuild_image_feature_cache": rebuild_image_feature_cache,
+            "hessian_check": hessian_check,
         }
         save_json(run_dir / "config.json", config)
 
@@ -198,7 +359,7 @@ def main(
             epoch_loss_sum = 0.0
             epoch_count = 0
 
-            for batch in data.train_loader:
+            for batch in train_loader:
                 labels = batch["class_id"].to(device)
 
                 optimizer.zero_grad()
@@ -216,19 +377,19 @@ def main(
 
             train_metrics = evaluate_text_only_bayes_coop(
                 model=model,
-                loader=data.train_eval_loader,
+                loader=train_eval_loader,
                 num_classes=len(data.class_names),
                 device=device,
             )
             val_metrics = evaluate_text_only_bayes_coop(
                 model=model,
-                loader=data.val_loader,
+                loader=val_loader,
                 num_classes=len(data.class_names),
                 device=device,
             )
             test_metrics = evaluate_text_only_bayes_coop(
                 model=model,
-                loader=data.test_loader,
+                loader=test_loader,
                 num_classes=len(data.class_names),
                 device=device,
             )
@@ -275,19 +436,19 @@ def main(
 
         final_train_metrics = evaluate_text_only_bayes_coop(
             model=model,
-            loader=data.train_eval_loader,
+            loader=train_eval_loader,
             num_classes=len(data.class_names),
             device=device,
         )
         final_val_metrics = evaluate_text_only_bayes_coop(
             model=model,
-            loader=data.val_loader,
+            loader=val_loader,
             num_classes=len(data.class_names),
             device=device,
         )
         final_test_metrics = evaluate_text_only_bayes_coop(
             model=model,
-            loader=data.test_loader,
+            loader=test_loader,
             num_classes=len(data.class_names),
             device=device,
         )
@@ -296,7 +457,7 @@ def main(
             run_dir=run_dir,
             split_name="train",
             model=model,
-            loader=data.train_eval_loader,
+            loader=train_eval_loader,
             class_names=data.class_names,
             device=device,
             topk=prediction_topk,
@@ -305,7 +466,7 @@ def main(
             run_dir=run_dir,
             split_name="val",
             model=model,
-            loader=data.val_loader,
+            loader=val_loader,
             class_names=data.class_names,
             device=device,
             topk=prediction_topk,
@@ -314,7 +475,7 @@ def main(
             run_dir=run_dir,
             split_name="test",
             model=model,
-            loader=data.test_loader,
+            loader=test_loader,
             class_names=data.class_names,
             device=device,
             topk=prediction_topk,
@@ -356,7 +517,7 @@ def main(
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--dataset", type=str, default="cifar10")
-    parser.add_argument("--hessian_dir", type=str, default="hessians/hessian_CLIP-ViT-B-32-laion2B-s34B-b79K")
+    parser.add_argument("--hessian_dir", type=str, required=True)
     parser.add_argument("--model", type=str, default="clip-base")
     parser.add_argument("--local_model_path", type=str, default="./models/clip-vit-b32")
     parser.add_argument("--data_root", type=str, default="./datasets")
@@ -383,6 +544,10 @@ if __name__ == "__main__":
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--device", type=str, default="cuda")
 
+    parser.add_argument("--disable_cache_image_features", action="store_true", default=False)
+    parser.add_argument("--image_feature_cache_root", type=str, default="./cache/image_features")
+    parser.add_argument("--rebuild_image_feature_cache", action="store_true", default=False)
+
     args = parser.parse_args()
 
     main(
@@ -408,4 +573,7 @@ if __name__ == "__main__":
         prediction_topk=args.prediction_topk,
         seed=args.seed,
         device=args.device,
+        cache_image_features=not args.disable_cache_image_features,
+        image_feature_cache_root=args.image_feature_cache_root,
+        rebuild_image_feature_cache=args.rebuild_image_feature_cache,
     )

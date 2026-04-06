@@ -18,6 +18,7 @@ from bayesvlm.data.factory import DataModuleFactory
 @dataclass
 class ExperimentDataBundle:
     datamodule: Any
+    raw_train_ds: Any
     train_ds: Any
     val_ds: Any
     test_ds: Any
@@ -161,6 +162,7 @@ def prepare_experiment_data(
 
     return ExperimentDataBundle(
         datamodule=dm,
+        raw_train_ds=raw_train_ds,
         train_ds=train_ds,
         val_ds=val_ds,
         test_ds=test_ds,

@@ -18,7 +18,7 @@ class VLMAdapter(nn.Module):
     --------
     1. image/text encoder 与 VLM 标量参数保持冻结；
     2. adapter 接收类别文本 prototype 作为先验；
-    3. 保留 raw-image loader 训练方式；
+    3. 同时兼容 raw-image loader 与 cached-feature loader；
     4. 不再把“deterministic backbone”错误地收窄成
        “adapter 默认也必须是纯确定性前向”。
 
@@ -26,7 +26,12 @@ class VLMAdapter(nn.Module):
     ------
     - 保留 ``text_covariance`` 入参，避免旧调用报错；
     - 既支持外部传入 ``image_encoder/text_encoder/vlm``，
-      也支持根据 cfg 自动调用 ``load_model``。
+      也支持根据 cfg 自动调用 ``load_model``；
+    - forward / zero_shot_logits 新增支持：
+        * image_features 显式传入
+        * batch["image_embeds"]
+        * batch["embeds"]
+      从而兼容图像特征缓存后的训练/评估流水线。
     """
 
     def __init__(
@@ -246,6 +251,39 @@ class VLMAdapter(nn.Module):
             image_features = image_features[0]
         return image_features
 
+    def _coerce_feature_tensor(self, features: torch.Tensor) -> torch.Tensor:
+        return features.to(device=self._runtime_device(), dtype=torch.float32)
+
+    def _extract_image_features(
+        self,
+        batch=None,
+        image: torch.Tensor | None = None,
+        image_features: torch.Tensor | None = None,
+    ) -> torch.Tensor:
+        """
+        优先级：
+        1) 显式传入 image_features
+        2) batch["image_embeds"]
+        3) batch["embeds"]
+        4) 显式传入 image
+        5) batch["image"]
+        """
+        if image_features is not None:
+            return self._coerce_feature_tensor(image_features)
+
+        if isinstance(batch, dict):
+            if "image_embeds" in batch:
+                return self._coerce_feature_tensor(batch["image_embeds"])
+            if "embeds" in batch:
+                return self._coerce_feature_tensor(batch["embeds"])
+
+        if image is None:
+            if batch is None:
+                raise ValueError("batch、image、image_features 不能同时为空")
+            image = batch["image"] if isinstance(batch, dict) else batch
+
+        return self._encode_image(image)
+
     def _apply_adapter(self, image_features: torch.Tensor) -> torch.Tensor:
         logits = self.adapter(image_features, self.vlm.logit_scale)
         if getattr(self.vlm, "logit_bias", None) is not None:
@@ -259,22 +297,22 @@ class VLMAdapter(nn.Module):
         self,
         batch=None,
         image: torch.Tensor | None = None,
+        image_features: torch.Tensor | None = None,
         return_features: bool = False,
     ):
-        if image is None:
-            if batch is None:
-                raise ValueError("batch 和 image 不能同时为空")
-            image = batch["image"] if isinstance(batch, dict) else batch
-
-        image_features = self._encode_image(image)
-        logits = self._apply_adapter(image_features)
+        feats = self._extract_image_features(
+            batch=batch,
+            image=image,
+            image_features=image_features,
+        )
+        logits = self._apply_adapter(feats)
 
         if return_features:
-            return logits, image_features
+            return logits, feats
         return logits
 
     def forward_features(self, features: torch.Tensor) -> torch.Tensor:
-        features = features.to(device=self._runtime_device(), dtype=torch.float32)
+        features = self._coerce_feature_tensor(features)
         return self._apply_adapter(features)
 
     @torch.no_grad()
@@ -282,18 +320,18 @@ class VLMAdapter(nn.Module):
         self,
         batch=None,
         image: torch.Tensor | None = None,
+        image_features: torch.Tensor | None = None,
     ) -> torch.Tensor:
-        if image is None:
-            if batch is None:
-                raise ValueError("batch 和 image 不能同时为空")
-            image = batch["image"] if isinstance(batch, dict) else batch
-
-        image_features = self._encode_image(image)
-        base_text_features = self.base_text_features.to(
-            device=image_features.device,
-            dtype=image_features.dtype,
+        feats = self._extract_image_features(
+            batch=batch,
+            image=image,
+            image_features=image_features,
         )
-        logits = self.vlm(image_features, base_text_features)
+        base_text_features = self.base_text_features.to(
+            device=feats.device,
+            dtype=feats.dtype,
+        )
+        logits = self.vlm(feats, base_text_features)
 
         if getattr(self.vlm, "logit_bias", None) is not None:
             logits = logits + self.vlm.logit_bias.to(

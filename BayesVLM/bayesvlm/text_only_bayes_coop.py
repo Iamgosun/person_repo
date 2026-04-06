@@ -17,6 +17,7 @@ class TextOnlyBayesCoOpModel(nn.Module):
     2. 文本侧使用 CoOp prompt 生成的激活，通过文本投影层的后验协方差做不确定性传播。
     3. 输出每个样本、每个类别的 probabilistic logits(mean / var)。
     4. 默认先支持 diag 版本；如果 use_full_cov=True，则启用 full-cov 扩展版。
+    5. 新增支持直接消费缓存后的 image_embeds，而不再重复调用 image_encoder。
     """
 
     def __init__(
@@ -56,9 +57,24 @@ class TextOnlyBayesCoOpModel(nn.Module):
         )
         return torch.cat([activations, ones], dim=-1)
 
+    def _model_device(self) -> torch.device:
+        return self.logit_scale.device
+
     def encode_image_batch(self, batch=None, image_embeds: Optional[torch.Tensor] = None) -> torch.Tensor:
+        """
+        优先级：
+        1) 显式传入 image_embeds
+        2) batch 中已带缓存好的 image_embeds / embeds
+        3) 否则回退到原始 image_encoder(batch)
+        """
+        if image_embeds is None and batch is not None:
+            if "image_embeds" in batch:
+                image_embeds = batch["image_embeds"]
+            elif "embeds" in batch:
+                image_embeds = batch["embeds"]
+
         if image_embeds is not None:
-            g = image_embeds
+            g = image_embeds.to(self._model_device())
         else:
             g = self.image_encoder(batch, return_activations=False)
 
@@ -77,13 +93,12 @@ class TextOnlyBayesCoOpModel(nn.Module):
 
         g = self.encode_image_batch(batch=batch, image_embeds=image_embeds)
 
-        # 中文说明：
         # prompt learner 返回：
         #   embeds      -> 文本类原型均值 mu_c
         #   activations -> 投影前文本激活 f_c
         text_outputs = self.prompt_learner()
-        mu = text_outputs.embeds.float()          # [C, D]
-        text_acts = text_outputs.activations.float()  # [C, D_txt]
+        mu = text_outputs.embeds.float()               # [C, D]
+        text_acts = text_outputs.activations.float()   # [C, D_txt]
 
         text_acts = self._append_bias_if_needed(
             activations=text_acts,
@@ -135,3 +150,6 @@ class TextOnlyBayesCoOpModel(nn.Module):
             mean=logits_mean,
             var=logits_var,
         )
+
+    def forward_from_features(self, image_embeds: torch.Tensor) -> ProbabilisticLogits:
+        return self.forward(image_embeds=image_embeds)
