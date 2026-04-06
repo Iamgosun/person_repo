@@ -4,6 +4,8 @@ __pycache__/
 
 # 忽略数据集和模型（重要！）
 **/datasets/
+**/output_adapter/
+**/output/
 **/models/
 **/saved_models/
 *.safetensors

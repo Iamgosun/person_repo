@@ -8,40 +8,60 @@ cd "${ROOT_DIR}"
 
 export PYTHONPATH="${ROOT_DIR}:${PYTHONPATH:-}"
 
-DATASETS=("food101" )
+# =========================
+# sweep config
+# =========================
+DATASETS=("cifar10")
 SHOTS_PER_CLASS_LIST=(1)
-SEEDS=(1 2 3)
+SEEDS=(1)
 
-  # "LP:MEAN"
-  # "LP:RANDOM"
-  # "TR:TR"
-  # "ClipA:ClipA"
-  # "TipA:TipA"
-  # "CrossModal:CrossModal"
-  # "GAUSSIAN_PER_CLASS:GAUSSIAN_PER_CLASS"
-
+# 可选：
+# "LP:MEAN"
+# "LP:RANDOM"
+# "TR:TR"
+# "CLIPA:CLIPA"
+# "TIPA:TIPA"
+# "CROSSMODAL:CROSSMODAL"
+# "GAUSSIAN_PER_CLASS:GAUSSIAN_PER_CLASS"
 METHODS=(
   "LP:RANDOM"
-
 )
 
+# =========================
+# global config
+# =========================
 MODEL="clip-base"
 LOCAL_MODEL_PATH="./models/clip-vit-b32"
 DATA_ROOT="./datasets"
-SAVE_ROOT="./output_adapter"
+SAVE_ROOT="./output"
 METHOD_NAME="vlm_adapter"
+
 PREDICTION_TOPK=5
 DEVICE="cuda"
-NUM_WORKERS=4
-BATCH_SIZE=32
-EPOCHS=20
+
+# 第一次排查建议先设 0，确认没问题后再改回 4
+NUM_WORKERS=0
+BATCH_SIZE=256
+EPOCHS=5
 LR=1e-3
 WEIGHT_DECAY=1e-4
+
+# adapter extra config
+TASKRES_ALPHA=0.5
+CLIPA_RATIO=0.2
+CLIPA_HIDDEN_DIM=0
+TIPA_ALPHA=1.0
+TIPA_BETA=1.0
+GAUSSIAN_PRIOR_SIGMA=0.01
+GAUSSIAN_MC_SAMPLES=3
+GAUSSIAN_ANNEAL_START_EPOCH=20
 
 PYTHON_BIN="python"
 TRAIN_SCRIPT="train_py/train_vlm_adapter.py"
 
-EXTRA_ARGS=()
+# 如果后面想临时加额外参数，就往这里塞
+EXTRA_ARGS=(
+)
 
 run_one() {
   local dataset="$1"
@@ -73,6 +93,14 @@ run_one() {
     --prediction_topk "${PREDICTION_TOPK}" \
     --seed "${seed}" \
     --device "${DEVICE}" \
+    --taskres_alpha "${TASKRES_ALPHA}" \
+    --clipa_ratio "${CLIPA_RATIO}" \
+    --clipa_hidden_dim "${CLIPA_HIDDEN_DIM}" \
+    --tipa_alpha "${TIPA_ALPHA}" \
+    --tipa_beta "${TIPA_BETA}" \
+    --gaussian_prior_sigma "${GAUSSIAN_PRIOR_SIGMA}" \
+    --gaussian_mc_samples "${GAUSSIAN_MC_SAMPLES}" \
+    --gaussian_anneal_start_epoch "${GAUSSIAN_ANNEAL_START_EPOCH}" \
     "${EXTRA_ARGS[@]}"
 }
 

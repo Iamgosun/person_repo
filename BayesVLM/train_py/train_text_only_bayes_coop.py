@@ -1,446 +1,38 @@
 from __future__ import annotations
-import copy
+
 import argparse
-import csv
 import json
-import math
 import random
-import sys
 import time
-from collections import Counter, defaultdict
-from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Dict, List
 
 import numpy as np
 import torch
-import torch.distributions as dists
-from torch.utils.data import DataLoader, Subset
-from torchmetrics.classification import MulticlassCalibrationError
 
 from bayesvlm.constants import MODEL_NAME_MAP
-from bayesvlm.coop_prompt import CoOpPromptLearner
-from bayesvlm.data.factory import DataModuleFactory
+from bayesvlm.data.dataset_ops import print_class_counts
+from bayesvlm.data.factory import SUPPORTED_MODULES
+from bayesvlm.data.pipeline import prepare_experiment_data
 from bayesvlm.hessians import (
-    KroneckerFactorizedCovariance,
     load_hessians,
     optimize_prior_precision,
 )
-
-from bayesvlm.text_only_bayes_coop import TextOnlyBayesCoOpModel
+from bayesvlm.methods.text_only_bayes_coop import (
+    build_text_only_bayes_coop_model,
+    compute_text_covariance,
+    dump_text_only_bayes_coop_predictions,
+    evaluate_text_only_bayes_coop,
+)
+from bayesvlm.training.history import flatten_metrics_history
+from bayesvlm.training.io import save_csv, save_json, tee_output
 from bayesvlm.utils import (
     get_image_size,
     get_model_type_and_size,
     get_transform,
     load_model,
 )
+from bayesvlm.training.runtime import ensure_run_dir, set_seed
 
-
-SUPPORTED_DATASETS = [
-    "flowers102",
-    "food101",
-    "cifar10",
-    "cifar100",
-    "imagenet-r",
-    "ucf101",
-    "sun397",
-]
-
-
-def set_seed(seed: int):
-    """
-    中文说明：
-    固定随机种子，尽量保证 few-shot 抽样与训练可复现。
-    """
-    random.seed(seed)
-    np.random.seed(seed)
-    torch.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed)
-
-
-def unwrap_dataset(ds):
-    while isinstance(ds, Subset):
-        ds = ds.dataset
-    return ds
-
-
-def get_class_names(ds):
-    """
-    中文说明：
-    沿用项目里常见的数据集字段命名约定，尽量自动提取类别名。
-    """
-    base_ds = unwrap_dataset(ds)
-
-    class_names = getattr(base_ds, "classes", None)
-    if class_names is None:
-        class_names = getattr(base_ds, "_label_names", None)
-    if class_names is None:
-        class_names = getattr(base_ds, "label_names", None)
-    if class_names is None:
-        class_names = getattr(base_ds, "classnames", None)
-
-    if class_names is None:
-        raise ValueError("当前数据集无法自动提取类别名，请手动补充。")
-
-    return list(class_names)
-
-
-def print_class_counts(ds, split_name="train"):
-    class_names = get_class_names(ds)
-    counter = Counter()
-
-    for i in range(len(ds)):
-        sample = ds[i]
-        counter[int(sample["class_id"])] += 1
-
-    print(f"===== {split_name} =====")
-    print(f"num_classes: {len(class_names)}")
-    for class_id in sorted(counter.keys()):
-        print(f"{class_id:3d} | {class_names[class_id]:25s} | {counter[class_id]}")
-
-    return class_names, counter
-
-
-def build_fewshot_subset(ds, shots_per_class: int, seed: int):
-    """
-    中文说明：
-    从训练集按每类 K-shot 抽样。
-    如果 shots_per_class <= 0，则直接返回原训练集。
-    """
-    if shots_per_class <= 0:
-        return ds
-
-    rng = random.Random(seed)
-    indices = list(range(len(ds)))
-    rng.shuffle(indices)
-
-    picked = defaultdict(list)
-    for idx in indices:
-        label = int(ds[idx]["class_id"])
-        if len(picked[label]) < shots_per_class:
-            picked[label].append(idx)
-
-    final_indices = []
-    for label in sorted(picked.keys()):
-        final_indices.extend(picked[label])
-
-    final_indices = sorted(final_indices)
-    print(f"[few-shot] 训练集从 {len(ds)} 条样本，抽成 {len(final_indices)} 条样本")
-    return Subset(ds, final_indices)
-
-
-def build_loader(ds, batch_size: int, num_workers: int, shuffle: bool):
-    return DataLoader(
-        ds,
-        batch_size=batch_size,
-        shuffle=shuffle,
-        num_workers=num_workers,
-        pin_memory=True,
-    )
-
-
-def compute_text_covariance(
-    A_txt: torch.Tensor,
-    B_txt: torch.Tensor,
-    n_txt: float,
-    lambda_txt: float,
-) -> KroneckerFactorizedCovariance:
-    """
-    中文说明：
-    只计算文本投影层的后验协方差。
-    当前方案是 text-only Bayesian，因此这里不再计算图像侧协方差。
-    """
-    sqrt_n = math.sqrt(float(n_txt))
-    sqrt_lambda = math.sqrt(float(lambda_txt))
-
-    A = A_txt * sqrt_n + sqrt_lambda * torch.eye(
-        A_txt.size(0),
-        device=A_txt.device,
-        dtype=A_txt.dtype,
-    )
-    B = B_txt * sqrt_n + sqrt_lambda * torch.eye(
-        B_txt.size(0),
-        device=B_txt.device,
-        dtype=B_txt.dtype,
-    )
-
-    return KroneckerFactorizedCovariance(
-        A_inv=torch.linalg.inv(A),
-        B_inv=torch.linalg.inv(B),
-    )
-
-
-@torch.no_grad()
-def evaluate_model(
-    model: TextOnlyBayesCoOpModel,
-    loader: DataLoader,
-    num_classes: int,
-    device: str,
-) -> Dict[str, float]:
-    model.eval()
-
-    all_probs = []
-    all_labels = []
-    total_loss = 0.0
-
-    ece_metric = MulticlassCalibrationError(
-        num_classes=num_classes,
-        n_bins=20,
-        norm="l1",
-    ).to(device)
-
-    for batch in loader:
-        labels = batch["class_id"].to(device)
-        prob_logits = model(batch=batch)
-        probs = prob_logits.softmax(num_samples=0)
-
-        all_probs.append(probs)
-        all_labels.append(labels)
-
-        total_loss += prob_logits.cross_entropy(
-            labels,
-            num_samples=0,
-            reduction="sum",
-        ).item()
-
-    all_probs = torch.cat(all_probs, dim=0)
-    all_labels = torch.cat(all_labels, dim=0)
-
-    preds = all_probs.argmax(dim=1)
-    acc = (preds == all_labels).float().mean().item()
-    nlpd = -dists.Categorical(all_probs).log_prob(all_labels).mean().item()
-    ece = ece_metric(all_probs, all_labels).item()
-    loss = total_loss / len(loader.dataset)
-
-    return {
-        "acc": acc,
-        "nlpd": nlpd,
-        "ece": ece,
-        "loss": loss,
-    }
-
-
-def save_json(path: Path, obj):
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(obj, f, ensure_ascii=False, indent=2)
-
-
-def save_jsonl(path: Path, rows: List[Dict[str, Any]]):
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with open(path, "w", encoding="utf-8") as f:
-        for row in rows:
-            f.write(json.dumps(row, ensure_ascii=False) + "\n")
-
-
-def save_csv(path: Path, rows: List[Dict[str, Any]]):
-    path.parent.mkdir(parents=True, exist_ok=True)
-    if len(rows) == 0:
-        return
-
-    with open(path, "w", encoding="utf-8", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=list(rows[0].keys()))
-        writer.writeheader()
-        writer.writerows(rows)
-
-
-def flatten_metrics_history(metrics_history: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    rows = []
-    for item in metrics_history:
-        row = {
-            "epoch": item["epoch"],
-            "train_loss_step_mean": item["train_loss_step_mean"],
-        }
-        for split in ["train", "val", "test"]:
-            for key, value in item[split].items():
-                row[f"{split}_{key}"] = value
-        rows.append(row)
-    return rows
-
-
-class Tee:
-    """
-    中文说明：
-    同时把终端输出写到屏幕和日志文件里。
-    这样原来所有 print 不需要重写，直接就能落盘。
-    """
-
-    def __init__(self, *streams):
-        self.streams = streams
-
-    def write(self, data):
-        for stream in self.streams:
-            stream.write(data)
-            stream.flush()
-        return len(data)
-
-    def flush(self):
-        for stream in self.streams:
-            stream.flush()
-
-
-@contextmanager
-def tee_output(log_path: Path):
-    """
-    中文说明：
-    把 stdout 和 stderr 同时重定向到日志文件。
-    """
-
-    log_path.parent.mkdir(parents=True, exist_ok=True)
-    stdout_backup = sys.stdout
-    stderr_backup = sys.stderr
-
-    with open(log_path, "w", encoding="utf-8") as f:
-        tee = Tee(stdout_backup, f)
-        sys.stdout = tee
-        sys.stderr = tee
-        try:
-            yield
-        finally:
-            sys.stdout = stdout_backup
-            sys.stderr = stderr_backup
-
-
-def get_batch_item(batch, key: str, idx: int, default=None):
-    """
-    中文说明：
-    从 batch 中安全取单个样本字段。
-    兼容 tensor、list、tuple 三种常见格式。
-    """
-
-    if key not in batch:
-        return default
-
-    value = batch[key]
-
-    if torch.is_tensor(value):
-        item = value[idx]
-        if item.ndim == 0:
-            return item.item()
-        return item.detach().cpu().tolist()
-
-    if isinstance(value, (list, tuple)):
-        item = value[idx]
-        if torch.is_tensor(item):
-            if item.ndim == 0:
-                return item.item()
-            return item.detach().cpu().tolist()
-        return item
-
-    return value
-
-
-@torch.no_grad()
-def collect_predictions(
-    model: TextOnlyBayesCoOpModel,
-    loader: DataLoader,
-    class_names: List[str],
-    device: str,
-    split_name: str,
-    topk: int = 5,
-):
-    """
-    中文说明：
-    逐样本导出预测结果。
-    同时保存：
-    1. 便于人读的 jsonl
-    2. 便于后续分析的 pt 张量文件
-    """
-
-    model.eval()
-
-    rows = []
-    all_labels = []
-    all_preds = []
-    all_probs = []
-    all_logits_mean = []
-    all_logits_var = []
-
-    sample_index = 0
-
-    for batch in loader:
-        labels = batch["class_id"].to(device)
-        prob_logits = model(batch=batch)
-        probs = prob_logits.softmax(num_samples=0)
-        preds = probs.argmax(dim=1)
-
-        k = min(topk, probs.shape[1])
-        topk_probs, topk_ids = torch.topk(probs, k=k, dim=1)
-
-        all_labels.append(labels.detach().cpu())
-        all_preds.append(preds.detach().cpu())
-        all_probs.append(probs.detach().cpu())
-        all_logits_mean.append(prob_logits.mean.detach().cpu())
-        all_logits_var.append(prob_logits.var.detach().cpu())
-
-        for i in range(labels.shape[0]):
-            label_id = int(labels[i].item())
-            pred_id = int(preds[i].item())
-
-            topk_list = []
-            for rank in range(k):
-                class_id = int(topk_ids[i, rank].item())
-                topk_list.append(
-                    {
-                        "rank": rank + 1,
-                        "class_id": class_id,
-                        "class_name": class_names[class_id],
-                        "prob": float(topk_probs[i, rank].item()),
-                    }
-                )
-
-            row = {
-                "split": split_name,
-                "sample_index": sample_index,
-                "image_id": get_batch_item(batch, "image_id", i, default=sample_index),
-                "image_path": get_batch_item(batch, "image_path", i, default=None),
-                "text": get_batch_item(batch, "text", i, default=None),
-                "label_id": label_id,
-                "label_name": class_names[label_id],
-                "pred_id": pred_id,
-                "pred_name": class_names[pred_id],
-                "confidence": float(probs[i, pred_id].item()),
-                "correct": bool(label_id == pred_id),
-                "pred_logit_mean": float(prob_logits.mean[i, pred_id].item()),
-                "pred_logit_var": float(prob_logits.var[i, pred_id].item()),
-                "topk": topk_list,
-            }
-            rows.append(row)
-            sample_index += 1
-
-    tensor_payload = {
-        "split": split_name,
-        "class_names": class_names,
-        "labels": torch.cat(all_labels, dim=0),
-        "preds": torch.cat(all_preds, dim=0),
-        "probs": torch.cat(all_probs, dim=0),
-        "logits_mean": torch.cat(all_logits_mean, dim=0),
-        "logits_var": torch.cat(all_logits_var, dim=0),
-    }
-
-    return rows, tensor_payload
-
-
-def dump_predictions(
-    run_dir: Path,
-    split_name: str,
-    model: TextOnlyBayesCoOpModel,
-    loader: DataLoader,
-    class_names: List[str],
-    device: str,
-    topk: int = 5,
-):
-    rows, tensor_payload = collect_predictions(
-        model=model,
-        loader=loader,
-        class_names=class_names,
-        device=device,
-        split_name=split_name,
-        topk=topk,
-    )
-
-    save_jsonl(run_dir / f"{split_name}_predictions.jsonl", rows)
-    torch.save(tensor_payload, run_dir / f"{split_name}_predictions.pt")
 
 
 def main(
@@ -466,66 +58,56 @@ def main(
     seed: int = 42,
     device: str = "cuda",
     prediction_topk: int = 5,
-):
+) -> None:
     set_seed(seed)
 
-
-    run_dir = (
-        Path(save_dir)
-        / method_name
-        / dataset
-        / f"shot_{shots_per_class}"
-        / f"seed_{seed}"
+ 
+    run_dir = ensure_run_dir(
+        save_dir=save_dir,
+        method_name=method_name,
+        dataset=dataset,
+        seed=seed,
+        path_parts=[f"shot_{shots_per_class}"],
     )
-
     run_dir.mkdir(parents=True, exist_ok=True)
 
     with tee_output(run_dir / "train.log"):
         run_start_time = time.time()
 
-
         print(f"[run] method={method_name}")
         print(f"[run] dataset={dataset}")
         print(f"[run] shots_per_class={shots_per_class}")
-
         print(f"[run] seed={seed}")
+        print(f"[run] device={device}")
         print(f"[run] run_dir={run_dir}")
-
 
         if model_str not in MODEL_NAME_MAP:
             raise ValueError(f"无效模型名：{model_str}，可选值为 {list(MODEL_NAME_MAP.keys())}")
 
-        if dataset not in SUPPORTED_DATASETS:
-            raise ValueError(f"无效数据集：{dataset}，可选值为 {SUPPORTED_DATASETS}")
+        if dataset not in SUPPORTED_MODULES:
+            raise ValueError(f"无效数据集：{dataset}，可选值为 {sorted(SUPPORTED_MODULES.keys())}")
 
         model_type, _ = get_model_type_and_size(model_str)
         transform_image_size = get_image_size(model_str)
         transform = get_transform(model_type, transform_image_size)
 
-        factory = DataModuleFactory(
+        data = prepare_experiment_data(
+            dataset=dataset,
+            data_root=data_root,
             batch_size=batch_size,
             num_workers=num_workers,
             train_transform=transform,
             test_transform=transform,
+            shots_per_class=shots_per_class,
+            seed=seed,
             shuffle_train=True,
-            base_path=data_root,
+            run_checks=False,
+            run_loader_probe=False,
         )
-        dm = factory.create(dataset)
-        dm.setup()
 
-        train_ds = build_fewshot_subset(dm.train_ds, shots_per_class=shots_per_class, seed=seed)
-        val_ds = dm.val_ds if hasattr(dm, "val_ds") and dm.val_ds is not None else dm.test_ds
-        test_ds = dm.test_ds
-
-        class_names, _ = print_class_counts(train_ds, split_name="train")
-        print_class_counts(test_ds, split_name="test")
-
-        save_json(run_dir / "class_names.json", {"class_names": class_names})
-
-        train_loader = build_loader(train_ds, batch_size=batch_size, num_workers=num_workers, shuffle=True)
-        train_eval_loader = build_loader(train_ds, batch_size=batch_size, num_workers=num_workers, shuffle=False)
-        val_loader = build_loader(val_ds, batch_size=batch_size, num_workers=num_workers, shuffle=False)
-        test_loader = build_loader(test_ds, batch_size=batch_size, num_workers=num_workers, shuffle=False)
+        print_class_counts(data.train_ds, split_name="train")
+        print_class_counts(data.test_ds, split_name="test")
+        save_json(run_dir / "class_names.json", {"class_names": data.class_names})
 
         image_encoder, text_encoder, vlm = load_model(
             model_str=model_str,
@@ -533,15 +115,9 @@ def main(
             local_model_path=local_model_path,
         )
 
-        image_encoder.freeze_all_layers()
-        text_encoder.freeze_all_layers()
-        vlm.logit_scale.requires_grad = False
-        if getattr(vlm, "logit_bias", None) is not None:
-            vlm.logit_bias.requires_grad = False
-
+        print("[1] 加载 Hessian 并优化文本投影层先验精度 ...")
         A_txt, B_txt = load_hessians(hessian_dir, tag="txt", return_info=False)
 
-        print("[1] 优化文本投影层的先验精度 lambda_txt ...")
         lambda_txt = optimize_prior_precision(
             projection=text_encoder.text_projection,
             A=A_txt,
@@ -564,21 +140,17 @@ def main(
             lambda_txt=lambda_txt,
         )
 
-        prompt_learner = CoOpPromptLearner(
-            class_names=class_names,
+        prompt_learner, model = build_text_only_bayes_coop_model(
+            class_names=data.class_names,
             text_encoder=text_encoder,
+            image_encoder=image_encoder,
+            vlm=vlm,
+            text_covariance=text_covariance,
             n_ctx=n_ctx,
             ctx_init=ctx_init,
-        ).to(device)
-
-        model = TextOnlyBayesCoOpModel(
-            image_encoder=image_encoder,
-            prompt_learner=prompt_learner,
-            text_covariance=text_covariance,
-            logit_scale=vlm.logit_scale,
-            logit_bias=getattr(vlm, "logit_bias", None),
             use_full_cov=use_full_cov,
-        ).to(device)
+            device=device,
+        )
 
         optimizer = torch.optim.AdamW(
             prompt_learner.parameters(),
@@ -589,8 +161,6 @@ def main(
         config = {
             "method_name": method_name,
             "dataset": dataset,
-            "shots_per_class": shots_per_class,
-            "seed": seed,
             "hessian_dir": hessian_dir,
             "model_str": model_str,
             "local_model_path": local_model_path,
@@ -610,7 +180,7 @@ def main(
             "use_full_cov": use_full_cov,
             "seed": seed,
             "device": device,
-            "num_classes": len(class_names),
+            "num_classes": len(data.class_names),
             "prediction_topk": prediction_topk,
             "run_dir": str(run_dir),
         }
@@ -625,10 +195,10 @@ def main(
             model.train()
             prompt_learner.train()
 
-            epoch_loss = 0.0
+            epoch_loss_sum = 0.0
             epoch_count = 0
 
-            for batch in train_loader:
+            for batch in data.train_loader:
                 labels = batch["class_id"].to(device)
 
                 optimizer.zero_grad()
@@ -641,16 +211,31 @@ def main(
                 loss.backward()
                 optimizer.step()
 
-                epoch_loss += loss.item() * labels.size(0)
+                epoch_loss_sum += loss.item() * labels.size(0)
                 epoch_count += labels.size(0)
 
-            train_metrics = evaluate_model(model, train_eval_loader, len(class_names), device=device)
-            val_metrics = evaluate_model(model, val_loader, len(class_names), device=device)
-            test_metrics = evaluate_model(model, test_loader, len(class_names), device=device)
+            train_metrics = evaluate_text_only_bayes_coop(
+                model=model,
+                loader=data.train_eval_loader,
+                num_classes=len(data.class_names),
+                device=device,
+            )
+            val_metrics = evaluate_text_only_bayes_coop(
+                model=model,
+                loader=data.val_loader,
+                num_classes=len(data.class_names),
+                device=device,
+            )
+            test_metrics = evaluate_text_only_bayes_coop(
+                model=model,
+                loader=data.test_loader,
+                num_classes=len(data.class_names),
+                device=device,
+            )
 
             row = {
                 "epoch": epoch,
-                "train_loss_step_mean": epoch_loss / max(epoch_count, 1),
+                "train_loss_step_mean": epoch_loss_sum / max(epoch_count, 1),
                 "train": train_metrics,
                 "val": val_metrics,
                 "test": test_metrics,
@@ -677,11 +262,8 @@ def main(
                 }
                 torch.save(best_state, run_dir / "best_prompt_learner.pt")
 
-
-
             save_json(run_dir / "metrics_history.json", metrics_history)
             save_csv(run_dir / "metrics_history.csv", flatten_metrics_history(metrics_history))
-
 
         print("[3] 训练结束，加载最优 prompt 并导出最终预测 ...")
         best_ckpt_path = run_dir / "best_prompt_learner.pt"
@@ -691,35 +273,49 @@ def main(
         best_state = torch.load(best_ckpt_path, map_location=device)
         prompt_learner.load_state_dict(best_state["prompt_learner"])
 
+        final_train_metrics = evaluate_text_only_bayes_coop(
+            model=model,
+            loader=data.train_eval_loader,
+            num_classes=len(data.class_names),
+            device=device,
+        )
+        final_val_metrics = evaluate_text_only_bayes_coop(
+            model=model,
+            loader=data.val_loader,
+            num_classes=len(data.class_names),
+            device=device,
+        )
+        final_test_metrics = evaluate_text_only_bayes_coop(
+            model=model,
+            loader=data.test_loader,
+            num_classes=len(data.class_names),
+            device=device,
+        )
 
-        final_train_metrics = evaluate_model(model, train_eval_loader, len(class_names), device=device)
-        final_val_metrics = evaluate_model(model, val_loader, len(class_names), device=device)
-        final_test_metrics = evaluate_model(model, test_loader, len(class_names), device=device)
-
-        dump_predictions(
+        dump_text_only_bayes_coop_predictions(
             run_dir=run_dir,
             split_name="train",
             model=model,
-            loader=train_eval_loader,
-            class_names=class_names,
+            loader=data.train_eval_loader,
+            class_names=data.class_names,
             device=device,
             topk=prediction_topk,
         )
-        dump_predictions(
+        dump_text_only_bayes_coop_predictions(
             run_dir=run_dir,
             split_name="val",
             model=model,
-            loader=val_loader,
-            class_names=class_names,
+            loader=data.val_loader,
+            class_names=data.class_names,
             device=device,
             topk=prediction_topk,
         )
-        dump_predictions(
+        dump_text_only_bayes_coop_predictions(
             run_dir=run_dir,
             split_name="test",
             model=model,
-            loader=test_loader,
-            class_names=class_names,
+            loader=data.test_loader,
+            class_names=data.class_names,
             device=device,
             topk=prediction_topk,
         )

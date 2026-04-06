@@ -2,472 +2,39 @@ from __future__ import annotations
 
 import argparse
 import copy
-import csv
 import json
 import random
-import sys
 import time
-from collections import Counter, defaultdict
-from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Dict, List
 
 import numpy as np
 import torch
-import torch.distributions as dists
 import torch.nn.functional as F
-from torch.utils.data import DataLoader, Subset
-from torchmetrics.classification import MulticlassCalibrationError
 
 from bayesvlm.constants import MODEL_NAME_MAP
-from bayesvlm.data.factory import DataModuleFactory
-from bayesvlm.utils import get_image_size, get_model_type_and_size, get_transform, load_model
-from bayesvlm.vlm_adapter import VLMAdapter
+from bayesvlm.data.dataset_ops import print_class_counts
+from bayesvlm.data.factory import SUPPORTED_MODULES
+from bayesvlm.data.pipeline import prepare_experiment_data
+from bayesvlm.methods.vlm_adapter import (
+    build_vlm_adapter_model,
+    compute_adapter_regularization_loss,
+    compute_crossmodal_text_loss,
+    dump_vlm_adapter_predictions,
+    evaluate_vlm_adapter,
+    evaluate_zero_shot_vlm_adapter,
+    maybe_init_special_adapter,
+)
+from bayesvlm.training.history import flatten_metrics_history
+from bayesvlm.training.io import save_csv, save_json, tee_output
+from bayesvlm.utils import (
+    get_image_size,
+    get_model_type_and_size,
+    get_transform,
+    load_model,
+)
+
+from bayesvlm.training.runtime import ensure_run_dir, set_seed
 
-
-SUPPORTED_DATASETS = [
-    "flowers102",
-    "food101",
-    "cifar10",
-    "cifar100",
-    "imagenet-r",
-    "ucf101",
-    "sun397",
-]
-
-
-class Config:
-    pass
-
-
-def set_seed(seed: int):
-    random.seed(seed)
-    np.random.seed(seed)
-    torch.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed)
-
-
-def unwrap_dataset(ds):
-    while isinstance(ds, Subset):
-        ds = ds.dataset
-    return ds
-
-
-def get_class_names(ds):
-    base_ds = unwrap_dataset(ds)
-
-    class_names = getattr(base_ds, "classes", None)
-    if class_names is None:
-        class_names = getattr(base_ds, "_label_names", None)
-    if class_names is None:
-        class_names = getattr(base_ds, "label_names", None)
-    if class_names is None:
-        class_names = getattr(base_ds, "classnames", None)
-
-    if class_names is None:
-        raise ValueError("当前数据集无法自动提取类别名，请手动补充。")
-
-    return list(class_names)
-
-
-def print_class_counts(ds, split_name="train"):
-    class_names = get_class_names(ds)
-    counter = Counter()
-
-    for i in range(len(ds)):
-        sample = ds[i]
-        counter[int(sample["class_id"])] += 1
-
-    print(f"===== {split_name} =====")
-    print(f"num_classes: {len(class_names)}")
-    for class_id in sorted(counter.keys()):
-        print(f"{class_id:3d} | {class_names[class_id]:25s} | {counter[class_id]}")
-
-    return class_names, counter
-
-
-def build_fewshot_subset(ds, shots_per_class: int, seed: int):
-    """
-    与 text_only_bayes_coop 保持一致：
-    从训练集按每类 K-shot 抽样；如果 shots_per_class <= 0，则直接返回原训练集。
-    """
-    if shots_per_class <= 0:
-        return ds
-
-    rng = random.Random(seed)
-    indices = list(range(len(ds)))
-    rng.shuffle(indices)
-
-    picked = defaultdict(list)
-    for idx in indices:
-        label = int(ds[idx]["class_id"])
-        if len(picked[label]) < shots_per_class:
-            picked[label].append(idx)
-
-    final_indices = []
-    for label in sorted(picked.keys()):
-        final_indices.extend(picked[label])
-
-    final_indices = sorted(final_indices)
-    print(f"[few-shot] 训练集从 {len(ds)} 条样本，抽成 {len(final_indices)} 条样本")
-    return Subset(ds, final_indices)
-
-
-def build_loader(ds, batch_size: int, num_workers: int, shuffle: bool):
-    return DataLoader(
-        ds,
-        batch_size=batch_size,
-        shuffle=shuffle,
-        num_workers=num_workers,
-        pin_memory=torch.cuda.is_available(),
-        drop_last=False,
-    )
-
-
-def save_json(path: Path, obj):
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(obj, f, ensure_ascii=False, indent=2)
-
-
-def save_jsonl(path: Path, rows: List[Dict[str, Any]]):
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with open(path, "w", encoding="utf-8") as f:
-        for row in rows:
-            f.write(json.dumps(row, ensure_ascii=False) + "\n")
-
-
-def save_csv(path: Path, rows: List[Dict[str, Any]]):
-    path.parent.mkdir(parents=True, exist_ok=True)
-    if len(rows) == 0:
-        return
-
-    with open(path, "w", encoding="utf-8", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=list(rows[0].keys()))
-        writer.writeheader()
-        writer.writerows(rows)
-
-
-def flatten_metrics_history(metrics_history: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    rows = []
-    for item in metrics_history:
-        row = {
-            "epoch": item["epoch"],
-            "train_loss_step_mean": item["train_loss_step_mean"],
-        }
-        for split in ["train", "val", "test"]:
-            for key, value in item[split].items():
-                row[f"{split}_{key}"] = value
-
-        for extra_key in [
-            "loss_kl",
-            "loss_kl_raw",
-            "kl_weight",
-            "loss_crossmodal_text",
-        ]:
-            if extra_key in item:
-                row[extra_key] = item[extra_key]
-
-        rows.append(row)
-    return rows
-
-
-class Tee:
-    def __init__(self, *streams):
-        self.streams = streams
-
-    def write(self, data):
-        for stream in self.streams:
-            stream.write(data)
-            stream.flush()
-        return len(data)
-
-    def flush(self):
-        for stream in self.streams:
-            stream.flush()
-
-
-@contextmanager
-def tee_output(log_path: Path):
-    log_path.parent.mkdir(parents=True, exist_ok=True)
-    stdout_backup = sys.stdout
-    stderr_backup = sys.stderr
-
-    with open(log_path, "w", encoding="utf-8") as f:
-        tee = Tee(stdout_backup, f)
-        sys.stdout = tee
-        sys.stderr = tee
-        try:
-            yield
-        finally:
-            sys.stdout = stdout_backup
-            sys.stderr = stderr_backup
-
-
-def get_batch_item(batch, key: str, idx: int, default=None):
-    if key not in batch:
-        return default
-
-    value = batch[key]
-
-    if torch.is_tensor(value):
-        item = value[idx]
-        if item.ndim == 0:
-            return item.item()
-        return item.detach().cpu().tolist()
-
-    if isinstance(value, (list, tuple)):
-        item = value[idx]
-        if torch.is_tensor(item):
-            if item.ndim == 0:
-                return item.item()
-            return item.detach().cpu().tolist()
-        return item
-
-    return value
-
-
-@torch.no_grad()
-def evaluate_prediction(prediction: torch.Tensor, label: torch.Tensor, num_classes: int):
-    ece_metric = MulticlassCalibrationError(num_classes=num_classes, n_bins=20, norm="l1")
-    pred_cls = prediction.argmax(1)
-    acc = (pred_cls == label).float().mean().item()
-    nlpd = -dists.Categorical(prediction).log_prob(label).mean().item()
-    ece = ece_metric(prediction, label).item()
-    return acc, nlpd, ece
-
-
-@torch.no_grad()
-def evaluate_zero_shot(
-    model: VLMAdapter,
-    loader: DataLoader,
-    num_classes: int,
-    device: str,
-) -> Dict[str, float]:
-    model.eval()
-
-    all_probs = []
-    all_labels = []
-    total_loss = 0.0
-
-    for batch in loader:
-        labels = batch["class_id"].to(device)
-        logits = model.zero_shot_logits(batch=batch)
-        probs = torch.softmax(logits, dim=-1)
-
-        all_probs.append(probs.detach().cpu())
-        all_labels.append(labels.detach().cpu())
-        total_loss += F.cross_entropy(logits, labels, reduction="sum").item()
-
-    all_probs = torch.cat(all_probs, dim=0)
-    all_labels = torch.cat(all_labels, dim=0)
-
-    acc, nlpd, ece = evaluate_prediction(all_probs, all_labels, num_classes=num_classes)
-    return {
-        "loss": total_loss / len(loader.dataset),
-        "acc": acc,
-        "nlpd": nlpd,
-        "ece": ece,
-    }
-
-
-@torch.no_grad()
-def evaluate_model(
-    model: VLMAdapter,
-    loader: DataLoader,
-    num_classes: int,
-    device: str,
-) -> Dict[str, float]:
-    model.eval()
-
-    all_probs = []
-    all_labels = []
-    total_loss = 0.0
-
-    for batch in loader:
-        labels = batch["class_id"].to(device)
-        logits = model(batch=batch)
-        probs = torch.softmax(logits, dim=-1)
-
-        all_probs.append(probs.detach().cpu())
-        all_labels.append(labels.detach().cpu())
-        total_loss += F.cross_entropy(logits, labels, reduction="sum").item()
-
-    all_probs = torch.cat(all_probs, dim=0)
-    all_labels = torch.cat(all_labels, dim=0)
-
-    acc, nlpd, ece = evaluate_prediction(all_probs, all_labels, num_classes=num_classes)
-    return {
-        "loss": total_loss / len(loader.dataset),
-        "acc": acc,
-        "nlpd": nlpd,
-        "ece": ece,
-    }
-
-
-@torch.no_grad()
-def collect_adapter_init_features(
-    model: VLMAdapter,
-    loader: DataLoader,
-    device: str,
-):
-    model.eval()
-    all_features = []
-    all_labels = []
-
-    for batch in loader:
-        images = batch["image"].to(device)
-        labels = batch["class_id"].to(device)
-        features = model._encode_image(images)
-        all_features.append(features.detach().cpu())
-        all_labels.append(labels.detach().cpu())
-
-    return torch.cat(all_features, dim=0), torch.cat(all_labels, dim=0)
-
-
-@torch.no_grad()
-def maybe_init_special_adapter(
-    model: VLMAdapter,
-    adapter_name: str,
-    train_eval_loader: DataLoader,
-    device: str,
-):
-    adapter_key = adapter_name.upper()
-    if adapter_key == "TIPA" and hasattr(model.adapter, "init_tipadapter"):
-        print("[TipA] 初始化 cache_keys / cache_values")
-        train_features, train_labels = collect_adapter_init_features(
-            model=model,
-            loader=train_eval_loader,
-            device=device,
-        )
-        model.adapter.init_tipadapter(train_features, train_labels)
-
-
-def compute_regularization_loss(model: VLMAdapter):
-    return model.adapter_regularization_loss()
-
-
-def compute_crossmodal_text_loss(
-    model: VLMAdapter,
-    batch_size: int,
-    device: str,
-) -> torch.Tensor:
-    """
-    保留 CrossModal 的“文本 prototype 辅助监督”思想，
-    但不把主训练流程改回 feature-dataset。
-    """
-    text_proto = model.base_text_features.to(device=device, dtype=torch.float32)
-    num_classes = text_proto.shape[0]
-
-    sampled_labels = torch.randint(
-        low=0,
-        high=num_classes,
-        size=(batch_size,),
-        device=device,
-    )
-    sampled_features = text_proto[sampled_labels]
-    logits = model.forward_features(sampled_features)
-    return F.cross_entropy(logits, sampled_labels)
-
-
-@torch.no_grad()
-def collect_predictions(
-    model: VLMAdapter,
-    loader: DataLoader,
-    class_names: List[str],
-    device: str,
-    split_name: str,
-    topk: int = 5,
-):
-    model.eval()
-
-    rows = []
-    all_labels = []
-    all_preds = []
-    all_probs = []
-    all_logits = []
-
-    sample_index = 0
-
-    for batch in loader:
-        labels = batch["class_id"].to(device)
-        logits = model(batch=batch)
-        probs = torch.softmax(logits, dim=-1)
-        preds = probs.argmax(dim=1)
-
-        k = min(topk, probs.shape[1])
-        topk_probs, topk_ids = torch.topk(probs, k=k, dim=1)
-
-        all_labels.append(labels.detach().cpu())
-        all_preds.append(preds.detach().cpu())
-        all_probs.append(probs.detach().cpu())
-        all_logits.append(logits.detach().cpu())
-
-        for i in range(labels.shape[0]):
-            label_id = int(labels[i].item())
-            pred_id = int(preds[i].item())
-
-            topk_list = []
-            for rank in range(k):
-                class_id = int(topk_ids[i, rank].item())
-                topk_list.append(
-                    {
-                        "rank": rank + 1,
-                        "class_id": class_id,
-                        "class_name": class_names[class_id],
-                        "prob": float(topk_probs[i, rank].item()),
-                    }
-                )
-
-            row = {
-                "split": split_name,
-                "sample_index": sample_index,
-                "image_id": get_batch_item(batch, "image_id", i, default=sample_index),
-                "image_path": get_batch_item(batch, "image_path", i, default=None),
-                "text": get_batch_item(batch, "text", i, default=None),
-                "label_id": label_id,
-                "label_name": class_names[label_id],
-                "pred_id": pred_id,
-                "pred_name": class_names[pred_id],
-                "confidence": float(probs[i, pred_id].item()),
-                "correct": bool(label_id == pred_id),
-                "topk": topk_list,
-            }
-            rows.append(row)
-            sample_index += 1
-
-    tensor_payload = {
-        "split": split_name,
-        "class_names": class_names,
-        "labels": torch.cat(all_labels, dim=0),
-        "preds": torch.cat(all_preds, dim=0),
-        "probs": torch.cat(all_probs, dim=0),
-        "logits": torch.cat(all_logits, dim=0),
-    }
-
-    return rows, tensor_payload
-
-
-def dump_predictions(
-    run_dir: Path,
-    split_name: str,
-    model: VLMAdapter,
-    loader: DataLoader,
-    class_names: List[str],
-    device: str,
-    topk: int = 5,
-):
-    rows, tensor_payload = collect_predictions(
-        model=model,
-        loader=loader,
-        class_names=class_names,
-        device=device,
-        split_name=split_name,
-        topk=topk,
-    )
-
-    save_jsonl(run_dir / f"{split_name}_predictions.jsonl", rows)
-    torch.save(tensor_payload, run_dir / f"{split_name}_predictions.pt")
 
 
 def main(
@@ -498,18 +65,22 @@ def main(
     gaussian_prior_sigma: float = 0.01,
     gaussian_mc_samples: int = 3,
     gaussian_anneal_start_epoch: int = 20,
-):
+) -> None:
     set_seed(seed)
 
-    run_dir = (
-        Path(save_dir)
-        / method_name
-        / dataset
-        / adapter_name.upper()
-        / initialization
-        / f"shot_{shots_per_class}"
-        / f"seed_{seed}"
+    run_dir = ensure_run_dir(
+        save_dir=save_dir,
+        method_name=method_name,
+        dataset=dataset,
+        seed=seed,
+        path_parts=[
+            adapter_name.upper(),
+            initialization,
+            f"shot_{shots_per_class}",
+        ],
     )
+
+
     run_dir.mkdir(parents=True, exist_ok=True)
 
     with tee_output(run_dir / "train.log"):
@@ -521,6 +92,7 @@ def main(
         print(f"[run] initialization={initialization}")
         print(f"[run] shots_per_class={shots_per_class}")
         print(f"[run] seed={seed}")
+        print(f"[run] device={device}")
         print(f"[run] run_dir={run_dir}")
 
         if hessian_dir:
@@ -530,36 +102,30 @@ def main(
         if model_str not in MODEL_NAME_MAP:
             raise ValueError(f"无效模型名：{model_str}，可选值为 {list(MODEL_NAME_MAP.keys())}")
 
-        if dataset not in SUPPORTED_DATASETS:
-            raise ValueError(f"无效数据集：{dataset}，可选值为 {SUPPORTED_DATASETS}")
+        if dataset not in SUPPORTED_MODULES:
+            raise ValueError(f"无效数据集：{dataset}，可选值为 {sorted(SUPPORTED_MODULES.keys())}")
 
         model_type, _ = get_model_type_and_size(model_str)
         transform_image_size = get_image_size(model_str)
         transform = get_transform(model_type, transform_image_size)
 
-        factory = DataModuleFactory(
+        data = prepare_experiment_data(
+            dataset=dataset,
+            data_root=data_root,
             batch_size=batch_size,
             num_workers=num_workers,
             train_transform=transform,
             test_transform=transform,
+            shots_per_class=shots_per_class,
+            seed=seed,
             shuffle_train=True,
-            base_path=data_root,
+            run_checks=False,
+            run_loader_probe=False,
         )
-        dm = factory.create(dataset)
-        dm.setup()
 
-        train_ds = build_fewshot_subset(dm.train_ds, shots_per_class=shots_per_class, seed=seed)
-        val_ds = dm.val_ds if hasattr(dm, "val_ds") and dm.val_ds is not None else dm.test_ds
-        test_ds = dm.test_ds
-
-        class_names, _ = print_class_counts(train_ds, split_name="train")
-        print_class_counts(test_ds, split_name="test")
-        save_json(run_dir / "class_names.json", {"class_names": class_names})
-
-        train_loader = build_loader(train_ds, batch_size=batch_size, num_workers=num_workers, shuffle=True)
-        train_eval_loader = build_loader(train_ds, batch_size=batch_size, num_workers=num_workers, shuffle=False)
-        val_loader = build_loader(val_ds, batch_size=batch_size, num_workers=num_workers, shuffle=False)
-        test_loader = build_loader(test_ds, batch_size=batch_size, num_workers=num_workers, shuffle=False)
+        print_class_counts(data.train_ds, split_name="train")
+        print_class_counts(data.test_ds, split_name="test")
+        save_json(run_dir / "class_names.json", {"class_names": data.class_names})
 
         image_encoder, text_encoder, vlm = load_model(
             model_str=model_str,
@@ -567,43 +133,44 @@ def main(
             local_model_path=local_model_path,
         )
 
-        cfg = Config()
-        cfg.model = model_str
-        cfg.model_name_or_path = local_model_path
-        cfg.datasetname = dataset
-        cfg.adapter_name = adapter_name
-        cfg.initialization = initialization
-        cfg.device = device
-        cfg.epochs = epochs
+        cfg = {
+            "model": model_str,
+            "model_name_or_path": local_model_path,
+            "datasetname": dataset,
+            "adapter_name": adapter_name,
+            "initialization": initialization,
+            "device": device,
+            "epochs": epochs,
+            "taskres_alpha": taskres_alpha,
+            "clipa_ratio": clipa_ratio,
+            "clipa_hidden_dim": None if clipa_hidden_dim <= 0 else clipa_hidden_dim,
+            "tipa_alpha": tipa_alpha,
+            "tipa_beta": tipa_beta,
+            "gaussian_prior_sigma": gaussian_prior_sigma,
+            "gaussian_mc_samples": gaussian_mc_samples,
+            "gaussian_anneal_start_epoch": gaussian_anneal_start_epoch,
+        }
 
-        cfg.taskres_alpha = taskres_alpha
-        cfg.clipa_ratio = clipa_ratio
-        cfg.clipa_hidden_dim = None if clipa_hidden_dim <= 0 else clipa_hidden_dim
-        cfg.tipa_alpha = tipa_alpha
-        cfg.tipa_beta = tipa_beta
-        cfg.gaussian_prior_sigma = gaussian_prior_sigma
-        cfg.gaussian_mc_samples = gaussian_mc_samples
-        cfg.gaussian_anneal_start_epoch = gaussian_anneal_start_epoch
-
-        model = VLMAdapter(
+        model = build_vlm_adapter_model(
             cfg=cfg,
-            classnames=class_names,
+            class_names=data.class_names,
             image_encoder=image_encoder,
             text_encoder=text_encoder,
             vlm=vlm,
-        ).to(device)
+            device=device,
+        )
 
         maybe_init_special_adapter(
             model=model,
             adapter_name=adapter_name,
-            train_eval_loader=train_eval_loader,
+            train_eval_loader=data.train_eval_loader,
             device=device,
         )
 
-        zero_shot_test = evaluate_zero_shot(
+        zero_shot_test = evaluate_zero_shot_vlm_adapter(
             model=model,
-            loader=test_loader,
-            num_classes=len(class_names),
+            loader=data.test_loader,
+            num_classes=len(data.class_names),
             device=device,
         )
         print(
@@ -658,14 +225,15 @@ def main(
         print("[train] 开始 adapter 训练 ...")
         for epoch in range(1, epochs + 1):
             model.train()
-            model.set_epoch(epoch)
+            if hasattr(model, "set_epoch"):
+                model.set_epoch(epoch)
 
             epoch_loss_sum = 0.0
-            epoch_count = 0
-            epoch_crossmodal_text_sum = 0.0
             epoch_reg_sum = 0.0
+            epoch_crossmodal_text_sum = 0.0
+            epoch_count = 0
 
-            for batch in train_loader:
+            for batch in data.train_loader:
                 labels = batch["class_id"].to(device)
 
                 optimizer.zero_grad(set_to_none=True)
@@ -673,7 +241,7 @@ def main(
                 logits = model(batch=batch)
                 ce_loss = F.cross_entropy(logits, labels)
 
-                reg_loss, reg_info = compute_regularization_loss(model)
+                reg_loss, reg_info = compute_adapter_regularization_loss(model)
                 total_loss = ce_loss + reg_loss
 
                 if adapter_name.upper() == "CROSSMODAL":
@@ -692,27 +260,37 @@ def main(
                 epoch_reg_sum += reg_loss.item() * labels.size(0)
                 epoch_count += labels.size(0)
 
-            train_metrics = evaluate_model(model, train_eval_loader, len(class_names), device=device)
-            val_metrics = evaluate_model(model, val_loader, len(class_names), device=device)
-            test_metrics = evaluate_model(model, test_loader, len(class_names), device=device)
+            train_metrics = evaluate_vlm_adapter(
+                model=model,
+                loader=data.train_eval_loader,
+                num_classes=len(data.class_names),
+                device=device,
+            )
+            val_metrics = evaluate_vlm_adapter(
+                model=model,
+                loader=data.val_loader,
+                num_classes=len(data.class_names),
+                device=device,
+            )
+            test_metrics = evaluate_vlm_adapter(
+                model=model,
+                loader=data.test_loader,
+                num_classes=len(data.class_names),
+                device=device,
+            )
 
             row = {
                 "epoch": epoch,
                 "train_loss_step_mean": epoch_loss_sum / max(epoch_count, 1),
+                "loss_reg": epoch_reg_sum / max(epoch_count, 1),
                 "train": train_metrics,
                 "val": val_metrics,
                 "test": test_metrics,
             }
 
-            if epoch_count > 0:
-                row["loss_reg"] = epoch_reg_sum / epoch_count
-
-            if "loss_kl_raw" in reg_info:
-                row["loss_kl_raw"] = reg_info["loss_kl_raw"]
-            if "loss_kl" in reg_info:
-                row["loss_kl"] = reg_info["loss_kl"]
-            if "kl_weight" in reg_info:
-                row["kl_weight"] = reg_info["kl_weight"]
+            for key in ["loss_kl_raw", "loss_kl", "kl_weight"]:
+                if key in reg_info:
+                    row[key] = reg_info[key]
 
             if adapter_name.upper() == "CROSSMODAL":
                 row["loss_crossmodal_text"] = epoch_crossmodal_text_sum / max(epoch_count, 1)
@@ -753,34 +331,49 @@ def main(
         print("[final] 加载最优 adapter 并导出最终预测 ...")
         model.adapter.load_state_dict(best_state["adapter"])
 
-        final_train_metrics = evaluate_model(model, train_eval_loader, len(class_names), device=device)
-        final_val_metrics = evaluate_model(model, val_loader, len(class_names), device=device)
-        final_test_metrics = evaluate_model(model, test_loader, len(class_names), device=device)
+        final_train_metrics = evaluate_vlm_adapter(
+            model=model,
+            loader=data.train_eval_loader,
+            num_classes=len(data.class_names),
+            device=device,
+        )
+        final_val_metrics = evaluate_vlm_adapter(
+            model=model,
+            loader=data.val_loader,
+            num_classes=len(data.class_names),
+            device=device,
+        )
+        final_test_metrics = evaluate_vlm_adapter(
+            model=model,
+            loader=data.test_loader,
+            num_classes=len(data.class_names),
+            device=device,
+        )
 
-        dump_predictions(
+        dump_vlm_adapter_predictions(
             run_dir=run_dir,
             split_name="train",
             model=model,
-            loader=train_eval_loader,
-            class_names=class_names,
+            loader=data.train_eval_loader,
+            class_names=data.class_names,
             device=device,
             topk=prediction_topk,
         )
-        dump_predictions(
+        dump_vlm_adapter_predictions(
             run_dir=run_dir,
             split_name="val",
             model=model,
-            loader=val_loader,
-            class_names=class_names,
+            loader=data.val_loader,
+            class_names=data.class_names,
             device=device,
             topk=prediction_topk,
         )
-        dump_predictions(
+        dump_vlm_adapter_predictions(
             run_dir=run_dir,
             split_name="test",
             model=model,
-            loader=test_loader,
-            class_names=class_names,
+            loader=data.test_loader,
+            class_names=data.class_names,
             device=device,
             topk=prediction_topk,
         )
