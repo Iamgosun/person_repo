@@ -1,12 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-PROJECT_ROOT="/root/autodl-tmp/BayesVLM"
-cd "${PROJECT_ROOT}"
-export PYTHONPATH="${PROJECT_ROOT}:${PYTHONPATH:-}"
+export TOKENIZERS_PARALLELISM=false
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "${ROOT_DIR}"
+
+export PYTHONPATH="${ROOT_DIR}:${PYTHONPATH:-}"
 
 DATASETS=("cifar10")
-SHOTS_PER_CLASS_LIST=(16)
+SHOTS_PER_CLASS_LIST=(1)
 SEEDS=(1 2 3)
 
 METHODS=(
@@ -31,6 +34,7 @@ BATCH_SIZE=32
 EPOCHS=20
 LR=1e-3
 WEIGHT_DECAY=1e-4
+
 PYTHON_BIN="python"
 TRAIN_SCRIPT="train_py/train_vlm_adapter.py"
 
@@ -48,7 +52,7 @@ run_one() {
   echo "save_root=${SAVE_ROOT}"
   echo "============================================================"
 
-  "${PYTHON_BIN}" "${TRAIN_SCRIPT}" \
+  "${PYTHON_BIN}" -u "${TRAIN_SCRIPT}" \
     --dataset "${dataset}" \
     --model "${MODEL}" \
     --local_model_path "${LOCAL_MODEL_PATH}" \

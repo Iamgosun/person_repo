@@ -5,17 +5,18 @@ import copy
 import csv
 import json
 import random
+import sys
 import time
 from collections import Counter, defaultdict
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Sequence, Tuple
+from typing import Any, Dict, List
 
 import numpy as np
 import torch
 import torch.distributions as dists
 import torch.nn.functional as F
-from torch.utils.data import DataLoader, Dataset, Subset, TensorDataset
+from torch.utils.data import DataLoader, Subset
 from torchmetrics.classification import MulticlassCalibrationError
 
 from bayesvlm.constants import MODEL_NAME_MAP
@@ -35,133 +36,15 @@ SUPPORTED_DATASETS = [
 ]
 
 
+class Config:
+    pass
+
+
 def set_seed(seed: int):
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
-
-
-@contextmanager
-def tee_output(log_path: Path):
-    class _Tee:
-        def __init__(self, *streams):
-            self.streams = streams
-
-        def write(self, data):
-            for s in self.streams:
-                s.write(data)
-                s.flush()
-
-        def flush(self):
-            for s in self.streams:
-                s.flush()
-
-    import sys
-
-    log_path.parent.mkdir(parents=True, exist_ok=True)
-    original_stdout = sys.stdout
-    original_stderr = sys.stderr
-    with open(log_path, "w", encoding="utf-8") as f:
-        tee = _Tee(original_stdout, f)
-        sys.stdout = tee
-        sys.stderr = tee
-        try:
-            yield
-        finally:
-            sys.stdout = original_stdout
-            sys.stderr = original_stderr
-
-
-class DictSubset(Dataset):
-    def __init__(self, dataset, indices: Sequence[int]):
-        self.dataset = dataset
-        self.indices = list(indices)
-
-    def __len__(self):
-        return len(self.indices)
-
-    def __getitem__(self, idx):
-        return self.dataset[self.indices[idx]]
-
-
-class FeatureDataset(Dataset):
-    def __init__(
-        self,
-        features: torch.Tensor,
-        labels: torch.Tensor,
-        image_ids: torch.Tensor | None = None,
-        image_paths: List[str] | None = None,
-        source: str = "image",
-    ):
-        self.features = features.float().cpu()
-        self.labels = labels.long().cpu()
-        self.image_ids = image_ids.long().cpu() if image_ids is not None else None
-        self.image_paths = list(image_paths) if image_paths is not None else None
-        self.source = str(source)
-
-    def __len__(self):
-        return self.features.shape[0]
-
-    def __getitem__(self, idx):
-        item = {
-            "features": self.features[idx],
-            "class_id": self.labels[idx],
-            "source": self.source,
-        }
-        if self.image_ids is not None:
-            item["image_id"] = self.image_ids[idx]
-        if self.image_paths is not None:
-            item["image_path"] = self.image_paths[idx]
-        return item
-
-
-class ConcatFeatureDataset(Dataset):
-    def __init__(self, datasets: Sequence[Dataset]):
-        self.datasets = list(datasets)
-        self.boundaries = []
-        total = 0
-        for ds in self.datasets:
-            total += len(ds)
-            self.boundaries.append(total)
-
-    def __len__(self):
-        return self.boundaries[-1] if self.boundaries else 0
-
-    def __getitem__(self, idx):
-        for ds_idx, boundary in enumerate(self.boundaries):
-            if idx < boundary:
-                prev = 0 if ds_idx == 0 else self.boundaries[ds_idx - 1]
-                return self.datasets[ds_idx][idx - prev]
-        raise IndexError(idx)
-
-
-class Config:
-    pass
-
-
-def save_json(path: Path, obj):
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(obj, f, ensure_ascii=False, indent=2)
-
-
-def save_jsonl(path: Path, rows: Iterable[Dict[str, Any]]):
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with open(path, "w", encoding="utf-8") as f:
-        for row in rows:
-            f.write(json.dumps(row, ensure_ascii=False) + "\n")
-
-
-def save_csv(path: Path, rows: List[Dict[str, Any]]):
-    path.parent.mkdir(parents=True, exist_ok=True)
-    if not rows:
-        return
-    keys = list(rows[0].keys())
-    with open(path, "w", encoding="utf-8", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=keys)
-        writer.writeheader()
-        writer.writerows(rows)
 
 
 def unwrap_dataset(ds):
@@ -170,57 +53,46 @@ def unwrap_dataset(ds):
     return ds
 
 
-def get_class_names(ds=None, dm=None) -> List[str]:
-    if dm is not None:
-        label_names = getattr(dm, "label_names", None)
-        if label_names is not None:
-            return list(label_names)
-
-        class_prompts = getattr(dm, "class_prompts", None)
-        if class_prompts is not None:
-            class_prompts = list(class_prompts)
-            if class_prompts:
-                prefix = "An image of a "
-                names = []
-                for prompt in class_prompts:
-                    if isinstance(prompt, str) and prompt.startswith(prefix):
-                        names.append(prompt[len(prefix):])
-                    else:
-                        names.append(str(prompt))
-                return names
-
-        if ds is None:
-            ds = getattr(dm, "train_ds", None)
-
-    if ds is None:
-        raise ValueError("get_class_names() 需要 ds 或 dm。")
-
+def get_class_names(ds):
     base_ds = unwrap_dataset(ds)
-    for attr in ["classes", "_label_names", "label_names", "classnames"]:
-        class_names = getattr(base_ds, attr, None)
-        if class_names is not None:
-            return list(class_names)
 
-    raise ValueError(f"当前数据集无法自动提取类别名: dataset_type={type(base_ds)}")
-
-
-def print_class_counts(ds, split_name: str = "train", class_names: List[str] | None = None):
+    class_names = getattr(base_ds, "classes", None)
     if class_names is None:
-        class_names = get_class_names(ds=ds)
+        class_names = getattr(base_ds, "_label_names", None)
+    if class_names is None:
+        class_names = getattr(base_ds, "label_names", None)
+    if class_names is None:
+        class_names = getattr(base_ds, "classnames", None)
+
+    if class_names is None:
+        raise ValueError("当前数据集无法自动提取类别名，请手动补充。")
+
+    return list(class_names)
+
+
+def print_class_counts(ds, split_name="train"):
+    class_names = get_class_names(ds)
     counter = Counter()
+
     for i in range(len(ds)):
-        counter[int(ds[i]["class_id"])] += 1
+        sample = ds[i]
+        counter[int(sample["class_id"])] += 1
 
     print(f"===== {split_name} =====")
     print(f"num_classes: {len(class_names)}")
     for class_id in sorted(counter.keys()):
         print(f"{class_id:3d} | {class_names[class_id]:25s} | {counter[class_id]}")
+
     return class_names, counter
 
 
 def build_fewshot_subset(ds, shots_per_class: int, seed: int):
+    """
+    和 train_text_only_bayes_coop 保持一致：
+    从训练集按每类 K-shot 抽样；如果 shots_per_class <= 0，则直接返回原训练集。
+    """
     if shots_per_class <= 0:
-        raise ValueError("few-shot adapter 对比实验里，shots_per_class 必须 > 0；zero-shot 请单独看冻结 CLIP 指标。")
+        return ds
 
     rng = random.Random(seed)
     indices = list(range(len(ds)))
@@ -238,11 +110,120 @@ def build_fewshot_subset(ds, shots_per_class: int, seed: int):
 
     final_indices = sorted(final_indices)
     print(f"[few-shot] 训练集从 {len(ds)} 条样本，抽成 {len(final_indices)} 条样本")
-    return DictSubset(ds, final_indices)
+    return Subset(ds, final_indices)
+
+
+def build_loader(ds, batch_size: int, num_workers: int, shuffle: bool):
+    return DataLoader(
+        ds,
+        batch_size=batch_size,
+        shuffle=shuffle,
+        num_workers=num_workers,
+        pin_memory=torch.cuda.is_available(),
+        drop_last=False,
+    )
+
+
+def save_json(path: Path, obj):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(obj, f, ensure_ascii=False, indent=2)
+
+
+def save_jsonl(path: Path, rows: List[Dict[str, Any]]):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "w", encoding="utf-8") as f:
+        for row in rows:
+            f.write(json.dumps(row, ensure_ascii=False) + "\n")
+
+
+def save_csv(path: Path, rows: List[Dict[str, Any]]):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if len(rows) == 0:
+        return
+
+    with open(path, "w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=list(rows[0].keys()))
+        writer.writeheader()
+        writer.writerows(rows)
+
+
+def flatten_metrics_history(metrics_history: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    rows = []
+    for item in metrics_history:
+        row = {
+            "epoch": item["epoch"],
+            "train_loss_step_mean": item["train_loss_step_mean"],
+        }
+        for split in ["train", "val", "test"]:
+            for key, value in item[split].items():
+                row[f"{split}_{key}"] = value
+
+        for extra_key in ["loss_kl", "loss_crossmodal_text"]:
+            if extra_key in item:
+                row[extra_key] = item[extra_key]
+
+        rows.append(row)
+    return rows
+
+
+class Tee:
+    def __init__(self, *streams):
+        self.streams = streams
+
+    def write(self, data):
+        for stream in self.streams:
+            stream.write(data)
+            stream.flush()
+        return len(data)
+
+    def flush(self):
+        for stream in self.streams:
+            stream.flush()
+
+
+@contextmanager
+def tee_output(log_path: Path):
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+    stdout_backup = sys.stdout
+    stderr_backup = sys.stderr
+
+    with open(log_path, "w", encoding="utf-8") as f:
+        tee = Tee(stdout_backup, f)
+        sys.stdout = tee
+        sys.stderr = tee
+        try:
+            yield
+        finally:
+            sys.stdout = stdout_backup
+            sys.stderr = stderr_backup
+
+
+def get_batch_item(batch, key: str, idx: int, default=None):
+    if key not in batch:
+        return default
+
+    value = batch[key]
+
+    if torch.is_tensor(value):
+        item = value[idx]
+        if item.ndim == 0:
+            return item.item()
+        return item.detach().cpu().tolist()
+
+    if isinstance(value, (list, tuple)):
+        item = value[idx]
+        if torch.is_tensor(item):
+            if item.ndim == 0:
+                return item.item()
+            return item.detach().cpu().tolist()
+        return item
+
+    return value
 
 
 @torch.no_grad()
-def evaluate_prediction(prediction: torch.Tensor, label: torch.Tensor, num_classes: int) -> Tuple[float, float, float]:
+def evaluate_prediction(prediction: torch.Tensor, label: torch.Tensor, num_classes: int):
     ece_metric = MulticlassCalibrationError(num_classes=num_classes, n_bins=20, norm="l1")
     pred_cls = prediction.argmax(1)
     acc = (pred_cls == label).float().mean().item()
@@ -252,148 +233,112 @@ def evaluate_prediction(prediction: torch.Tensor, label: torch.Tensor, num_class
 
 
 @torch.no_grad()
-def extract_image_features(model: VLMAdapter, dataset, batch_size: int, num_workers: int, device: str, shuffle: bool = False):
-    loader = DataLoader(
-        dataset,
-        batch_size=batch_size,
-        shuffle=shuffle,
-        num_workers=num_workers,
-        pin_memory=torch.cuda.is_available(),
-        drop_last=False,
-    )
-    model.eval()
-    features = []
-    labels = []
-    image_ids = []
-    image_paths = []
-    for batch in loader:
-        images = batch["image"].to(device)
-        feats = model._encode_image(images)
-        features.append(feats.detach().cpu())
-        labels.append(batch["class_id"].detach().cpu())
-        if "image_id" in batch:
-            image_ids.append(batch["image_id"].detach().cpu())
-        if "image_path" in batch:
-            image_paths.extend(list(batch["image_path"]))
-    features = torch.cat(features, dim=0)
-    labels = torch.cat(labels, dim=0)
-    image_ids_tensor = torch.cat(image_ids, dim=0) if image_ids else None
-    image_paths_list = image_paths if image_paths else None
-    return features, labels, image_ids_tensor, image_paths_list
-
-
-@torch.no_grad()
-def build_zero_shot_probs(model: VLMAdapter, features: torch.Tensor, batch_size: int, device: str) -> torch.Tensor:
-    rows = []
-    model.eval()
-    for start in range(0, features.shape[0], batch_size):
-        feats = features[start : start + batch_size].to(device)
-        image_features = feats.to(device=device, dtype=torch.float32)
-        text_features = model.base_text_features.to(device=image_features.device, dtype=image_features.dtype)
-        logits = model.vlm(image_features, text_features)
-        if getattr(model.vlm, "logit_bias", None) is not None:
-            logits = logits + model.vlm.logit_bias.to(device=logits.device, dtype=logits.dtype)
-        rows.append(torch.softmax(logits, dim=-1).cpu())
-    return torch.cat(rows, dim=0)
-
-
-@torch.no_grad()
-def evaluate_zero_shot(model: VLMAdapter, features: torch.Tensor, labels: torch.Tensor, batch_size: int, device: str):
-    probs = build_zero_shot_probs(model, features, batch_size=batch_size, device=device)
-    acc, nlpd, ece = evaluate_prediction(probs, labels.cpu(), num_classes=probs.shape[1])
-    return {"acc": acc, "nlpd": nlpd, "ece": ece}
-
-
-@torch.no_grad()
-def build_adapter_feature_dataset(
-    adapter_name: str,
+def evaluate_zero_shot(
     model: VLMAdapter,
-    train_features: torch.Tensor,
-    train_labels: torch.Tensor,
-    train_image_ids: torch.Tensor | None,
-    train_image_paths: List[str] | None,
-    seed: int,
-) -> Dataset:
-    adapter_key = adapter_name.upper()
-    base_ds = FeatureDataset(
-        features=train_features,
-        labels=train_labels,
-        image_ids=train_image_ids,
-        image_paths=train_image_paths,
-        source="image",
-    )
-
-    if adapter_key != "CROSSMODAL":
-        return base_ds
-
-    rng = np.random.default_rng(seed)
-    text_proto = model.base_text_features.detach().cpu()
-    n_classes = text_proto.shape[0]
-    per_class_views = 1
-    all_text = []
-    all_labels = []
-    for c in range(n_classes):
-        for _ in range(per_class_views):
-            all_text.append(text_proto[c])
-            all_labels.append(c)
-    text_features = torch.stack(all_text, dim=0)
-    text_labels = torch.tensor(all_labels, dtype=torch.long)
-
-    if text_features.shape[0] < train_features.shape[0]:
-        idx = rng.choice(text_features.shape[0], size=train_features.shape[0], replace=True)
-        text_features = text_features[idx]
-        text_labels = text_labels[idx]
-
-    text_ds = FeatureDataset(
-        features=text_features,
-        labels=text_labels,
-        image_ids=None,
-        image_paths=None,
-        source="text",
-    )
-    print(f"[CrossModal] 额外混入 {len(text_ds)} 条文本 prototype 样本")
-    return ConcatFeatureDataset([base_ds, text_ds])
-
-
-def make_feature_loader(ds: Dataset, batch_size: int, shuffle: bool) -> DataLoader:
-    return DataLoader(
-        ds,
-        batch_size=batch_size,
-        shuffle=shuffle,
-        num_workers=0,
-        pin_memory=torch.cuda.is_available(),
-        drop_last=False,
-    )
-
-
-@torch.no_grad()
-def evaluate_model_on_features(model: VLMAdapter, loader: DataLoader, num_classes: int, device: str) -> Dict[str, float]:
+    loader: DataLoader,
+    num_classes: int,
+    device: str,
+) -> Dict[str, float]:
     model.eval()
+
     all_probs = []
     all_labels = []
     total_loss = 0.0
 
     for batch in loader:
         labels = batch["class_id"].to(device)
-        feats = batch["features"].to(device)
-        logits = model.forward_features(feats)
+        logits = model.zero_shot_logits(batch=batch)
         probs = torch.softmax(logits, dim=-1)
+
+        all_probs.append(probs.detach().cpu())
+        all_labels.append(labels.detach().cpu())
         total_loss += F.cross_entropy(logits, labels, reduction="sum").item()
-        all_probs.append(probs.cpu())
-        all_labels.append(labels.cpu())
 
     all_probs = torch.cat(all_probs, dim=0)
     all_labels = torch.cat(all_labels, dim=0)
+
     acc, nlpd, ece = evaluate_prediction(all_probs, all_labels, num_classes=num_classes)
     return {
-        "loss": total_loss / max(len(loader.dataset), 1),
+        "loss": total_loss / len(loader.dataset),
         "acc": acc,
         "nlpd": nlpd,
         "ece": ece,
     }
 
 
-def compute_regularization_loss(model: VLMAdapter, adapter_name: str) -> Tuple[torch.Tensor, Dict[str, float]]:
+@torch.no_grad()
+def evaluate_model(
+    model: VLMAdapter,
+    loader: DataLoader,
+    num_classes: int,
+    device: str,
+) -> Dict[str, float]:
+    model.eval()
+
+    all_probs = []
+    all_labels = []
+    total_loss = 0.0
+
+    for batch in loader:
+        labels = batch["class_id"].to(device)
+        logits = model(batch=batch)
+        probs = torch.softmax(logits, dim=-1)
+
+        all_probs.append(probs.detach().cpu())
+        all_labels.append(labels.detach().cpu())
+        total_loss += F.cross_entropy(logits, labels, reduction="sum").item()
+
+    all_probs = torch.cat(all_probs, dim=0)
+    all_labels = torch.cat(all_labels, dim=0)
+
+    acc, nlpd, ece = evaluate_prediction(all_probs, all_labels, num_classes=num_classes)
+    return {
+        "loss": total_loss / len(loader.dataset),
+        "acc": acc,
+        "nlpd": nlpd,
+        "ece": ece,
+    }
+
+
+@torch.no_grad()
+def collect_adapter_init_features(
+    model: VLMAdapter,
+    loader: DataLoader,
+    device: str,
+):
+    model.eval()
+    all_features = []
+    all_labels = []
+
+    for batch in loader:
+        images = batch["image"].to(device)
+        labels = batch["class_id"].to(device)
+        features = model._encode_image(images)
+        all_features.append(features.detach().cpu())
+        all_labels.append(labels.detach().cpu())
+
+    return torch.cat(all_features, dim=0), torch.cat(all_labels, dim=0)
+
+
+@torch.no_grad()
+def maybe_init_special_adapter(
+    model: VLMAdapter,
+    adapter_name: str,
+    train_eval_loader: DataLoader,
+    device: str,
+):
+    adapter_key = adapter_name.upper()
+    if adapter_key == "TIPA" and hasattr(model.adapter, "init_tipadapter"):
+        print("[TipA] 初始化 cache_keys / cache_values")
+        train_features, train_labels = collect_adapter_init_features(
+            model=model,
+            loader=train_eval_loader,
+            device=device,
+        )
+        model.adapter.init_tipadapter(train_features, train_labels)
+
+
+def compute_regularization_loss(model: VLMAdapter, adapter_name: str):
     adapter_key = adapter_name.upper()
     aux: Dict[str, float] = {}
     zero = torch.zeros((), device=model.logit_scale.device, dtype=torch.float32)
@@ -406,67 +351,104 @@ def compute_regularization_loss(model: VLMAdapter, adapter_name: str) -> Tuple[t
     return zero, aux
 
 
+def compute_crossmodal_text_loss(
+    model: VLMAdapter,
+    batch_size: int,
+    device: str,
+) -> torch.Tensor:
+    """
+    保留 CrossModal 的“文本 prototype 辅助监督”思想，
+    但不再把主训练流程改成 feature-dataset。
+    """
+    text_proto = model.base_text_features.to(device=device, dtype=torch.float32)
+    num_classes = text_proto.shape[0]
+
+    sampled_labels = torch.randint(
+        low=0,
+        high=num_classes,
+        size=(batch_size,),
+        device=device,
+    )
+    sampled_features = text_proto[sampled_labels]
+    logits = model.forward_features(sampled_features)
+    return F.cross_entropy(logits, sampled_labels)
+
+
 @torch.no_grad()
 def collect_predictions(
     model: VLMAdapter,
     loader: DataLoader,
-    class_names: Sequence[str],
+    class_names: List[str],
     device: str,
     split_name: str,
-    topk: int,
+    topk: int = 5,
 ):
     model.eval()
-    rows: List[Dict[str, Any]] = []
-    all_probs = []
+
+    rows = []
     all_labels = []
-    all_topk_indices = []
-    all_topk_scores = []
+    all_preds = []
+    all_probs = []
+    all_logits = []
+
+    sample_index = 0
 
     for batch in loader:
-        feats = batch["features"].to(device)
         labels = batch["class_id"].to(device)
-        logits = model.forward_features(feats)
+        logits = model(batch=batch)
         probs = torch.softmax(logits, dim=-1)
-        scores, indices = torch.topk(probs, k=min(topk, probs.shape[1]), dim=-1)
+        preds = probs.argmax(dim=1)
 
-        all_probs.append(probs.cpu())
-        all_labels.append(labels.cpu())
-        all_topk_indices.append(indices.cpu())
-        all_topk_scores.append(scores.cpu())
+        k = min(topk, probs.shape[1])
+        topk_probs, topk_ids = torch.topk(probs, k=k, dim=1)
 
-        image_ids = batch.get("image_id", None)
-        image_paths = batch.get("image_path", None)
-        sources = batch.get("source", None)
+        all_labels.append(labels.detach().cpu())
+        all_preds.append(preds.detach().cpu())
+        all_probs.append(probs.detach().cpu())
+        all_logits.append(logits.detach().cpu())
 
-        for i in range(probs.shape[0]):
+        for i in range(labels.shape[0]):
             label_id = int(labels[i].item())
-            pred_id = int(indices[i, 0].item())
+            pred_id = int(preds[i].item())
+
+            topk_list = []
+            for rank in range(k):
+                class_id = int(topk_ids[i, rank].item())
+                topk_list.append(
+                    {
+                        "rank": rank + 1,
+                        "class_id": class_id,
+                        "class_name": class_names[class_id],
+                        "prob": float(topk_probs[i, rank].item()),
+                    }
+                )
+
             row = {
                 "split": split_name,
+                "sample_index": sample_index,
+                "image_id": get_batch_item(batch, "image_id", i, default=sample_index),
+                "image_path": get_batch_item(batch, "image_path", i, default=None),
+                "text": get_batch_item(batch, "text", i, default=None),
                 "label_id": label_id,
                 "label_name": class_names[label_id],
                 "pred_id": pred_id,
                 "pred_name": class_names[pred_id],
-                "pred_prob": float(scores[i, 0].item()),
+                "confidence": float(probs[i, pred_id].item()),
+                "correct": bool(label_id == pred_id),
+                "topk": topk_list,
             }
-            if image_ids is not None:
-                row["image_id"] = int(image_ids[i].item())
-            if image_paths is not None:
-                row["image_path"] = image_paths[i]
-            if sources is not None:
-                row["source"] = sources[i]
-            for k in range(indices.shape[1]):
-                row[f"top{k+1}_id"] = int(indices[i, k].item())
-                row[f"top{k+1}_name"] = class_names[int(indices[i, k].item())]
-                row[f"top{k+1}_prob"] = float(scores[i, k].item())
             rows.append(row)
+            sample_index += 1
 
     tensor_payload = {
-        "probabilities": torch.cat(all_probs, dim=0),
+        "split": split_name,
+        "class_names": class_names,
         "labels": torch.cat(all_labels, dim=0),
-        "topk_indices": torch.cat(all_topk_indices, dim=0),
-        "topk_scores": torch.cat(all_topk_scores, dim=0),
+        "preds": torch.cat(all_preds, dim=0),
+        "probs": torch.cat(all_probs, dim=0),
+        "logits": torch.cat(all_logits, dim=0),
     }
+
     return rows, tensor_payload
 
 
@@ -475,9 +457,9 @@ def dump_predictions(
     split_name: str,
     model: VLMAdapter,
     loader: DataLoader,
-    class_names: Sequence[str],
+    class_names: List[str],
     device: str,
-    topk: int,
+    topk: int = 5,
 ):
     rows, tensor_payload = collect_predictions(
         model=model,
@@ -487,17 +469,9 @@ def dump_predictions(
         split_name=split_name,
         topk=topk,
     )
+
     save_jsonl(run_dir / f"{split_name}_predictions.jsonl", rows)
     torch.save(tensor_payload, run_dir / f"{split_name}_predictions.pt")
-
-
-@torch.no_grad()
-def maybe_init_special_adapter(model: VLMAdapter, adapter_name: str, train_features: torch.Tensor, train_labels: torch.Tensor):
-    adapter_key = adapter_name.upper()
-    if adapter_key == "TIPA" and hasattr(model.adapter, "init_tipadapter"):
-        print("[TipA] 初始化 cache_keys / cache_values")
-        model.adapter.init_tipadapter(train_features, train_labels)
-
 
 
 def main(
@@ -523,7 +497,15 @@ def main(
 ):
     set_seed(seed)
 
-    run_dir = Path(save_dir) / method_name / dataset / adapter_name.upper() / initialization / f"shot_{shots_per_class}" / f"seed_{seed}"
+    run_dir = (
+        Path(save_dir)
+        / method_name
+        / dataset
+        / adapter_name.upper()
+        / initialization
+        / f"shot_{shots_per_class}"
+        / f"seed_{seed}"
+    )
     run_dir.mkdir(parents=True, exist_ok=True)
 
     with tee_output(run_dir / "train.log"):
@@ -536,12 +518,14 @@ def main(
         print(f"[run] shots_per_class={shots_per_class}")
         print(f"[run] seed={seed}")
         print(f"[run] run_dir={run_dir}")
+
         if hessian_dir:
-            print(f"[note] 当前 train.py 为确定性 adapter 训练器，hessian_dir={hessian_dir} 将被忽略。")
-        print(f"[note] pseudo_data_count={pseudo_data_count} 仅为兼容旧接口保留，不参与本训练。")
+            print(f"[note] 当前 vlm_adapter 仍是确定性对比实验，hessian_dir={hessian_dir} 将被忽略。")
+        print(f"[note] pseudo_data_count={pseudo_data_count} 仅为兼容旧接口保留，不参与当前 adapter 主训练。")
 
         if model_str not in MODEL_NAME_MAP:
             raise ValueError(f"无效模型名：{model_str}，可选值为 {list(MODEL_NAME_MAP.keys())}")
+
         if dataset not in SUPPORTED_DATASETS:
             raise ValueError(f"无效数据集：{dataset}，可选值为 {SUPPORTED_DATASETS}")
 
@@ -566,8 +550,13 @@ def main(
 
         class_names, _ = print_class_counts(train_ds, split_name="train")
         print_class_counts(test_ds, split_name="test")
-
         save_json(run_dir / "class_names.json", {"class_names": class_names})
+
+        # 关键修改：直接复用 text_only_bayes_coop 的 raw-image loader protocol
+        train_loader = build_loader(train_ds, batch_size=batch_size, num_workers=num_workers, shuffle=True)
+        train_eval_loader = build_loader(train_ds, batch_size=batch_size, num_workers=num_workers, shuffle=False)
+        val_loader = build_loader(val_ds, batch_size=batch_size, num_workers=num_workers, shuffle=False)
+        test_loader = build_loader(test_ds, batch_size=batch_size, num_workers=num_workers, shuffle=False)
 
         image_encoder, text_encoder, vlm = load_model(
             model_str=model_str,
@@ -591,55 +580,31 @@ def main(
             vlm=vlm,
         ).to(device)
 
-        train_features, train_labels, train_image_ids, train_image_paths = extract_image_features(
+        maybe_init_special_adapter(
             model=model,
-            dataset=train_ds,
-            batch_size=batch_size,
-            num_workers=num_workers,
-            device=device,
-            shuffle=False,
-        )
-        val_features, val_labels, val_image_ids, val_image_paths = extract_image_features(
-            model=model,
-            dataset=val_ds,
-            batch_size=batch_size,
-            num_workers=num_workers,
-            device=device,
-            shuffle=False,
-        )
-        test_features, test_labels, test_image_ids, test_image_paths = extract_image_features(
-            model=model,
-            dataset=test_ds,
-            batch_size=batch_size,
-            num_workers=num_workers,
-            device=device,
-            shuffle=False,
-        )
-
-        maybe_init_special_adapter(model, adapter_name=adapter_name, train_features=train_features, train_labels=train_labels)
-
-        train_feature_ds = build_adapter_feature_dataset(
             adapter_name=adapter_name,
-            model=model,
-            train_features=train_features,
-            train_labels=train_labels,
-            train_image_ids=train_image_ids,
-            train_image_paths=train_image_paths,
-            seed=seed,
+            train_eval_loader=train_eval_loader,
+            device=device,
         )
-        train_eval_feature_ds = FeatureDataset(train_features, train_labels, train_image_ids, train_image_paths, source="image")
-        val_feature_ds = FeatureDataset(val_features, val_labels, val_image_ids, val_image_paths, source="image")
-        test_feature_ds = FeatureDataset(test_features, test_labels, test_image_ids, test_image_paths, source="image")
 
-        train_loader = make_feature_loader(train_feature_ds, batch_size=batch_size, shuffle=True)
-        train_eval_loader = make_feature_loader(train_eval_feature_ds, batch_size=batch_size, shuffle=False)
-        val_loader = make_feature_loader(val_feature_ds, batch_size=batch_size, shuffle=False)
-        test_loader = make_feature_loader(test_feature_ds, batch_size=batch_size, shuffle=False)
+        zero_shot_test = evaluate_zero_shot(
+            model=model,
+            loader=test_loader,
+            num_classes=len(class_names),
+            device=device,
+        )
+        print(
+            f"[zero-shot] "
+            f"test_acc={zero_shot_test['acc']:.4f} "
+            f"test_nlpd={zero_shot_test['nlpd']:.4f} "
+            f"test_ece={zero_shot_test['ece']:.4f}"
+        )
 
-        zero_shot_test = evaluate_zero_shot(model, test_features, test_labels, batch_size=batch_size, device=device)
-        print(f"[zero-shot] test_acc={zero_shot_test['acc']:.4f} test_nlpd={zero_shot_test['nlpd']:.4f} test_ece={zero_shot_test['ece']:.4f}")
-
-        optimizer = torch.optim.AdamW(model.trainable_parameters(), lr=lr, weight_decay=weight_decay)
+        optimizer = torch.optim.AdamW(
+            model.trainable_parameters(),
+            lr=lr,
+            weight_decay=weight_decay,
+        )
 
         config = {
             "method_name": method_name,
@@ -658,56 +623,70 @@ def main(
             "seed": seed,
             "device": device,
             "prediction_topk": prediction_topk,
+            "hessian_dir_ignored": hessian_dir,
+            "pseudo_data_count_ignored": pseudo_data_count,
             "zero_shot_test": zero_shot_test,
+            "run_dir": str(run_dir),
         }
         save_json(run_dir / "config.json", config)
 
         best_val_loss = float("inf")
         best_state = None
-        history: List[Dict[str, Any]] = []
+        metrics_history = []
 
+        print("[train] 开始 adapter 训练 ...")
         for epoch in range(1, epochs + 1):
             model.train()
+
             epoch_loss_sum = 0.0
             epoch_count = 0
+            epoch_crossmodal_text_sum = 0.0
 
             for batch in train_loader:
-                feats = batch["features"].to(device)
                 labels = batch["class_id"].to(device)
+
                 optimizer.zero_grad(set_to_none=True)
-                logits = model.forward_features(feats)
+
+                logits = model(batch=batch)
                 loss = F.cross_entropy(logits, labels)
+
                 reg_loss, reg_info = compute_regularization_loss(model, adapter_name=adapter_name)
                 total_loss = loss + reg_loss
+
+                if adapter_name.upper() == "CROSSMODAL":
+                    aux_text_loss = compute_crossmodal_text_loss(
+                        model=model,
+                        batch_size=labels.size(0),
+                        device=device,
+                    )
+                    total_loss = total_loss + aux_text_loss
+                    epoch_crossmodal_text_sum += aux_text_loss.item() * labels.size(0)
+
                 total_loss.backward()
                 optimizer.step()
 
                 epoch_loss_sum += total_loss.item() * labels.size(0)
                 epoch_count += labels.size(0)
 
-            train_metrics = evaluate_model_on_features(model, train_eval_loader, len(class_names), device=device)
-            val_metrics = evaluate_model_on_features(model, val_loader, len(class_names), device=device)
-            test_metrics = evaluate_model_on_features(model, test_loader, len(class_names), device=device)
+            train_metrics = evaluate_model(model, train_eval_loader, len(class_names), device=device)
+            val_metrics = evaluate_model(model, val_loader, len(class_names), device=device)
+            test_metrics = evaluate_model(model, test_loader, len(class_names), device=device)
 
             row = {
                 "epoch": epoch,
                 "train_loss_step_mean": epoch_loss_sum / max(epoch_count, 1),
-                "train_loss": train_metrics["loss"],
-                "train_acc": train_metrics["acc"],
-                "train_nlpd": train_metrics["nlpd"],
-                "train_ece": train_metrics["ece"],
-                "val_loss": val_metrics["loss"],
-                "val_acc": val_metrics["acc"],
-                "val_nlpd": val_metrics["nlpd"],
-                "val_ece": val_metrics["ece"],
-                "test_loss": test_metrics["loss"],
-                "test_acc": test_metrics["acc"],
-                "test_nlpd": test_metrics["nlpd"],
-                "test_ece": test_metrics["ece"],
+                "train": train_metrics,
+                "val": val_metrics,
+                "test": test_metrics,
             }
+
             if adapter_name.upper() == "GAUSSIAN_PER_CLASS" and hasattr(model.adapter, "kl_divergence"):
                 row["loss_kl"] = float(model.adapter.kl_divergence().detach().item())
-            history.append(row)
+
+            if adapter_name.upper() == "CROSSMODAL":
+                row["loss_crossmodal_text"] = epoch_crossmodal_text_sum / max(epoch_count, 1)
+
+            metrics_history.append(row)
 
             print(
                 f"[Epoch {epoch:03d}] "
@@ -729,24 +708,52 @@ def main(
                 }
                 torch.save(best_state, run_dir / "best_adapter.pt")
 
-            save_json(run_dir / "metrics_history.json", history)
-            save_csv(run_dir / "metrics_history.csv", history)
+            save_json(run_dir / "metrics_history.json", metrics_history)
+            save_csv(run_dir / "metrics_history.csv", flatten_metrics_history(metrics_history))
 
         if best_state is None:
             raise RuntimeError("训练未产生 best checkpoint")
 
+        print("[final] 加载最优 adapter 并导出最终预测 ...")
         model.adapter.load_state_dict(best_state["adapter"])
-        final_train_metrics = evaluate_model_on_features(model, train_eval_loader, len(class_names), device=device)
-        final_val_metrics = evaluate_model_on_features(model, val_loader, len(class_names), device=device)
-        final_test_metrics = evaluate_model_on_features(model, test_loader, len(class_names), device=device)
 
-        dump_predictions(run_dir, "train", model, train_eval_loader, class_names, device, topk=prediction_topk)
-        dump_predictions(run_dir, "val", model, val_loader, class_names, device, topk=prediction_topk)
-        dump_predictions(run_dir, "test", model, test_loader, class_names, device, topk=prediction_topk)
+        final_train_metrics = evaluate_model(model, train_eval_loader, len(class_names), device=device)
+        final_val_metrics = evaluate_model(model, val_loader, len(class_names), device=device)
+        final_test_metrics = evaluate_model(model, test_loader, len(class_names), device=device)
+
+        dump_predictions(
+            run_dir=run_dir,
+            split_name="train",
+            model=model,
+            loader=train_eval_loader,
+            class_names=class_names,
+            device=device,
+            topk=prediction_topk,
+        )
+        dump_predictions(
+            run_dir=run_dir,
+            split_name="val",
+            model=model,
+            loader=val_loader,
+            class_names=class_names,
+            device=device,
+            topk=prediction_topk,
+        )
+        dump_predictions(
+            run_dir=run_dir,
+            split_name="test",
+            model=model,
+            loader=test_loader,
+            class_names=class_names,
+            device=device,
+            topk=prediction_topk,
+        )
 
         summary = {
             "method_name": method_name,
             "dataset": dataset,
+            "adapter_name": adapter_name,
+            "initialization": initialization,
             "seed": seed,
             "best_epoch": best_state["best_epoch"],
             "zero_shot_test": zero_shot_test,
@@ -803,7 +810,7 @@ if __name__ == "__main__":
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--device", type=str, default="cuda")
 
-    # 为了兼容旧 train.py / shell 脚本保留，但在确定性 adapter 版本里不使用。
+    # 仅为兼容旧接口保留，不参与当前 adapter 主训练。
     parser.add_argument("--hessian_dir", type=str, default=None)
     parser.add_argument("--pseudo_data_count", type=int, default=4)
 

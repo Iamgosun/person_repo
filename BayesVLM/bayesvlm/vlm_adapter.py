@@ -56,7 +56,9 @@ class VLMAdapter(nn.Module):
 
         self._freeze_backbones()
 
-        self.base_text_features = self._build_base_text_features()
+        base_text_features = self._build_base_text_features()
+        self.register_buffer("base_text_features", base_text_features)
+
         self.adapter_cls = ADAPTER_REGISTRY[self.adapter_name]
         self.adapter_input_kind = getattr(self.adapter_cls, "input_kind", "vector")
         self.adapter = self._build_adapter()
@@ -114,6 +116,18 @@ class VLMAdapter(nn.Module):
         self.image_encoder.eval()
         self.text_encoder.eval()
         self.vlm.eval()
+
+    def train(self, mode: bool = True):
+        """
+        只让 adapter 切换 train/eval；
+        frozen 的 image/text/vlm backbone 始终保持 eval 模式。
+        """
+        super().train(mode)
+        self.image_encoder.eval()
+        self.text_encoder.eval()
+        self.vlm.eval()
+        self.adapter.train(mode)
+        return self
 
     def _runtime_device(self) -> torch.device:
         try:
