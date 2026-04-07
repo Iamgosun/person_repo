@@ -15,6 +15,7 @@ from bayesvlm.methods.text_only_bayes_coop import (
 )
 from train_py.common_experiment import resolve_existing_path
 from train_py.recipes.base import BaseRecipe
+from train_py.train_runtime import build_optimizer_from_args
 
 
 def _check_txt_hessian_dir(hessian_dir: Path) -> dict:
@@ -63,7 +64,14 @@ def _compose_train_loss(
 class TextOnlyBayesCoOpRecipe(BaseRecipe):
     method_name = "text_only_bayes_coop"
     best_checkpoint_filename = "best_prompt_learner.pt"
+    last_checkpoint_filename = "last_prompt_learner.pt"
     require_image_feature_cache = False
+
+    # 与旧版独立脚本保持一致：prompt 使用 SGD，默认带 cosine 调度，并按 acc 选 best。
+    default_optimizer_name = "sgd"
+    default_scheduler_name = "cosine"
+    default_selection_metric = "acc"
+    default_selection_mode = "auto"
 
     def run_path_parts(self, args) -> list[str]:
         return [f"shot_{args.shots_per_class}"]
@@ -132,10 +140,10 @@ class TextOnlyBayesCoOpRecipe(BaseRecipe):
             device=args.device,
         )
 
-        optimizer = torch.optim.AdamW(
+        optimizer = build_optimizer_from_args(
             prompt_learner.parameters(),
-            lr=args.lr,
-            weight_decay=args.weight_decay,
+            args,
+            default_name=self.default_optimizer_name,
         )
 
         return {
@@ -160,9 +168,6 @@ class TextOnlyBayesCoOpRecipe(BaseRecipe):
             "ctx_init": args.ctx_init,
             "csc": getattr(args, "csc", False),
             "class_token_position": getattr(args, "class_token_position", "end"),
-            "lr": args.lr,
-            "weight_decay": args.weight_decay,
-            "epochs": args.epochs,
             "use_full_cov": args.use_full_cov,
             "train_objective": getattr(args, "train_objective", "hybrid"),
             "hybrid_warmup_epochs": getattr(args, "hybrid_warmup_epochs", 5),
@@ -233,8 +238,10 @@ class TextOnlyBayesCoOpRecipe(BaseRecipe):
 
     def format_epoch_log(self, row: dict[str, Any], ctx, args) -> str:
         val_metrics = row["val"]
+        lr_part = f"lr={row['lr']:.6f} " if "lr" in row else ""
         return (
             f"[Epoch {row['epoch']:03d}] "
+            f"{lr_part}"
             f"train_total={row['train_loss_step_mean']:.4f} "
             f"train_map={row['train_map_loss_mean']:.4f} "
             f"train_bayes={row['train_bayes_loss_mean']:.4f} "

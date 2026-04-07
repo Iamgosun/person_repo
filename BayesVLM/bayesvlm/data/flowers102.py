@@ -1,97 +1,218 @@
-from typing import Sequence
-import torch
-from pathlib import Path
-import pytorch_lightning as L
-from torchvision.datasets import Flowers102
+import json
 from collections import defaultdict
+from pathlib import Path
+from typing import Optional, Sequence
+
 import numpy as np
+from PIL import Image
+
+import pytorch_lightning as L
+from torch.utils.data import Dataset, DataLoader, Subset
+
 from .common import default_collate_fn, default_transform
 
-CLASS_ID_TO_NAME = {"21": "fire lily", "3": "canterbury bells", "45": "bolero deep blue", "1": "pink primrose", "34": "mexican aster", "27": "prince of wales feathers", "7": "moon orchid", "16": "globe-flower", "25": "grape hyacinth", "26": "corn poppy", "79": "toad lily", "39": "siam tulip", "24": "red ginger", "67": "spring crocus", "35": "alpine sea holly", "32": "garden phlox", "10": "globe thistle", "6": "tiger lily", "93": "ball moss", "33": "love in the mist", "9": "monkshood", "102": "blackberry lily", "14": "spear thistle", "19": "balloon flower", "100": "blanket flower", "13": "king protea", "49": "oxeye daisy", "15": "yellow iris", "61": "cautleya spicata", "31": "carnation", "64": "silverbush", "68": "bearded iris", "63": "black-eyed susan", "69": "windflower", "62": "japanese anemone", "20": "giant white arum lily", "38": "great masterwort", "4": "sweet pea", "86": "tree mallow", "101": "trumpet creeper", "42": "daffodil", "22": "pincushion flower", "2": "hard-leaved pocket orchid", "54": "sunflower", "66": "osteospermum", "70": "tree poppy", "85": "desert-rose", "99": "bromelia", "87": "magnolia", "5": "english marigold", "92": "bee balm", "28": "stemless gentian", "97": "mallow", "57": "gaura", "40": "lenten rose", "47": "marigold", "59": "orange dahlia", "48": "buttercup", "55": "pelargonium", "36": "ruby-lipped cattleya", "91": "hippeastrum", "29": "artichoke", "71": "gazania", "90": "canna lily", "18": "peruvian lily", "98": "mexican petunia", "8": "bird of paradise", "30": "sweet william", "17": "purple coneflower", "52": "wild pansy", "84": "columbine", "12": "colt's foot", "11": "snapdragon", "96": "camellia", "23": "fritillary", "50": "common dandelion", "44": "poinsettia", "53": "primula", "72": "azalea", "65": "californian poppy", "80": "anthurium", "76": "morning glory", "37": "cape flower", "56": "bishop of llandaff", "60": "pink-yellow dahlia", "82": "clematis", "58": "geranium", "75": "thorn apple", "41": "barbeton daisy", "95": "bougainvillea", "43": "sword lily", "83": "hibiscus", "78": "lotus", "88": "cyclamen", "94": "foxglove", "81": "frangipani", "74": "rose", "89": "watercress", "73": "water lily", "46": "wallflower", "77": "passion flower", "51": "petunia"}
 
-class Flowers102WithLabels(Flowers102):
-    class_id_to_name = {int(k): v for k, v in CLASS_ID_TO_NAME.items()}
+IMG_EXTENSIONS = {
+    ".jpg", ".jpeg", ".png", ".bmp", ".gif", ".webp", ".tif", ".tiff"
+}
 
-    def __init__(self, *args, **kwargs):
-        self._text_prompt = kwargs['text_prompt']
-        sorted_classes = sorted([(class_id, name) for class_id, name in self.class_id_to_name.items()], key=lambda x: x[0])
-        self.classes = [name for _, name in sorted_classes]
 
-        if 'classbalanced' in kwargs:
-            self.classbalanced = kwargs['classbalanced']
-            del kwargs['classbalanced']
+def _is_image_file(path: Path) -> bool:
+    return path.is_file() and path.suffix.lower() in IMG_EXTENSIONS
+
+
+def _sort_class_names(class_names):
+    """
+    若类别目录名全是数字字符串（如 1~102），按数值排序；
+    否则按字符串排序。
+    """
+    if all(str(x).isdigit() for x in class_names):
+        return sorted(class_names, key=lambda x: int(x))
+    return sorted(class_names)
+
+
+def _find_dataset_root(data_dir: Path) -> Path:
+    """
+    自动适配几种常见目录：
+    1) data_dir/train, data_dir/valid, data_dir/test
+    2) data_dir/flowers/train, ...
+    3) data_dir/flowers/flowers/train, ...
+    """
+    candidates = [
+        data_dir,
+        data_dir / "flowers",
+        data_dir / "flowers" / "flowers",
+        data_dir / "flowers102",
+    ]
+
+    for root in candidates:
+        train_root = root / "train"
+        valid_root = root / "valid"
+        test_root = root / "test"
+        if train_root.is_dir() and valid_root.is_dir() and test_root.is_dir():
+            return root
+
+    raise FileNotFoundError(
+        f"Cannot find Flowers102 split root under {data_dir}. "
+        f"Expected directories like train/valid/test."
+    )
+
+
+def _find_cat_to_name_json(data_dir: Path, dataset_root: Path) -> Optional[Path]:
+    """
+    尝试寻找 cat_to_name.json：
+    - dataset_root 下
+    - data_dir 下
+    - 父目录下
+    - data_dir 递归搜索
+    """
+    candidates = [
+        dataset_root / "cat_to_name.json",
+        data_dir / "cat_to_name.json",
+        dataset_root.parent / "cat_to_name.json",
+        data_dir.parent / "cat_to_name.json" if data_dir.parent != data_dir else None,
+    ]
+
+    for p in candidates:
+        if p is not None and p.exists():
+            return p
+
+    # 最后再做一次递归搜索
+    for p in data_dir.rglob("cat_to_name.json"):
+        if p.exists():
+            return p
+
+    return None
+
+
+def _load_cat_to_name(json_path: Optional[Path]):
+    if json_path is None:
+        return None
+
+    with open(json_path, "r", encoding="utf-8") as f:
+        mapping = json.load(f)
+
+    # 统一成 str -> str
+    return {str(k): str(v) for k, v in mapping.items()}
+
+
+def _find_split_class_names(split_root: Path):
+    class_names = [p.name for p in split_root.iterdir() if p.is_dir()]
+    if not class_names:
+        raise FileNotFoundError(f"No class folders found under: {split_root}")
+    return _sort_class_names(class_names)
+
+
+def _build_class_to_idx(class_names):
+    return {class_name: idx for idx, class_name in enumerate(class_names)}
+
+
+def _check_split_classes(split_root: Path, expected_class_names):
+    split_class_names = _find_split_class_names(split_root)
+    if split_class_names != expected_class_names:
+        raise ValueError(
+            f"Class folders mismatch under {split_root}\n"
+            f"expected={expected_class_names}\n"
+            f"found={split_class_names}"
+        )
+
+
+def _build_samples_from_folder(split_root: Path, class_to_idx):
+    samples = []
+
+    for class_name in _sort_class_names(class_to_idx.keys()):
+        class_dir = split_root / class_name
+        if not class_dir.is_dir():
+            raise FileNotFoundError(f"Missing class folder: {class_dir}")
+
+        image_paths = sorted([p for p in class_dir.rglob("*") if _is_image_file(p)])
+        if len(image_paths) == 0:
+            raise FileNotFoundError(f"No images found under class folder: {class_dir}")
+
+        class_id = class_to_idx[class_name]
+        samples.extend([(str(image_path), class_id) for image_path in image_paths])
+
+    return samples
+
+
+def _build_label_names(class_names, cat_to_name):
+    """
+    输出 label_names，顺序与 class_id 对齐。
+    如果有 cat_to_name.json，则把 '1' -> 'pink primrose' 这种映射读进来；
+    否则直接使用目录名本身。
+    """
+    label_names = []
+    for class_name in class_names:
+        if cat_to_name is not None and class_name in cat_to_name:
+            label_names.append(cat_to_name[class_name])
         else:
-            self.classbalanced = False
-        
-        self.use_few_shot = kwargs['use_few_shot']
-        if self.use_few_shot:
-            self.shots_per_class = kwargs['shots_per_class']
-            self.few_shot_sample_seed = kwargs['few_shot_sample_seed']
-            del kwargs['shots_per_class']
-            del kwargs['few_shot_sample_seed']
-        del kwargs['use_few_shot']
-        
-        del kwargs['text_prompt']
+            label_names.append(class_name)
+    return label_names
 
-        super().__init__(*args, **kwargs)
 
-        if self.classbalanced:
-            index_class_pairs = defaultdict(list)
-            for i in range(super().__len__()):
-                _, class_id = super().__getitem__(i)
+def _sample_few_shot_indices(samples, shots_per_class: int, seed: int):
+    class_to_indices = defaultdict(list)
+    for idx, (_, class_id) in enumerate(samples):
+        class_to_indices[class_id].append(idx)
 
-                if len(index_class_pairs[class_id]) < 20:
-                    index_class_pairs[class_id].append(i)
-            
-            self.indices = []
-            for i in range(102):
-                self.indices.extend(index_class_pairs[i])
-        else:
-            self.indices = list(range(super().__len__()))
+    rng = np.random.default_rng(seed)
+    selected = []
 
-            
-            if self.use_few_shot:
-                                
-                # get the index for each class
-                self.class_index = defaultdict(list)
-                
-                for img_index in range(super().__len__()):
-                    class_id = self._labels[img_index]
-                    self.class_index[class_id].append(img_index)
+    for class_id in sorted(class_to_indices.keys()):
+        indices = class_to_indices[class_id]
+        if len(indices) < shots_per_class:
+            raise ValueError(
+                f"Class {class_id} only has {len(indices)} samples, "
+                f"but shots_per_class={shots_per_class}."
+            )
+        chosen = rng.choice(indices, size=shots_per_class, replace=False).tolist()
+        selected.extend(chosen)
 
-                # create few-shot dataset through sampling
-                selected_data = []
-                for indices in self.class_index.values():
-                    np.random.seed(self.few_shot_sample_seed)
-                    selected_data.extend(np.random.choice(indices, self.shots_per_class, replace=False))
-                self.selected_data = selected_data
+    return selected
 
-            
-    @property
-    def _label_names(self):
-        return self.classes
-    
-    def __len__(self) -> int:
-        return len(self.indices)
 
-    def __getitem__(self, index):
-        ds_index = self.indices[index]
+class Flowers102LocalDataset(Dataset):
+    def __init__(
+        self,
+        samples,
+        label_names,
+        text_prompt: str,
+        transform=None,
+    ):
+        """
+        samples: List[(image_path, class_id)]
+        label_names: 类别名称列表，顺序与 class_id 对齐
+        """
+        self._samples = samples
+        self._label_names = label_names
+        self._text_prompt = text_prompt
+        self._transform = transform
 
-        img, class_id = super().__getitem__(ds_index)
+    def __len__(self):
+        return len(self._samples)
+
+    def __getitem__(self, idx):
+        image_path, class_id = self._samples[idx]
+
+        image = Image.open(image_path).convert("RGB")
+        if self._transform is not None:
+            image = self._transform(image)
 
         text = self._text_prompt.format(
-            class_name=self.class_id_to_name[class_id+1],
+            class_name=self._label_names[class_id]
         )
 
-        return dict(
-            image=img,
-            text=text,
-            class_id=class_id,
-            image_id=index,
-        )
+        return {
+            "image": image,
+            "text": text,
+            "class_id": class_id,
+            "image_id": idx,
+            "image_path": image_path,
+        }
+
 
 class Flowers102DataModule(L.LightningDataModule):
-    DATASET_SUBDIR = 'flowers102'
+    DATASET_SUBDIR = "flowers102"
 
     def __init__(
         self,
@@ -99,10 +220,10 @@ class Flowers102DataModule(L.LightningDataModule):
         batch_size: int = 32,
         num_workers: int = 4,
         text_prompt: str = "An image of a {class_name}",
-        train_transform=default_transform(image_size=224),
-        test_transform=default_transform(image_size=224),
+        train_transform=None,
+        test_transform=None,
         shuffle_train: bool = True,
-        subset_indices: Sequence[int] = None,
+        subset_indices: Optional[Sequence[int]] = None,
         shots_per_class: int = 10,
         use_few_shot: bool = False,
         few_shot_sample_seed: int = 42,
@@ -112,92 +233,117 @@ class Flowers102DataModule(L.LightningDataModule):
         self.num_workers = num_workers
         self.data_dir = Path(data_dir)
         self.text_prompt = text_prompt
-        self.train_transform = train_transform
-        self.test_transform = test_transform
         self.shuffle_train = shuffle_train
         self.subset_indices = subset_indices
-        
+
         self.use_few_shot = use_few_shot
         self.shots_per_class = shots_per_class
         self.few_shot_sample_seed = few_shot_sample_seed
 
-    def setup(self, stage: str = None):
-        if self.use_few_shot:
-            self.train_ds = Flowers102WithLabels(
-                self.data_dir,
-                split='train',
-                transform=self.train_transform,
-                download=True,
-                text_prompt=self.text_prompt,
-                use_few_shot = True,
-                shots_per_class = self.shots_per_class,
-                few_shot_sample_seed = self.few_shot_sample_seed
-            )
-            self.train_ds = torch.utils.data.Subset(self.train_ds, self.train_ds.selected_data)
-        else:
-            self.train_ds = Flowers102WithLabels(
-                self.data_dir,
-                split='train',
-                transform=self.train_transform,
-                download=True,
-                text_prompt=self.text_prompt,
-                use_few_shot = False,
-            )
-        if self.subset_indices is not None:
-            self.train_ds = torch.utils.data.Subset(self.train_ds, self.subset_indices)
+        self.train_transform = train_transform or default_transform(image_size=224)
+        self.test_transform = test_transform or default_transform(image_size=224)
 
-        self.val_ds = Flowers102WithLabels(
-            self.data_dir,
-            split='val',
-            transform=self.test_transform,
-            download=True,
+        self.label_names = None
+        self.train_ds = None
+        self.val_ds = None
+        self.test_ds = None
+
+    def setup(self, stage: str = None):
+        dataset_root = _find_dataset_root(self.data_dir)
+
+        train_root = dataset_root / "train"
+        valid_root = dataset_root / "valid"
+        test_root = dataset_root / "test"
+
+        if not train_root.is_dir():
+            raise FileNotFoundError(f"Flowers102 train root not found: {train_root}")
+        if not valid_root.is_dir():
+            raise FileNotFoundError(f"Flowers102 valid root not found: {valid_root}")
+        if not test_root.is_dir():
+            raise FileNotFoundError(f"Flowers102 test root not found: {test_root}")
+
+        # 用 train 的类别目录作为全局类别定义
+        class_names = _find_split_class_names(train_root)
+        class_to_idx = _build_class_to_idx(class_names)
+
+        # 检查 valid / test 的类别是否一致
+        _check_split_classes(valid_root, class_names)
+        _check_split_classes(test_root, class_names)
+
+        # 尝试加载类别名映射
+        cat_to_name_json = _find_cat_to_name_json(self.data_dir, dataset_root)
+        cat_to_name = _load_cat_to_name(cat_to_name_json)
+
+        self.label_names = _build_label_names(class_names, cat_to_name)
+
+        train_samples = _build_samples_from_folder(train_root, class_to_idx)
+        val_samples = _build_samples_from_folder(valid_root, class_to_idx)
+        test_samples = _build_samples_from_folder(test_root, class_to_idx)
+
+        train_ds = Flowers102LocalDataset(
+            train_samples,
+            label_names=self.label_names,
             text_prompt=self.text_prompt,
-            use_few_shot = False,
+            transform=self.train_transform,
         )
 
-        self.test_ds = Flowers102WithLabels(
-            self.data_dir,
-            split='test',
-            transform=self.test_transform,
-            download=True,
+        if self.use_few_shot:
+            few_shot_indices = _sample_few_shot_indices(
+                train_samples,
+                shots_per_class=self.shots_per_class,
+                seed=self.few_shot_sample_seed,
+            )
+            train_ds = Subset(train_ds, few_shot_indices)
+
+        if self.subset_indices is not None:
+            train_ds = Subset(train_ds, self.subset_indices)
+
+        self.train_ds = train_ds
+        self.val_ds = Flowers102LocalDataset(
+            val_samples,
+            label_names=self.label_names,
             text_prompt=self.text_prompt,
-            classbalanced=False,
-            use_few_shot = False,
+            transform=self.test_transform,
+        )
+        self.test_ds = Flowers102LocalDataset(
+            test_samples,
+            label_names=self.label_names,
+            text_prompt=self.text_prompt,
+            transform=self.test_transform,
         )
 
     def train_dataloader(self):
-        return torch.utils.data.DataLoader(
+        return DataLoader(
             self.train_ds,
             batch_size=self.batch_size,
-            num_workers=self.num_workers,
-            collate_fn=default_collate_fn,
             shuffle=self.shuffle_train,
-            persistent_workers=True,
+            num_workers=self.num_workers,
+            persistent_workers=self.num_workers > 0,
+            collate_fn=default_collate_fn,
         )
-    
+
     def val_dataloader(self):
-        return torch.utils.data.DataLoader(
+        return DataLoader(
             self.val_ds,
             batch_size=self.batch_size,
-            num_workers=self.num_workers,
-            collate_fn=default_collate_fn,
             shuffle=False,
-            persistent_workers=True,
+            num_workers=self.num_workers,
+            persistent_workers=self.num_workers > 0,
+            collate_fn=default_collate_fn,
         )
-    
+
     def test_dataloader(self):
-        return torch.utils.data.DataLoader(
+        return DataLoader(
             self.test_ds,
             batch_size=self.batch_size,
-            num_workers=self.num_workers,
-            collate_fn=default_collate_fn,
             shuffle=False,
-            persistent_workers=True,
+            num_workers=self.num_workers,
+            persistent_workers=self.num_workers > 0,
+            collate_fn=default_collate_fn,
         )
-    
+
     @property
     def class_prompts(self):
-        if self.use_few_shot:
-            return [self.text_prompt.format(class_name=name) for name in self.test_ds._label_names]
-        else:
-            return [self.text_prompt.format(class_name=name) for name in self.train_ds._label_names]
+        if self.label_names is None:
+            raise RuntimeError("Call setup() before accessing class_prompts.")
+        return [self.text_prompt.format(class_name=name) for name in self.label_names]

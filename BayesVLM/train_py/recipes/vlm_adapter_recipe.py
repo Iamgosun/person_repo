@@ -14,6 +14,7 @@ from bayesvlm.methods.vlm_adapter import (
     evaluate_zero_shot_vlm_adapter,
 )
 from train_py.recipes.base import BaseRecipe
+from train_py.train_runtime import build_optimizer_from_args
 
 
 @torch.no_grad()
@@ -48,7 +49,14 @@ def _maybe_init_tipa_from_feature_loader(
 class VLMAdapterRecipe(BaseRecipe):
     method_name = "vlm_adapter"
     best_checkpoint_filename = "best_adapter.pt"
+    last_checkpoint_filename = "last_adapter.pt"
     require_image_feature_cache = True
+
+    # 当前已验证实现默认使用 AdamW，且原通用训练器按 val loss 选择 best。
+    default_optimizer_name = "adamw"
+    default_scheduler_name = "none"
+    default_selection_metric = "loss"
+    default_selection_mode = "auto"
 
     def run_path_parts(self, args) -> list[str]:
         return [
@@ -110,10 +118,10 @@ class VLMAdapterRecipe(BaseRecipe):
             f"test_ece={zero_shot_test['ece']:.4f}"
         )
 
-        optimizer = torch.optim.AdamW(
+        optimizer = build_optimizer_from_args(
             model.trainable_parameters(),
-            lr=args.lr,
-            weight_decay=args.weight_decay,
+            args,
+            default_name=self.default_optimizer_name,
         )
 
         return {
@@ -127,9 +135,6 @@ class VLMAdapterRecipe(BaseRecipe):
         return {
             "adapter_name": args.adapter_name,
             "initialization": args.initialization,
-            "lr": args.lr,
-            "weight_decay": args.weight_decay,
-            "epochs": args.epochs,
             "hessian_dir_ignored": args.hessian_dir,
             "pseudo_data_count_ignored": args.pseudo_data_count,
             "taskres_alpha": args.taskres_alpha,
@@ -208,9 +213,11 @@ class VLMAdapterRecipe(BaseRecipe):
 
     def format_epoch_log(self, row: dict[str, Any], ctx, args) -> str:
         val_metrics = row["val"]
+        lr_part = f"lr={row['lr']:.6f} " if "lr" in row else ""
 
         log_msg = (
             f"[Epoch {row['epoch']:03d}] "
+            f"{lr_part}"
             f"train_loss={row['train_loss_step_mean']:.4f} "
             f"loss_reg={row['loss_reg']:.4f} "
             f"val_acc={val_metrics['acc']:.4f} "

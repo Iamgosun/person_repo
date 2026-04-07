@@ -7,7 +7,14 @@ from typing import Any
 class BaseRecipe(ABC):
     method_name: str = ""
     best_checkpoint_filename: str = "best_model.pt"
+    last_checkpoint_filename: str = "last_model.pt"
     require_image_feature_cache: bool = False
+
+    # 这些默认值只决定“不显式传参时”的统一训练行为。
+    default_optimizer_name: str = "adamw"
+    default_scheduler_name: str = "none"
+    default_selection_metric: str = "loss"
+    default_selection_mode: str = "auto"
 
     @abstractmethod
     def run_path_parts(self, args) -> list[str]:
