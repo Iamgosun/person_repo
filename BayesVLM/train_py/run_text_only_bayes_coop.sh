@@ -21,7 +21,7 @@ CACHE_ROOT="./cache/image_features"
 # 运行配置
 # =========================
 DATASETS=("food101")
-SHOTS_PER_CLASS_LIST=(16)
+SHOTS_PER_CLASS_LIST=(1)
 SEEDS=(1)
 
 MODEL_STR="clip-base"
@@ -41,9 +41,6 @@ LAMBDA_OPT_STEPS=1000
 # =========================
 N_CTX=16
 CTX_INIT=""
-
-# N_CTX=16
-# CTX_INIT="a photo of a"
 CSC=0
 CLASS_TOKEN_POSITION="end"
 
@@ -52,7 +49,7 @@ CLASS_TOKEN_POSITION="end"
 # train_objective 可选: map / bayes / hybrid
 # hybrid 表示: 先 MAP warmup，再联合优化 MAP + Bayes + prompt regularization
 # =========================
-TRAIN_OBJECTIVE="map"
+TRAIN_OBJECTIVE="bayes"
 HYBRID_WARMUP_EPOCHS=5
 MAP_LOSS_WEIGHT=1.0
 BAYES_LOSS_WEIGHT=1.0
@@ -61,13 +58,23 @@ CTX_REG_WEIGHT=1e-4
 # method_name 默认带上 objective，避免不同目标函数的结果写到同一路径里
 METHOD_NAME="text_only_bayes_coop_${TRAIN_OBJECTIVE}"
 
+# 模型选择方式: best / last
+MODEL_SELECTION="last"
+
+# =========================
+# 学习率调度相关
+# warmup_epoch = 0 时表示关闭 warmup，仅使用 cosine schedule
+# =========================
+WARMUP_EPOCH=1
+WARMUP_CONS_LR=1e-5
+
 # =========================
 # 优化器 / 训练轮数
 # =========================
 LR=0.002
 WEIGHT_DECAY=0
-EPOCHS=50
-BATCH_SIZE=32
+EPOCHS=200
+BATCH_SIZE=256
 NUM_WORKERS=8
 
 # =========================
@@ -111,6 +118,9 @@ for DATASET in "${DATASETS[@]}"; do
       echo "bayes_loss_weight=${BAYES_LOSS_WEIGHT}"
       echo "ctx_reg_weight=${CTX_REG_WEIGHT}"
       echo "use_full_cov=${USE_FULL_COV}"
+      echo "model_selection=${MODEL_SELECTION}"
+      echo "warmup_epoch=${WARMUP_EPOCH}"
+      echo "warmup_cons_lr=${WARMUP_CONS_LR}"
       echo "cache_root=${CACHE_ROOT}"
       echo "rebuild_image_cache=${REBUILD_IMAGE_CACHE}"
       echo "disable_image_cache=${DISABLE_IMAGE_CACHE}"
@@ -135,11 +145,14 @@ for DATASET in "${DATASETS[@]}"; do
         --epochs "${EPOCHS}" \
         --batch_size "${BATCH_SIZE}" \
         --num_workers "${NUM_WORKERS}" \
+        --warmup_epoch "${WARMUP_EPOCH}" \
+        --warmup_cons_lr "${WARMUP_CONS_LR}" \
         --train_objective "${TRAIN_OBJECTIVE}" \
         --hybrid_warmup_epochs "${HYBRID_WARMUP_EPOCHS}" \
         --map_loss_weight "${MAP_LOSS_WEIGHT}" \
         --bayes_loss_weight "${BAYES_LOSS_WEIGHT}" \
         --ctx_reg_weight "${CTX_REG_WEIGHT}" \
+        --model_selection "${MODEL_SELECTION}" \
         --save_dir "${OUTPUT_ROOT}" \
         --method_name "${METHOD_NAME}" \
         --prediction_topk "${PREDICTION_TOPK}" \

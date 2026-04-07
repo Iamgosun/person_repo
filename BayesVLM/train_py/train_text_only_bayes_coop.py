@@ -7,6 +7,7 @@ from pathlib import Path
 import sys
 
 import torch
+from torch.optim.lr_scheduler import _LRScheduler
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
@@ -38,6 +39,61 @@ from bayesvlm.utils import (
     get_transform,
     load_model,
 )
+
+
+class _BaseWarmupScheduler(_LRScheduler):
+    """
+    中文说明：
+    与标准 CoOp 实现保持一致的 warmup 包装器。
+    在 warmup 阶段使用自定义 lr；结束后把调度权交给 successor。
+    """
+
+    def __init__(
+        self,
+        optimizer,
+        successor,
+        warmup_epoch: int,
+        last_epoch: int = -1,
+    ):
+        self.successor = successor
+        self.warmup_epoch = int(warmup_epoch)
+        super().__init__(optimizer, last_epoch)
+
+    def get_lr(self):
+        raise NotImplementedError
+
+    def step(self, epoch=None):
+        if self.last_epoch >= self.warmup_epoch:
+            if epoch is None:
+                self.successor.step(None)
+            else:
+                self.successor.step(epoch)
+            self._last_lr = self.successor.get_last_lr()
+        else:
+            super().step(epoch)
+
+
+class ConstantWarmupScheduler(_BaseWarmupScheduler):
+    """
+    中文说明：
+    warmup 前若干个 epoch 固定学习率；之后切到后继 scheduler。
+    """
+
+    def __init__(
+        self,
+        optimizer,
+        successor,
+        warmup_epoch: int,
+        cons_lr: float,
+        last_epoch: int = -1,
+    ):
+        self.cons_lr = float(cons_lr)
+        super().__init__(optimizer, successor, warmup_epoch, last_epoch)
+
+    def get_lr(self):
+        if self.last_epoch >= self.warmup_epoch:
+            return self.successor.get_last_lr()
+        return [self.cons_lr for _ in self.base_lrs]
 
 
 def _resolve_path(path_str: str) -> Path:
@@ -143,6 +199,8 @@ def main(
     lr: float = 2e-3,
     weight_decay: float = 0.0,
     epochs: int = 50,
+    warmup_epoch: int = 0,
+    warmup_cons_lr: float = 1e-5,
     batch_size: int = 32,
     num_workers: int = 4,
     use_full_cov: bool = False,
@@ -153,6 +211,7 @@ def main(
     ctx_reg_weight: float = 1e-4,
     save_dir: str = "output",
     method_name: str = "text_only_bayes_coop",
+    model_selection: str = "best",
     seed: int = 42,
     device: str = "cuda",
     prediction_topk: int = 5,
@@ -186,10 +245,13 @@ def main(
         print(f"[run] device={device}")
         print(f"[run] run_dir={run_dir}")
         print(f"[run] train_objective={train_objective}")
+        print(f"[run] model_selection={model_selection}")
         print(f"[run] hybrid_warmup_epochs={hybrid_warmup_epochs}")
         print(f"[run] map_loss_weight={map_loss_weight}")
         print(f"[run] bayes_loss_weight={bayes_loss_weight}")
         print(f"[run] ctx_reg_weight={ctx_reg_weight}")
+        print(f"[run] warmup_epoch={warmup_epoch}")
+        print(f"[run] warmup_cons_lr={warmup_cons_lr}")
         print(f"[run] cache_image_features={cache_image_features}")
         print(f"[run] image_feature_cache_root={image_feature_cache_root_path}")
         print(f"[run] rebuild_image_feature_cache={rebuild_image_feature_cache}")
@@ -403,10 +465,19 @@ def main(
             lr=lr,
             weight_decay=weight_decay,
         )
-        scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+        cosine_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
             optimizer,
             T_max=epochs,
         )
+        if warmup_epoch > 0:
+            scheduler = ConstantWarmupScheduler(
+                optimizer=optimizer,
+                successor=cosine_scheduler,
+                warmup_epoch=warmup_epoch,
+                cons_lr=warmup_cons_lr,
+            )
+        else:
+            scheduler = cosine_scheduler
 
         config = {
             "method_name": method_name,
@@ -429,10 +500,13 @@ def main(
             "lr": lr,
             "weight_decay": weight_decay,
             "epochs": epochs,
+            "warmup_epoch": warmup_epoch,
+            "warmup_cons_lr": warmup_cons_lr,
             "batch_size": batch_size,
             "num_workers": num_workers,
             "use_full_cov": use_full_cov,
             "train_objective": train_objective,
+            "model_selection": model_selection,
             "hybrid_warmup_epochs": hybrid_warmup_epochs,
             "map_loss_weight": map_loss_weight,
             "bayes_loss_weight": bayes_loss_weight,
@@ -453,6 +527,7 @@ def main(
         print("[2] 开始训练 Text-Only Bayes CoOp ...")
         best_val_acc = float("-inf")
         best_state = None
+        last_state = None
         metrics_history = []
 
         for epoch in range(1, epochs + 1):
@@ -538,16 +613,39 @@ def main(
                 }
                 torch.save(best_state, run_dir / "best_prompt_learner.pt")
 
+            last_state = {
+                "prompt_learner": prompt_learner.state_dict(),
+                "config": config,
+                "last_epoch": epoch,
+                "last_val_metrics": val_metrics,
+            }
+            torch.save(last_state, run_dir / "last_prompt_learner.pt")
+
             save_json(run_dir / "metrics_history.json", metrics_history)
             save_csv(run_dir / "metrics_history.csv", flatten_metrics_history(metrics_history))
 
-        print("[3] 训练结束，加载最优 prompt 并导出最终预测 ...")
-        best_ckpt_path = run_dir / "best_prompt_learner.pt"
-        if not best_ckpt_path.exists():
-            raise RuntimeError(f"未找到最优权重文件：{best_ckpt_path}")
+        if model_selection == "best":
+            print("[3] 训练结束，加载验证集最优 prompt 并导出最终预测 ...")
+            best_ckpt_path = run_dir / "best_prompt_learner.pt"
+            if not best_ckpt_path.exists():
+                raise RuntimeError(f"未找到最优权重文件：{best_ckpt_path}")
+            selected_state = torch.load(best_ckpt_path, map_location=device)
+            selected_epoch = selected_state["best_epoch"]
+            selected_val_metrics = selected_state["best_val_metrics"]
+            selected_label = "best"
+        elif model_selection == "last":
+            print("[3] 训练结束，加载最后一轮 prompt 并导出最终预测 ...")
+            last_ckpt_path = run_dir / "last_prompt_learner.pt"
+            if not last_ckpt_path.exists():
+                raise RuntimeError(f"未找到最后一轮权重文件：{last_ckpt_path}")
+            selected_state = torch.load(last_ckpt_path, map_location=device)
+            selected_epoch = selected_state["last_epoch"]
+            selected_val_metrics = selected_state["last_val_metrics"]
+            selected_label = "last"
+        else:
+            raise ValueError(f"未知 model_selection: {model_selection}")
 
-        best_state = torch.load(best_ckpt_path, map_location=device)
-        prompt_learner.load_state_dict(best_state["prompt_learner"])
+        prompt_learner.load_state_dict(selected_state["prompt_learner"])
 
         final_train_metrics = evaluate_text_only_bayes_coop(
             model=model,
@@ -600,8 +698,14 @@ def main(
             "method_name": method_name,
             "dataset": dataset,
             "seed": seed,
-            "best_epoch": best_state["best_epoch"],
-            "best_val_metrics_saved": best_state["best_val_metrics"],
+            "model_selection": model_selection,
+            "selected_checkpoint": selected_label,
+            "selected_epoch": selected_epoch,
+            "selected_val_metrics": selected_val_metrics,
+            "best_epoch": None if best_state is None else best_state["best_epoch"],
+            "best_val_metrics_saved": None if best_state is None else best_state["best_val_metrics"],
+            "last_epoch": None if last_state is None else last_state["last_epoch"],
+            "last_val_metrics_saved": None if last_state is None else last_state["last_val_metrics"],
             "final_train_metrics_recomputed": final_train_metrics,
             "final_val_metrics_recomputed": final_val_metrics,
             "final_test_metrics_recomputed": final_test_metrics,
@@ -614,6 +718,7 @@ def main(
                 "metrics_json_file": "metrics_history.json",
                 "metrics_csv_file": "metrics_history.csv",
                 "best_ckpt_file": "best_prompt_learner.pt",
+                "last_ckpt_file": "last_prompt_learner.pt",
                 "train_predictions_jsonl": "train_predictions.jsonl",
                 "train_predictions_pt": "train_predictions.pt",
                 "val_predictions_jsonl": "val_predictions.jsonl",
@@ -650,6 +755,8 @@ if __name__ == "__main__":
     parser.add_argument("--lr", type=float, default=2e-3)
     parser.add_argument("--weight_decay", type=float, default=0.0)
     parser.add_argument("--epochs", type=int, default=50)
+    parser.add_argument("--warmup_epoch", type=int, default=0)
+    parser.add_argument("--warmup_cons_lr", type=float, default=1e-5)
 
     parser.add_argument("--batch_size", type=int, default=32)
     parser.add_argument("--num_workers", type=int, default=4)
@@ -662,6 +769,7 @@ if __name__ == "__main__":
     parser.add_argument("--ctx_reg_weight", type=float, default=1e-4)
     parser.add_argument("--save_dir", type=str, default="output")
     parser.add_argument("--method_name", type=str, default="text_only_bayes_coop")
+    parser.add_argument("--model_selection", type=str, default="best", choices=["best", "last"])
     parser.add_argument("--prediction_topk", type=int, default=5)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--device", type=str, default="cuda")
@@ -689,6 +797,8 @@ if __name__ == "__main__":
         lr=args.lr,
         weight_decay=args.weight_decay,
         epochs=args.epochs,
+        warmup_epoch=args.warmup_epoch,
+        warmup_cons_lr=args.warmup_cons_lr,
         batch_size=args.batch_size,
         num_workers=args.num_workers,
         use_full_cov=args.use_full_cov,
@@ -699,6 +809,7 @@ if __name__ == "__main__":
         ctx_reg_weight=args.ctx_reg_weight,
         save_dir=args.save_dir,
         method_name=args.method_name,
+        model_selection=args.model_selection,
         prediction_topk=args.prediction_topk,
         seed=args.seed,
         device=args.device,
