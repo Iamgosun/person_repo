@@ -13,7 +13,6 @@ from bayesvlm.coop_prompt import CoOpPromptLearner
 from bayesvlm.hessians import KroneckerFactorizedCovariance
 from bayesvlm.text_only_bayes_coop import TextOnlyBayesCoOpModel
 from bayesvlm.training.io import save_jsonl
-from bayesvlm.training.metrics import evaluate_prediction
 
 
 def _get_batch_item(batch, key: str, idx: int, default=None):
@@ -74,6 +73,8 @@ def build_text_only_bayes_coop_model(
     text_covariance: KroneckerFactorizedCovariance,
     n_ctx: int,
     ctx_init: str,
+    csc: bool,
+    class_token_position: str,
     use_full_cov: bool,
     device: str,
 ):
@@ -93,11 +94,17 @@ def build_text_only_bayes_coop_model(
     if getattr(vlm, "logit_bias", None) is not None:
         vlm.logit_bias.requires_grad = False
 
+    image_encoder.eval()
+    text_encoder.eval()
+    vlm.eval()
+
     prompt_learner = CoOpPromptLearner(
         class_names=class_names,
         text_encoder=text_encoder,
         n_ctx=n_ctx,
         ctx_init=ctx_init,
+        csc=csc,
+        class_token_position=class_token_position,
     ).to(device)
 
     model = TextOnlyBayesCoOpModel(

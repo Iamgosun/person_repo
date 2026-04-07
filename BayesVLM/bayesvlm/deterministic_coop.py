@@ -31,14 +31,8 @@ class DeterministicCoOpModel(nn.Module):
         return self.vlm.logit_scale.device
 
     def train(self, mode: bool = True):
-        """
-        关键点：
-        CoOp 训练时只让 prompt learner 进入 train mode；
-        冻结的 image/text backbone 和 vlm 头保持 eval mode。
-        """
         super().train(mode)
         self.prompt_learner.train(mode)
-
         self.image_encoder.eval()
         self.prompt_learner.text_encoder.eval()
         self.vlm.eval()
@@ -72,10 +66,9 @@ class DeterministicCoOpModel(nn.Module):
 
         g = self.encode_image_batch(batch=batch, image_embeds=image_embeds)
         text_outputs = self.prompt_learner()
-        mu = text_outputs.embeds.float()
+        text_features = text_outputs.embeds.float()
 
-        # 这里直接走原始 deterministic logits
-        logits = self.vlm(g, mu)
+        logits = self.vlm(g, text_features)
         return logits
 
     def forward_from_features(self, image_embeds: torch.Tensor) -> torch.Tensor:

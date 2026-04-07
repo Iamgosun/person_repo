@@ -8,38 +8,27 @@ cd "${ROOT_DIR}"
 
 export PYTHONPATH="${ROOT_DIR}:${PYTHONPATH:-}"
 
-METHOD_NAME="deterministic_coop"
+METHOD_NAME="deterministic_coop_standard"
 OUTPUT_ROOT="./output"
 DATA_ROOT="./datasets"
 MODEL_PATH="./models/clip-vit-b32"
 
-# 图像特征缓存目录
 CACHE_ROOT="./cache/image_features"
 
-# 是否强制重建图像特征缓存：
-# 0 = 直接复用已有缓存
-# 1 = 删除命中并重新提取图像特征
 REBUILD_IMAGE_CACHE=0
-
-# 如需彻底关闭图像特征缓存，改成 1
 DISABLE_IMAGE_CACHE=0
 
-# 建议先用你当前最稳的 dataset 起跑
 DATASETS=("food101")
-SHOTS_PER_CLASS_LIST=(1)
+SHOTS_PER_CLASS_LIST=(16)
 SEEDS=(1)
 
-# 做最干净的 deterministic CoOp 对照时，
-# 若 ctx_init="a photo of a"，建议 n_ctx 先设成 4
-N_CTX=3
-CTX_INIT="a photo of"
-FIXED_SUFFIX=", a type of food."
+N_CTX=16
+CTX_INIT="a photo of a"
+CSC=0
+CLASS_TOKEN_POSITION="end"
 
-
-
-
-LR=1e-3
-WEIGHT_DECAY=1e-4
+LR=0.1
+WEIGHT_DECAY=0
 EPOCHS=100
 BATCH_SIZE=256
 NUM_WORKERS=8
@@ -51,13 +40,16 @@ TRAIN_SCRIPT="train_py/train_deterministic_coop.py"
 
 EXTRA_ARGS=()
 
-# 图像缓存开关
 if [[ "${REBUILD_IMAGE_CACHE}" -eq 1 ]]; then
   EXTRA_ARGS+=("--rebuild_image_feature_cache")
 fi
 
 if [[ "${DISABLE_IMAGE_CACHE}" -eq 1 ]]; then
   EXTRA_ARGS+=("--disable_cache_image_features")
+fi
+
+if [[ "${CSC}" -eq 1 ]]; then
+  EXTRA_ARGS+=("--csc")
 fi
 
 for DATASET in "${DATASETS[@]}"; do
@@ -78,7 +70,7 @@ for DATASET in "${DATASETS[@]}"; do
         --image_feature_cache_root "${CACHE_ROOT}" \
         --n_ctx "${N_CTX}" \
         --ctx_init "${CTX_INIT}" \
-        --fixed_suffix "${FIXED_SUFFIX}" \
+        --class_token_position "${CLASS_TOKEN_POSITION}" \
         --shots_per_class "${SHOTS_PER_CLASS}" \
         --lr "${LR}" \
         --weight_decay "${WEIGHT_DECAY}" \

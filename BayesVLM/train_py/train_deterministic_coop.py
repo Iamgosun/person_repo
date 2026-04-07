@@ -7,7 +7,6 @@ from pathlib import Path
 import sys
 
 import torch
-import torch.nn.functional as F
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
@@ -71,31 +70,6 @@ def _stable_transform_name(model_type: str, image_size: int) -> str:
     return f"default_transform(image_size={image_size})"
 
 
-def _warn_ctx_init_mismatch(text_encoder, n_ctx: int, ctx_init: str):
-    if ctx_init is None or len(ctx_init.strip()) == 0:
-        return
-
-    tokenized = text_encoder.tokenizer(
-        ctx_init,
-        add_special_tokens=False,
-        return_tensors="pt",
-    )
-    init_tokens = int(tokenized["input_ids"].shape[1])
-
-    if init_tokens != n_ctx:
-        print(
-            f"[warn] ctx_init='{ctx_init}' 的 token 数是 {init_tokens}，"
-            f"但你设置的 n_ctx={n_ctx}。"
-        )
-        print(
-            f"[warn] 当前实现会把前 {init_tokens} 个位置用文本初始化，"
-            f"其余 {n_ctx - init_tokens} 个位置随机补齐。"
-        )
-        print(
-            f"[warn] 做原始 CoOp 风格对照时，建议优先尝试 n_ctx={init_tokens}。"
-        )
-
-
 def main(
     dataset: str,
     model_str: str = "clip-base",
@@ -103,15 +77,16 @@ def main(
     data_root: str = "./datasets",
     n_ctx: int = 16,
     ctx_init: str = "a photo of a",
-    fixed_suffix: str = "",
+    csc: bool = False,
+    class_token_position: str = "end",
     shots_per_class: int = 16,
-    lr: float = 1e-3,
-    weight_decay: float = 1e-4,
-    epochs: int = 20,
+    lr: float = 2e-3,
+    weight_decay: float = 0.0,
+    epochs: int = 50,
     batch_size: int = 32,
     num_workers: int = 4,
     save_dir: str = "output",
-    method_name: str = "deterministic_coop",
+    method_name: str = "deterministic_coop_standard",
     seed: int = 42,
     device: str = "cuda",
     prediction_topk: int = 5,
@@ -188,12 +163,6 @@ def main(
             model_str=model_str,
             device=device,
             local_model_path=local_model_path,
-        )
-
-        _warn_ctx_init_mismatch(
-            text_encoder=text_encoder,
-            n_ctx=n_ctx,
-            ctx_init=ctx_init,
         )
 
         if cache_image_features:
@@ -298,7 +267,7 @@ def main(
             val_loader = data.val_loader
             test_loader = data.test_loader
 
-        print("[1] 构建 deterministic CoOp 模型 ...")
+        print("[1] 构建标准 deterministic CoOp 模型 ...")
         prompt_learner, model = build_deterministic_coop_model(
             class_names=data.class_names,
             text_encoder=text_encoder,
@@ -306,14 +275,18 @@ def main(
             vlm=vlm,
             n_ctx=n_ctx,
             ctx_init=ctx_init,
-            fixed_suffix=fixed_suffix,
+            csc=csc,
+            class_token_position=class_token_position,
             device=device,
         )
 
-        optimizer = torch.optim.AdamW(
+        optimizer = torch.optim.SGD(
             prompt_learner.parameters(),
             lr=lr,
-            weight_decay=weight_decay,
+        )
+        scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+            optimizer,
+            T_max=epochs,
         )
 
         config = {
@@ -326,7 +299,8 @@ def main(
             "data_root_cache_key": str(data_root_path),
             "n_ctx": n_ctx,
             "ctx_init": ctx_init,
-            "fixed_suffix": fixed_suffix,
+            "csc": csc,
+            "class_token_position": class_token_position,
             "shots_per_class": shots_per_class,
             "lr": lr,
             "weight_decay": weight_decay,
@@ -345,7 +319,7 @@ def main(
         }
         save_json(run_dir / "config.json", config)
 
-        print("[2] 开始训练 deterministic CoOp ...")
+        print("[2] 开始训练标准 deterministic CoOp ...")
         best_val_acc = float("-inf")
         best_state = None
         metrics_history = []
@@ -361,7 +335,7 @@ def main(
 
                 optimizer.zero_grad()
                 logits = model(batch=batch)
-                loss = F.cross_entropy(
+                loss = torch.nn.functional.cross_entropy(
                     logits,
                     labels,
                     reduction="mean",
@@ -371,6 +345,8 @@ def main(
 
                 epoch_loss_sum += loss.item() * labels.size(0)
                 epoch_count += labels.size(0)
+
+            scheduler.step()
 
             val_metrics = evaluate_deterministic_coop(
                 model=model,
@@ -383,11 +359,13 @@ def main(
                 "epoch": epoch,
                 "train_loss_step_mean": epoch_loss_sum / max(epoch_count, 1),
                 "val": val_metrics,
+                "lr": scheduler.get_last_lr()[0],
             }
             metrics_history.append(row)
 
             print(
                 f"[Epoch {epoch:03d}] "
+                f"lr={row['lr']:.6f} "
                 f"train_loss={row['train_loss_step_mean']:.4f} "
                 f"val_acc={val_metrics['acc']:.4f} "
                 f"val_nlpd={val_metrics['nlpd']:.4f} "
@@ -504,18 +482,19 @@ if __name__ == "__main__":
 
     parser.add_argument("--n_ctx", type=int, default=16)
     parser.add_argument("--ctx_init", type=str, default="a photo of a")
-    parser.add_argument("--fixed_suffix", type=str, default="")
+    parser.add_argument("--csc", action="store_true", default=False)
+    parser.add_argument("--class_token_position", type=str, default="end")
     parser.add_argument("--shots_per_class", type=int, default=16)
 
-    parser.add_argument("--lr", type=float, default=1e-3)
-    parser.add_argument("--weight_decay", type=float, default=1e-4)
-    parser.add_argument("--epochs", type=int, default=20)
+    parser.add_argument("--lr", type=float, default=2e-3)
+    parser.add_argument("--weight_decay", type=float, default=0.0)
+    parser.add_argument("--epochs", type=int, default=50)
 
     parser.add_argument("--batch_size", type=int, default=32)
     parser.add_argument("--num_workers", type=int, default=4)
 
     parser.add_argument("--save_dir", type=str, default="output")
-    parser.add_argument("--method_name", type=str, default="deterministic_coop")
+    parser.add_argument("--method_name", type=str, default="deterministic_coop_standard")
     parser.add_argument("--prediction_topk", type=int, default=5)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--device", type=str, default="cuda")
@@ -533,6 +512,8 @@ if __name__ == "__main__":
         data_root=args.data_root,
         n_ctx=args.n_ctx,
         ctx_init=args.ctx_init,
+        csc=args.csc,
+        class_token_position=args.class_token_position,
         shots_per_class=args.shots_per_class,
         lr=args.lr,
         weight_decay=args.weight_decay,

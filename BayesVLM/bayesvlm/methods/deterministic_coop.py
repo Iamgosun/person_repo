@@ -36,10 +36,6 @@ def _get_batch_item(batch, key: str, idx: int, default=None):
     return value
 
 
-
-
-
-
 def build_deterministic_coop_model(
     *,
     class_names: list[str],
@@ -48,10 +44,10 @@ def build_deterministic_coop_model(
     vlm: Any,
     n_ctx: int,
     ctx_init: str,
-    fixed_suffix: str,
+    csc: bool,
+    class_token_position: str,
     device: str,
 ):
-    # 冻结 backbone 参数
     if hasattr(image_encoder, "freeze_all_layers"):
         image_encoder.freeze_all_layers()
     else:
@@ -68,22 +64,18 @@ def build_deterministic_coop_model(
     if getattr(vlm, "logit_bias", None) is not None:
         vlm.logit_bias.requires_grad = False
 
-    # backbone 保持 eval
     image_encoder.eval()
     text_encoder.eval()
     vlm.eval()
-
-
-
 
     prompt_learner = CoOpPromptLearner(
         class_names=class_names,
         text_encoder=text_encoder,
         n_ctx=n_ctx,
         ctx_init=ctx_init,
-        fixed_suffix=fixed_suffix,
+        csc=csc,
+        class_token_position=class_token_position,
     ).to(device)
-
 
     model = DeterministicCoOpModel(
         image_encoder=image_encoder,
@@ -92,12 +84,6 @@ def build_deterministic_coop_model(
     ).to(device)
 
     return prompt_learner, model
-
-
-
-
-
-
 
 
 @torch.no_grad()
