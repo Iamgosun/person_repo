@@ -9,107 +9,310 @@ cd "${ROOT_DIR}"
 export PYTHONPATH="${ROOT_DIR}:${PYTHONPATH:-}"
 
 # ============================================================
-# 统一 shell 入口说明
+# 统一训练脚本 run_unified.sh
 # ------------------------------------------------------------
-# 1) 真正只维护这一份脚本逻辑：run_unified.sh
-# 2) 三个旧名字脚本只做薄封装，转发到这里
-# 3) 通过 RECIPE_NAME 控制任务：
-#       - text_only_bayes_coop
-#       - deterministic_coop
-#       - vlm_adapter
-# 4) 支持命令行额外透传参数，例如：
-#       bash train_py/run_unified.sh --epochs 50 --seed 2
+# 使用方式：
+#   1. 直接在这个 .sh 文件里改参数
+#   2. 保存后执行：
+#        bash train_py/run_unified.sh
+#
+# 这份脚本统一管理三类任务：
+#   - text_only_bayes_coop
+#   - deterministic_coop
+#   - vlm_adapter
+#
+# 你平时最常改的通常只有：
+#   - RECIPE_NAME
+#   - DATASETS
+#   - SHOTS_PER_CLASS_LIST
+#   - SEEDS
+#   - METHODS                 # 仅 vlm_adapter 使用
+#   - LR / EPOCHS / BATCH_SIZE
+#   - MODEL_SELECTION
 # ============================================================
 
 # =========================
-# 任务选择
+# 1) 任务类型
+# -------------------------
+# 可选值：
+#   "text_only_bayes_coop"   -> 文本侧 Bayes CoOp
+#   "deterministic_coop"     -> 标准 deterministic CoOp
+#   "vlm_adapter"            -> 各类 adapter 方法
+#
+# 说明：
+#   你一次只跑一个任务类型。
 # =========================
-RECIPE_NAME="${RECIPE_NAME:-text_only_bayes_coop}"
-
-# =========================
-# 基础路径配置
-# =========================
-OUTPUT_ROOT="${OUTPUT_ROOT:-./output}"
-DATA_ROOT="${DATA_ROOT:-./datasets}"
-MODEL_PATH="${MODEL_PATH:-./models/clip-vit-b32}"
-HESSIAN_DIR="${HESSIAN_DIR:-./hessians/hessian_CLIP-ViT-B-32-laion2B-s34B-b79K}"
-CACHE_ROOT="${CACHE_ROOT:-./cache/image_features}"
-
-# =========================
-# sweep 配置
-# 支持这样传：
-#   DATASETS="food101 cifar10"
-#   SHOTS_PER_CLASS_LIST="1 2 4 8 16"
-#   SEEDS="1 2 3"
-#   METHODS="LP:RANDOM TR:TR TIPA:TIPA"
-# =========================
-IFS=' ' read -r -a DATASETS <<< "${DATASETS:-food101}"
-IFS=' ' read -r -a SHOTS_PER_CLASS_LIST <<< "${SHOTS_PER_CLASS_LIST:-16}"
-IFS=' ' read -r -a SEEDS <<< "${SEEDS:-1}"
-IFS=' ' read -r -a METHODS <<< "${METHODS:-LP:RANDOM}"
+RECIPE_NAME="text_only_bayes_coop"
+# RECIPE_NAME="text_only_bayes_coop"
+# RECIPE_NAME="deterministic_coop"
 
 # =========================
-# 全局训练配置
+# 2) 基础路径
+# -------------------------
+# 说明：
+#   这些一般只在换机器、换数据目录、换模型目录时改。
 # =========================
-MODEL_STR="${MODEL_STR:-clip-base}"
-DEVICE="${DEVICE:-cuda}"
-PYTHON_BIN="${PYTHON_BIN:-python}"
-TRAIN_SCRIPT="${TRAIN_SCRIPT:-train_py/train_unified.py}"
+OUTPUT_ROOT="./output"
+DATA_ROOT="./datasets"
+MODEL_PATH="./models/clip-vit-b32"
+HESSIAN_DIR="./hessians/hessian_CLIP-ViT-B-32-laion2B-s34B-b79K"
+CACHE_ROOT="./cache/image_features"
 
-NUM_WORKERS="${NUM_WORKERS:-8}"
-BATCH_SIZE="${BATCH_SIZE:-256}"
-PREDICTION_TOPK="${PREDICTION_TOPK:-5}"
+# =========================
+# 3) sweep 配置
+# -------------------------
+# 说明：
+#   这里直接写死你要循环跑的实验组合。
+#
+# DATASETS:
+#   你要跑的数据集列表
+#
+# SHOTS_PER_CLASS_LIST:
+#   few-shot 设置，例如 1-shot / 2-shot / 4-shot / 8-shot / 16-shot
+#
+# SEEDS:
+#   不同随机种子
+#
+# METHODS:
+#   仅在 RECIPE_NAME="vlm_adapter" 时生效
+#   格式必须写成：
+#       "ADAPTER_NAME:INITIALIZATION"
+#
+#   你原仓库脚本里已经列出的可选 adapter 有：
+#       LP
+#       TR
+#       CLIPA
+#       TIPA
+#       CROSSMODAL
+#       GAUSSIAN_PER_CLASS
+#
+#   常见写法示例：
+#       "LP:RANDOM"
+#       "LP:MEAN"
+#       "TR:TR"
+#       "CLIPA:CLIPA"
+#       "TIPA:TIPA"
+#       "CROSSMODAL:CROSSMODAL"
+#       "GAUSSIAN_PER_CLASS:GAUSSIAN_PER_CLASS"
+# ========================= 
+# "food101" "cifar10" "flowers102" "ucf101"
+DATASETS=("flowers102" )
 
-# 缓存相关
-REBUILD_IMAGE_CACHE="${REBUILD_IMAGE_CACHE:-0}"
-DISABLE_IMAGE_CACHE="${DISABLE_IMAGE_CACHE:-0}"
+SHOTS_PER_CLASS_LIST=("1" "2" "4" "8" "16")
+SEEDS=("1" ) # "1" "2" "3"
+METHODS=(
+  "LP:RANDOM"
+  # "LP:MEAN"
+  # "TR:TR"
+  # "CLIPA:CLIPA"
+  # "TIPA:TIPA"
+  # "CROSSMODAL:CROSSMODAL"
+  # "GAUSSIAN_PER_CLASS:GAUSSIAN_PER_CLASS"
+)
 
-# 通用 prompt 参数
-N_CTX="${N_CTX:-16}"
-CTX_INIT="${CTX_INIT:-}"
-CSC="${CSC:-0}"
-CLASS_TOKEN_POSITION="${CLASS_TOKEN_POSITION:-end}"
+# =========================
+# 4) 全局训练配置
+# -------------------------
+# 说明：
+#   这些参数三类任务基本都共用。
+# =========================
+MODEL_STR="clip-base"
+DEVICE="cuda"
+PYTHON_BIN="python"
+TRAIN_SCRIPT="train_py/train_unified.py"
 
-# 通用优化器 / 调度器参数
-LR="${LR:-0.002}"
-WEIGHT_DECAY="${WEIGHT_DECAY:-0}"
-EPOCHS="${EPOCHS:-200}"
-OPTIMIZER="${OPTIMIZER:-}"
-MOMENTUM="${MOMENTUM:-0.9}"
-NESTEROV="${NESTEROV:-0}"
-LR_SCHEDULER="${LR_SCHEDULER:-}"
-WARMUP_EPOCH="${WARMUP_EPOCH:-0}"
-WARMUP_CONS_LR="${WARMUP_CONS_LR:-1e-5}"
+NUM_WORKERS=8
+BATCH_SIZE=256
+PREDICTION_TOPK=5
 
-# checkpoint 选择
-MODEL_SELECTION="${MODEL_SELECTION:-}"
-SELECTION_METRIC="${SELECTION_METRIC:-}"
-SELECTION_MODE="${SELECTION_MODE:-}"
+# =========================
+# 5) 图像缓存相关
+# -------------------------
+# REBUILD_IMAGE_CACHE:
+#   0 -> 复用已有缓存
+#   1 -> 强制重建缓存
+#
+# DISABLE_IMAGE_CACHE:
+#   0 -> 使用图像特征缓存
+#   1 -> 不使用图像特征缓存
+# =========================
+REBUILD_IMAGE_CACHE=0
+DISABLE_IMAGE_CACHE=0
 
-# text_only_bayes_coop 相关
-PSEUDO_DATA_COUNT="${PSEUDO_DATA_COUNT:-4}"
-LAMBDA_TXT_INIT="${LAMBDA_TXT_INIT:-300.0}"
-LAMBDA_OPT_STEPS="${LAMBDA_OPT_STEPS:-1000}"
-USE_FULL_COV="${USE_FULL_COV:-0}"
-TRAIN_OBJECTIVE="${TRAIN_OBJECTIVE:-bayes}"
-HYBRID_WARMUP_EPOCHS="${HYBRID_WARMUP_EPOCHS:-5}"
-MAP_LOSS_WEIGHT="${MAP_LOSS_WEIGHT:-1.0}"
-BAYES_LOSS_WEIGHT="${BAYES_LOSS_WEIGHT:-1.0}"
-CTX_REG_WEIGHT="${CTX_REG_WEIGHT:-1e-4}"
+# =========================
+# 6) Prompt 相关通用参数
+# -------------------------
+# N_CTX:
+#   prompt context token 数
+#
+# CTX_INIT:
+#   prompt 初始化文本
+#   空字符串表示不用文本初始化
+#
+# CSC:
+#   0 -> 关闭 class-specific context
+#   1 -> 开启 class-specific context
+#
+# CLASS_TOKEN_POSITION:
+#   建议继续沿用原脚本默认值 "end"
+# =========================
+N_CTX=16
+CTX_INIT=""
+CSC=0
+CLASS_TOKEN_POSITION="end"
 
-# vlm_adapter 相关
-# METHODS 形如：
-#   METHODS="LP:RANDOM TR:TR TIPA:TIPA"
-TASKRES_ALPHA="${TASKRES_ALPHA:-0.5}"
-CLIPA_RATIO="${CLIPA_RATIO:-0.2}"
-CLIPA_HIDDEN_DIM="${CLIPA_HIDDEN_DIM:-0}"
-TIPA_ALPHA="${TIPA_ALPHA:-1.0}"
-TIPA_BETA="${TIPA_BETA:-1.0}"
-GAUSSIAN_PRIOR_SIGMA="${GAUSSIAN_PRIOR_SIGMA:-0.01}"
-GAUSSIAN_MC_SAMPLES="${GAUSSIAN_MC_SAMPLES:-3}"
-GAUSSIAN_ANNEAL_START_EPOCH="${GAUSSIAN_ANNEAL_START_EPOCH:-20}"
+# =========================
+# 7) 优化器 / 调度器
+# -------------------------
+# OPTIMIZER 可选建议：
+#   "sgd"
+#   "adamw"
+#   留空 -> 用不同任务各自默认值
+#
+# LR_SCHEDULER 可选建议：
+#   "cosine"
+#   "none"
+#   留空 -> 用不同任务各自默认值
+#
+# MOMENTUM / NESTEROV:
+#   主要对 SGD 有意义
+# =========================
+LR=0.002
+WEIGHT_DECAY=0
+EPOCHS=200
 
-# 允许从命令行直接追加任意 train_unified.py 参数
+OPTIMIZER="sgd"
+# OPTIMIZER="sgd"
+# OPTIMIZER="adamw"
+
+MOMENTUM=0.9
+NESTEROV=0
+
+LR_SCHEDULER="cosine"
+# LR_SCHEDULER="cosine"
+# LR_SCHEDULER="none"
+
+WARMUP_EPOCH=1
+WARMUP_CONS_LR=1e-5
+
+# =========================
+# 8) checkpoint 选择策略
+# -------------------------
+# MODEL_SELECTION:
+#   "best" -> 用验证集最优轮
+#   "last" -> 用最后一轮
+#   留空   -> 用不同任务各自默认值
+#
+# SELECTION_METRIC:
+#   "acc"  -> 按验证集准确率选 best
+#   "loss" -> 按验证集 loss 选 best
+#   "nlpd" -> 按验证集 nlpd 选 best
+#   "ece"  -> 按验证集 ece 选 best
+#   留空   -> 用不同任务各自默认值
+#
+# SELECTION_MODE:
+#   "max"  -> 指标越大越好
+#   "min"  -> 指标越小越好
+#   "auto" -> 自动判断
+#   留空   -> 用默认逻辑
+#
+# 推荐：
+#   text_only_bayes_coop:
+#       MODEL_SELECTION="last"
+#
+#   deterministic_coop:
+#       MODEL_SELECTION="best"
+#       SELECTION_METRIC="acc"
+#       SELECTION_MODE="max"
+#
+#   vlm_adapter:
+#       MODEL_SELECTION="best"
+#       SELECTION_METRIC="loss"
+#       SELECTION_MODE="min"
+# =========================
+MODEL_SELECTION="last"
+# MODEL_SELECTION="best"
+# MODEL_SELECTION="last"
+
+SELECTION_METRIC="acc"
+# SELECTION_METRIC="acc"
+# SELECTION_METRIC="loss"
+# SELECTION_METRIC="nlpd"
+# SELECTION_METRIC="ece"
+
+SELECTION_MODE="max"
+# SELECTION_MODE="auto"
+# SELECTION_MODE="min"
+# SELECTION_MODE="max"
+
+# =========================
+# 9) text_only_bayes_coop 专属参数
+# -------------------------
+# TRAIN_OBJECTIVE 可选：
+#   "map"
+#   "bayes"
+#   "hybrid"
+#
+# USE_FULL_COV:
+#   0 -> 不用 full covariance
+#   1 -> 使用 full covariance
+# =========================
+PSEUDO_DATA_COUNT=4
+LAMBDA_TXT_INIT=300.0
+LAMBDA_OPT_STEPS=1000
+
+TRAIN_OBJECTIVE="bayes"
+# TRAIN_OBJECTIVE="map"
+# TRAIN_OBJECTIVE="hybrid"
+
+HYBRID_WARMUP_EPOCHS=5
+MAP_LOSS_WEIGHT=1.0
+BAYES_LOSS_WEIGHT=1.0
+CTX_REG_WEIGHT=1e-4
+
+USE_FULL_COV=0
+
+# =========================
+# 10) vlm_adapter 专属参数
+# -------------------------
+# 说明：
+#   这些参数只在对应 adapter 被 METHODS 选中时才有意义。
+# =========================
+TASKRES_ALPHA=0.5
+
+CLIPA_RATIO=0.2
+CLIPA_HIDDEN_DIM=0
+
+TIPA_ALPHA=1.0
+TIPA_BETA=1.0
+
+GAUSSIAN_PRIOR_SIGMA=0.01
+GAUSSIAN_MC_SAMPLES=3
+GAUSSIAN_ANNEAL_START_EPOCH=20
+
+# =========================
+# 11) 常用推荐组合
+# -------------------------
+# 1. 跑 text_only_bayes_coop
+# RECIPE_NAME="text_only_bayes_coop"
+# MODEL_SELECTION="last"
+# TRAIN_OBJECTIVE="bayes"
+#
+# 2. 跑 deterministic_coop
+# RECIPE_NAME="deterministic_coop"
+# MODEL_SELECTION="best"
+# SELECTION_METRIC="acc"
+# SELECTION_MODE="max"
+#
+# 3. 跑 vlm_adapter
+# RECIPE_NAME="vlm_adapter"
+# MODEL_SELECTION="best"
+# SELECTION_METRIC="loss"
+# SELECTION_MODE="min"
+# METHODS=("LP:RANDOM" "TR:TR" "TIPA:TIPA")
+# =========================
+
+# 允许在命令后追加额外 train_unified.py 参数
 EXTRA_ARGS=("$@")
 
 append_common_optional_args() {
@@ -175,7 +378,7 @@ run_text_only_bayes_coop() {
   local shots="$2"
   local seed="$3"
 
-  local method_name="${METHOD_NAME:-text_only_bayes_coop_${TRAIN_OBJECTIVE}}"
+  local method_name="text_only_bayes_coop_${TRAIN_OBJECTIVE}"
 
   print_common_header "${dataset}" "${shots}" "${seed}"
   echo "method_name=${method_name}"
@@ -226,7 +429,7 @@ run_text_only_bayes_coop() {
     --device "${DEVICE}"
   )
 
-  # 与旧版 shell 保持一致：text_only 默认 last + SGD + cosine
+  # 默认保持与旧版 text_only_bayes_coop 习惯一致
   if [[ -z "${MODEL_SELECTION}" ]]; then
     cmd+=(--model_selection last)
   fi
@@ -249,7 +452,7 @@ run_deterministic_coop() {
   local shots="$2"
   local seed="$3"
 
-  local method_name="${METHOD_NAME:-deterministic_coop_standard}"
+  local method_name="deterministic_coop_standard"
 
   print_common_header "${dataset}" "${shots}" "${seed}"
   echo "method_name=${method_name}"
@@ -285,7 +488,7 @@ run_deterministic_coop() {
     --device "${DEVICE}"
   )
 
-  # 与旧版 deterministic CoOp 一致：best + SGD + cosine
+  # 默认保持与 deterministic CoOp 习惯一致
   if [[ -z "${MODEL_SELECTION}" ]]; then
     cmd+=(--model_selection best)
   fi
@@ -310,7 +513,7 @@ run_vlm_adapter() {
   local shots="$4"
   local seed="$5"
 
-  local method_name="${METHOD_NAME:-vlm_adapter}"
+  local method_name="vlm_adapter"
 
   print_common_header "${dataset}" "${shots}" "${seed}"
   echo "method_name=${method_name}"
@@ -352,7 +555,7 @@ run_vlm_adapter() {
     --pseudo_data_count "${PSEUDO_DATA_COUNT}"
   )
 
-  # 与当前 adapter recipe 一致：best + AdamW + no scheduler + val loss
+  # 默认保持与当前 vlm_adapter recipe 一致
   if [[ -z "${MODEL_SELECTION}" ]]; then
     cmd+=(--model_selection best)
   fi
