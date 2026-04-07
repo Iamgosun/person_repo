@@ -1,0 +1,119 @@
+{
+  "config": {
+    "group_a_file": "prompts/common.txt",
+    "group_b_file": "prompts/rare.txt",
+    "group_a_name": "common",
+    "group_b_name": "rare",
+    "model": "clip-base",
+    "local_model_path": "./models/clip-vit-b32",
+    "hessian_dir": "./hessians/hessian_CLIP-ViT-B-32-laion2B-s34B-b79K",
+    "device": "cuda",
+    "pseudo_data_count": 4,
+    "lambda_txt_init": 300.0,
+    "lambda_opt_steps": 1000,
+    "use_saved_prior": false,
+    "image_embeds_path": null,
+    "use_full_cov": false,
+    "num_perm": 5000,
+    "seed": 0,
+    "output_json": "prompt_covariance_report.json"
+  },
+  "n_txt": 4.0,
+  "lambda_txt": 3846.0751953125,
+  "group_a_name": "common",
+  "group_b_name": "rare",
+  "summary_a": {
+    "count": 4,
+    "alpha_mean": 0.3558434545993805,
+    "alpha_std": 0.0488092303276062,
+    "trace_sigma_mean": 2.0281219482421875,
+    "trace_sigma_std": 0.27818718552589417,
+    "logdet_sigma_mean": -2853.625,
+    "fro_sigma_mean": 0.09181588888168335
+  },
+  "summary_b": {
+    "count": 4,
+    "alpha_mean": 0.47810491919517517,
+    "alpha_std": 0.026142042130231857,
+    "trace_sigma_mean": 2.7249486446380615,
+    "trace_sigma_std": 0.14899605512619019,
+    "logdet_sigma_mean": -2698.81787109375,
+    "fro_sigma_mean": 0.12335459887981415
+  },
+  "rows_a": [
+    {
+      "prompt": "a photo of a dog",
+      "alpha": 0.32738327980041504,
+      "trace_sigma": 1.8659138679504395,
+      "logdet_sigma": -2891.894975180402,
+      "fro_sigma": 0.08447426864858681,
+      "mu_norm": 9.310612678527832
+    },
+    {
+      "prompt": "a photo of a cat",
+      "alpha": 0.32499468326568604,
+      "trace_sigma": 1.8523000478744507,
+      "logdet_sigma": -2895.643097613371,
+      "fro_sigma": 0.08385810386685805,
+      "mu_norm": 9.227729797363281
+    },
+    {
+      "prompt": "a photo of a car",
+      "alpha": 0.440311074256897,
+      "trace_sigma": 2.5095434188842773,
+      "logdet_sigma": -2740.2034312119777,
+      "fro_sigma": 0.11360525133367055,
+      "mu_norm": 8.860280990600586
+    },
+    {
+      "prompt": "a photo of a flower",
+      "alpha": 0.3306848108768463,
+      "trace_sigma": 1.8847308158874512,
+      "logdet_sigma": -2886.759062656303,
+      "fro_sigma": 0.08532593482102899,
+      "mu_norm": 8.92763614654541
+    }
+  ],
+  "rows_b": [
+    {
+      "prompt": "dataset across various fewshot",
+      "alpha": 0.44191426038742065,
+      "trace_sigma": 2.5186805725097656,
+      "logdet_sigma": -2738.3430272023074,
+      "fro_sigma": 0.11401881065298936,
+      "mu_norm": 8.473264694213867
+    },
+    {
+      "prompt": "Negative Log Probability Density",
+      "alpha": 0.4872838258743286,
+      "trace_sigma": 2.7772634029388428,
+      "logdet_sigma": -2688.315460243889,
+      "fro_sigma": 0.12572239700523347,
+      "mu_norm": 8.247337341308594
+    },
+    {
+      "prompt": "Expected Calibration Error",
+      "alpha": 0.469533771276474,
+      "trace_sigma": 2.6760973930358887,
+      "logdet_sigma": -2707.310087137229,
+      "fro_sigma": 0.1211435719712057,
+      "mu_norm": 8.323058128356934
+    },
+    {
+      "prompt": "Bold indicates the best performance",
+      "alpha": 0.5136878490447998,
+      "trace_sigma": 2.927752733230591,
+      "logdet_sigma": -2661.303047351691,
+      "fro_sigma": 0.1325336098921416,
+      "mu_norm": 8.391213417053223
+    }
+  ],
+  "alpha_test": {
+    "obs_abs_mean_diff": 0.12226146459579468,
+    "p_value": 0.027794441111777646
+  },
+  "trace_sigma_test": {
+    "obs_abs_mean_diff": 0.696826696395874,
+    "p_value": 0.010397920415916816
+  }
+}

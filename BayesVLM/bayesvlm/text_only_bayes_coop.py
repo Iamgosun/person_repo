@@ -193,6 +193,8 @@ class TextOnlyBayesCoOpModel(nn.Module):
 
         return ProbabilisticLogits(mean=logits_mean, var=logits_var)
 
+
+
     def forward(
         self,
         batch=None,

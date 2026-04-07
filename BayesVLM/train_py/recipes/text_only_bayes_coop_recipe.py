@@ -180,9 +180,13 @@ class TextOnlyBayesCoOpRecipe(BaseRecipe):
         model = state["model"]
         prompt_learner = state["prompt_learner"]
         optimizer = state["optimizer"]
-
+ 
+        # 只调用 model.train()：
+        # TextOnlyBayesCoOpModel.train() 内部已经负责：
+        # 1) prompt_learner.train(mode)
+        # 2) image_encoder.eval()
+        # 3) prompt_learner.text_encoder.eval()
         model.train()
-        prompt_learner.train()
 
         epoch_total_loss = 0.0
         epoch_map_loss = 0.0

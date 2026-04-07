@@ -42,7 +42,7 @@ export PYTHONPATH="${ROOT_DIR}:${PYTHONPATH:-}"
 # 说明：
 #   你一次只跑一个任务类型。
 # =========================
-RECIPE_NAME="text_only_bayes_coop"
+RECIPE_NAME="vlm_adapter"
 # RECIPE_NAME="text_only_bayes_coop"
 # RECIPE_NAME="deterministic_coop"
 
@@ -96,7 +96,7 @@ CACHE_ROOT="./cache/image_features"
 #       "GAUSSIAN_PER_CLASS:GAUSSIAN_PER_CLASS"
 # ========================= 
 # "food101" "cifar10" "flowers102" "ucf101"
-DATASETS=("flowers102" )
+DATASETS=("ucf101" )
 
 SHOTS_PER_CLASS_LIST=("1" "2" "4" "8" "16")
 SEEDS=("1" ) # "1" "2" "3"
