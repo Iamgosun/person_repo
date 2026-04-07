@@ -119,6 +119,41 @@ def build_text_only_bayes_coop_model(
     return prompt_learner, model
 
 
+def compute_text_only_bayes_coop_train_losses(
+    *,
+    model: TextOnlyBayesCoOpModel,
+    prompt_learner: CoOpPromptLearner,
+    batch: dict[str, Any],
+    labels: torch.Tensor,
+    ctx_anchor: torch.Tensor | None,
+    ctx_reg_weight: float,
+) -> dict[str, torch.Tensor]:
+    map_logits = model.forward_map_logits(batch=batch)
+    map_loss = torch.nn.functional.cross_entropy(
+        map_logits,
+        labels,
+        reduction="mean",
+    )
+
+    bayes_logits = model.forward_bayes_logits(batch=batch)
+    bayes_loss = bayes_logits.cross_entropy(
+        labels,
+        num_samples=0,
+        reduction="mean",
+    )
+
+    if ctx_anchor is None or ctx_reg_weight <= 0:
+        ctx_reg = map_loss.new_zeros(())
+    else:
+        ctx_reg = ((prompt_learner.ctx - ctx_anchor.to(prompt_learner.ctx.device)) ** 2).mean()
+
+    return {
+        "map_loss": map_loss,
+        "bayes_loss": bayes_loss,
+        "ctx_reg": ctx_reg,
+    }
+
+
 @torch.no_grad()
 def evaluate_text_only_bayes_coop(
     model: Any,

@@ -21,13 +21,11 @@ from bayesvlm.features.image_cache import (
     ImageFeatureCacheSpec,
     get_or_build_image_feature_bundle,
 )
-from bayesvlm.hessians import (
-    load_hessians,
-    optimize_prior_precision,
-)
+from bayesvlm.hessians import load_hessians, optimize_prior_precision
 from bayesvlm.methods.text_only_bayes_coop import (
     build_text_only_bayes_coop_model,
     compute_text_covariance,
+    compute_text_only_bayes_coop_train_losses,
     dump_text_only_bayes_coop_predictions,
     evaluate_text_only_bayes_coop,
 )
@@ -89,6 +87,45 @@ def _check_txt_hessian_dir(hessian_dir: Path) -> dict:
     }
 
 
+def _compose_train_loss(
+    *,
+    objective: str,
+    epoch: int,
+    hybrid_warmup_epochs: int,
+    loss_dict: dict[str, torch.Tensor],
+    map_loss_weight: float,
+    bayes_loss_weight: float,
+    ctx_reg_weight: float,
+) -> tuple[torch.Tensor, dict[str, float]]:
+    map_loss = loss_dict["map_loss"]
+    bayes_loss = loss_dict["bayes_loss"]
+    ctx_reg = loss_dict["ctx_reg"]
+
+    if objective == "map":
+        loss = map_loss + ctx_reg_weight * ctx_reg
+    elif objective == "bayes":
+        loss = bayes_loss + ctx_reg_weight * ctx_reg
+    elif objective == "hybrid":
+        if epoch <= hybrid_warmup_epochs:
+            loss = map_loss + ctx_reg_weight * ctx_reg
+        else:
+            loss = (
+                map_loss_weight * map_loss
+                + bayes_loss_weight * bayes_loss
+                + ctx_reg_weight * ctx_reg
+            )
+    else:
+        raise ValueError(f"未知 train_objective: {objective}")
+
+    stats = {
+        "map_loss": float(map_loss.detach().item()),
+        "bayes_loss": float(bayes_loss.detach().item()),
+        "ctx_reg": float(ctx_reg.detach().item()),
+        "total_loss": float(loss.detach().item()),
+    }
+    return loss, stats
+
+
 def main(
     dataset: str,
     hessian_dir: str,
@@ -109,6 +146,11 @@ def main(
     batch_size: int = 32,
     num_workers: int = 4,
     use_full_cov: bool = False,
+    train_objective: str = "hybrid",
+    hybrid_warmup_epochs: int = 5,
+    map_loss_weight: float = 1.0,
+    bayes_loss_weight: float = 1.0,
+    ctx_reg_weight: float = 1e-4,
     save_dir: str = "output",
     method_name: str = "text_only_bayes_coop",
     seed: int = 42,
@@ -143,6 +185,11 @@ def main(
         print(f"[run] seed={seed}")
         print(f"[run] device={device}")
         print(f"[run] run_dir={run_dir}")
+        print(f"[run] train_objective={train_objective}")
+        print(f"[run] hybrid_warmup_epochs={hybrid_warmup_epochs}")
+        print(f"[run] map_loss_weight={map_loss_weight}")
+        print(f"[run] bayes_loss_weight={bayes_loss_weight}")
+        print(f"[run] ctx_reg_weight={ctx_reg_weight}")
         print(f"[run] cache_image_features={cache_image_features}")
         print(f"[run] image_feature_cache_root={image_feature_cache_root_path}")
         print(f"[run] rebuild_image_feature_cache={rebuild_image_feature_cache}")
@@ -349,6 +396,8 @@ def main(
             device=device,
         )
 
+        ctx_anchor = prompt_learner.ctx.detach().clone()
+
         optimizer = torch.optim.SGD(
             prompt_learner.parameters(),
             lr=lr,
@@ -383,6 +432,11 @@ def main(
             "batch_size": batch_size,
             "num_workers": num_workers,
             "use_full_cov": use_full_cov,
+            "train_objective": train_objective,
+            "hybrid_warmup_epochs": hybrid_warmup_epochs,
+            "map_loss_weight": map_loss_weight,
+            "bayes_loss_weight": bayes_loss_weight,
+            "ctx_reg_weight": ctx_reg_weight,
             "seed": seed,
             "device": device,
             "num_classes": len(data.class_names),
@@ -396,7 +450,7 @@ def main(
         }
         save_json(run_dir / "config.json", config)
 
-        print("[2] 开始训练 Text-Only Bayes CoOp (train with MAP logits, eval with Bayes logits) ...")
+        print("[2] 开始训练 Text-Only Bayes CoOp ...")
         best_val_acc = float("-inf")
         best_state = None
         metrics_history = []
@@ -405,24 +459,42 @@ def main(
             model.train()
             prompt_learner.train()
 
-            epoch_loss_sum = 0.0
+            epoch_total_loss = 0.0
+            epoch_map_loss = 0.0
+            epoch_bayes_loss = 0.0
+            epoch_ctx_reg = 0.0
             epoch_count = 0
 
             for batch in train_loader:
                 labels = batch["class_id"].to(device)
 
                 optimizer.zero_grad()
-                logits = model.forward_map_logits(batch=batch)
-                loss = torch.nn.functional.cross_entropy(
-                    logits,
-                    labels,
-                    reduction="mean",
+                loss_dict = compute_text_only_bayes_coop_train_losses(
+                    model=model,
+                    prompt_learner=prompt_learner,
+                    batch=batch,
+                    labels=labels,
+                    ctx_anchor=ctx_anchor,
+                    ctx_reg_weight=ctx_reg_weight,
+                )
+                loss, stats = _compose_train_loss(
+                    objective=train_objective,
+                    epoch=epoch,
+                    hybrid_warmup_epochs=hybrid_warmup_epochs,
+                    loss_dict=loss_dict,
+                    map_loss_weight=map_loss_weight,
+                    bayes_loss_weight=bayes_loss_weight,
+                    ctx_reg_weight=ctx_reg_weight,
                 )
                 loss.backward()
                 optimizer.step()
 
-                epoch_loss_sum += loss.item() * labels.size(0)
-                epoch_count += labels.size(0)
+                batch_n = labels.size(0)
+                epoch_total_loss += stats["total_loss"] * batch_n
+                epoch_map_loss += stats["map_loss"] * batch_n
+                epoch_bayes_loss += stats["bayes_loss"] * batch_n
+                epoch_ctx_reg += stats["ctx_reg"] * batch_n
+                epoch_count += batch_n
 
             scheduler.step()
 
@@ -436,7 +508,10 @@ def main(
             row = {
                 "epoch": epoch,
                 "lr": scheduler.get_last_lr()[0],
-                "train_loss_step_mean": epoch_loss_sum / max(epoch_count, 1),
+                "train_loss_step_mean": epoch_total_loss / max(epoch_count, 1),
+                "train_map_loss_mean": epoch_map_loss / max(epoch_count, 1),
+                "train_bayes_loss_mean": epoch_bayes_loss / max(epoch_count, 1),
+                "train_ctx_reg_mean": epoch_ctx_reg / max(epoch_count, 1),
                 "val": val_metrics,
             }
             metrics_history.append(row)
@@ -444,7 +519,10 @@ def main(
             print(
                 f"[Epoch {epoch:03d}] "
                 f"lr={row['lr']:.6f} "
-                f"train_loss={row['train_loss_step_mean']:.4f} "
+                f"train_total={row['train_loss_step_mean']:.4f} "
+                f"train_map={row['train_map_loss_mean']:.4f} "
+                f"train_bayes={row['train_bayes_loss_mean']:.4f} "
+                f"train_ctx_reg={row['train_ctx_reg_mean']:.6f} "
                 f"val_acc={val_metrics['acc']:.4f} "
                 f"val_nlpd={val_metrics['nlpd']:.4f} "
                 f"val_ece={val_metrics['ece']:.4f}"
@@ -577,6 +655,11 @@ if __name__ == "__main__":
     parser.add_argument("--num_workers", type=int, default=4)
 
     parser.add_argument("--use_full_cov", action="store_true", default=False)
+    parser.add_argument("--train_objective", type=str, default="hybrid", choices=["map", "bayes", "hybrid"])
+    parser.add_argument("--hybrid_warmup_epochs", type=int, default=5)
+    parser.add_argument("--map_loss_weight", type=float, default=1.0)
+    parser.add_argument("--bayes_loss_weight", type=float, default=1.0)
+    parser.add_argument("--ctx_reg_weight", type=float, default=1e-4)
     parser.add_argument("--save_dir", type=str, default="output")
     parser.add_argument("--method_name", type=str, default="text_only_bayes_coop")
     parser.add_argument("--prediction_topk", type=int, default=5)
@@ -609,6 +692,11 @@ if __name__ == "__main__":
         batch_size=args.batch_size,
         num_workers=args.num_workers,
         use_full_cov=args.use_full_cov,
+        train_objective=args.train_objective,
+        hybrid_warmup_epochs=args.hybrid_warmup_epochs,
+        map_loss_weight=args.map_loss_weight,
+        bayes_loss_weight=args.bayes_loss_weight,
+        ctx_reg_weight=args.ctx_reg_weight,
         save_dir=args.save_dir,
         method_name=args.method_name,
         prediction_topk=args.prediction_topk,

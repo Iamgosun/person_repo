@@ -9,6 +9,7 @@ from bayesvlm.hessians import load_hessians, optimize_prior_precision
 from bayesvlm.methods.text_only_bayes_coop import (
     build_text_only_bayes_coop_model,
     compute_text_covariance,
+    compute_text_only_bayes_coop_train_losses,
     dump_text_only_bayes_coop_predictions,
     evaluate_text_only_bayes_coop,
 )
@@ -28,6 +29,35 @@ def _check_txt_hessian_dir(hessian_dir: Path) -> dict:
         "missing_required": missing,
         "dir": str(hessian_dir),
     }
+
+
+def _compose_train_loss(
+    *,
+    objective: str,
+    epoch: int,
+    hybrid_warmup_epochs: int,
+    loss_dict: dict[str, torch.Tensor],
+    map_loss_weight: float,
+    bayes_loss_weight: float,
+    ctx_reg_weight: float,
+) -> torch.Tensor:
+    map_loss = loss_dict["map_loss"]
+    bayes_loss = loss_dict["bayes_loss"]
+    ctx_reg = loss_dict["ctx_reg"]
+
+    if objective == "map":
+        return map_loss + ctx_reg_weight * ctx_reg
+    if objective == "bayes":
+        return bayes_loss + ctx_reg_weight * ctx_reg
+    if objective == "hybrid":
+        if epoch <= hybrid_warmup_epochs:
+            return map_loss + ctx_reg_weight * ctx_reg
+        return (
+            map_loss_weight * map_loss
+            + bayes_loss_weight * bayes_loss
+            + ctx_reg_weight * ctx_reg
+        )
+    raise ValueError(f"未知 train_objective: {objective}")
 
 
 class TextOnlyBayesCoOpRecipe(BaseRecipe):
@@ -96,6 +126,8 @@ class TextOnlyBayesCoOpRecipe(BaseRecipe):
             text_covariance=text_covariance,
             n_ctx=args.n_ctx,
             ctx_init=args.ctx_init,
+            csc=getattr(args, "csc", False),
+            class_token_position=getattr(args, "class_token_position", "end"),
             use_full_cov=args.use_full_cov,
             device=args.device,
         )
@@ -110,6 +142,7 @@ class TextOnlyBayesCoOpRecipe(BaseRecipe):
             "model": model,
             "prompt_learner": prompt_learner,
             "optimizer": optimizer,
+            "ctx_anchor": prompt_learner.ctx.detach().clone(),
             "hessian_dir_path": hessian_dir_path,
             "hessian_check": hessian_check,
             "lambda_txt": lambda_txt,
@@ -125,10 +158,17 @@ class TextOnlyBayesCoOpRecipe(BaseRecipe):
             "lambda_txt": state["lambda_txt"],
             "n_ctx": args.n_ctx,
             "ctx_init": args.ctx_init,
+            "csc": getattr(args, "csc", False),
+            "class_token_position": getattr(args, "class_token_position", "end"),
             "lr": args.lr,
             "weight_decay": args.weight_decay,
             "epochs": args.epochs,
             "use_full_cov": args.use_full_cov,
+            "train_objective": getattr(args, "train_objective", "hybrid"),
+            "hybrid_warmup_epochs": getattr(args, "hybrid_warmup_epochs", 5),
+            "map_loss_weight": getattr(args, "map_loss_weight", 1.0),
+            "bayes_loss_weight": getattr(args, "bayes_loss_weight", 1.0),
+            "ctx_reg_weight": getattr(args, "ctx_reg_weight", 1e-4),
         }
 
     def train_one_epoch(self, state: dict[str, Any], ctx, args, epoch: int) -> dict[str, Any]:
@@ -139,27 +179,48 @@ class TextOnlyBayesCoOpRecipe(BaseRecipe):
         model.train()
         prompt_learner.train()
 
-        epoch_loss_sum = 0.0
+        epoch_total_loss = 0.0
+        epoch_map_loss = 0.0
+        epoch_bayes_loss = 0.0
+        epoch_ctx_reg = 0.0
         epoch_count = 0
 
         for batch in ctx.train_loader:
             labels = batch["class_id"].to(args.device)
 
             optimizer.zero_grad()
-            prob_logits = model(batch=batch)
-            loss = prob_logits.cross_entropy(
-                labels,
-                num_samples=0,
-                reduction="mean",
+            loss_dict = compute_text_only_bayes_coop_train_losses(
+                model=model,
+                prompt_learner=prompt_learner,
+                batch=batch,
+                labels=labels,
+                ctx_anchor=state["ctx_anchor"],
+                ctx_reg_weight=getattr(args, "ctx_reg_weight", 1e-4),
+            )
+            loss = _compose_train_loss(
+                objective=getattr(args, "train_objective", "hybrid"),
+                epoch=epoch,
+                hybrid_warmup_epochs=getattr(args, "hybrid_warmup_epochs", 5),
+                loss_dict=loss_dict,
+                map_loss_weight=getattr(args, "map_loss_weight", 1.0),
+                bayes_loss_weight=getattr(args, "bayes_loss_weight", 1.0),
+                ctx_reg_weight=getattr(args, "ctx_reg_weight", 1e-4),
             )
             loss.backward()
             optimizer.step()
 
-            epoch_loss_sum += loss.item() * labels.size(0)
-            epoch_count += labels.size(0)
+            batch_n = labels.size(0)
+            epoch_total_loss += loss.detach().item() * batch_n
+            epoch_map_loss += loss_dict["map_loss"].detach().item() * batch_n
+            epoch_bayes_loss += loss_dict["bayes_loss"].detach().item() * batch_n
+            epoch_ctx_reg += loss_dict["ctx_reg"].detach().item() * batch_n
+            epoch_count += batch_n
 
         return {
-            "train_loss_step_mean": epoch_loss_sum / max(epoch_count, 1),
+            "train_loss_step_mean": epoch_total_loss / max(epoch_count, 1),
+            "train_map_loss_mean": epoch_map_loss / max(epoch_count, 1),
+            "train_bayes_loss_mean": epoch_bayes_loss / max(epoch_count, 1),
+            "train_ctx_reg_mean": epoch_ctx_reg / max(epoch_count, 1),
         }
 
     def evaluate_split(self, state: dict[str, Any], loader, ctx, args) -> dict[str, float]:
@@ -174,7 +235,10 @@ class TextOnlyBayesCoOpRecipe(BaseRecipe):
         val_metrics = row["val"]
         return (
             f"[Epoch {row['epoch']:03d}] "
-            f"train_loss={row['train_loss_step_mean']:.4f} "
+            f"train_total={row['train_loss_step_mean']:.4f} "
+            f"train_map={row['train_map_loss_mean']:.4f} "
+            f"train_bayes={row['train_bayes_loss_mean']:.4f} "
+            f"train_ctx_reg={row['train_ctx_reg_mean']:.6f} "
             f"val_acc={val_metrics['acc']:.4f} "
             f"val_nlpd={val_metrics['nlpd']:.4f} "
             f"val_ece={val_metrics['ece']:.4f}"
