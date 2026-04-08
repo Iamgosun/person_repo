@@ -434,6 +434,173 @@ class GaussianPerClassAdapter(AdapterMethod):
         }
 
 
+class BayesPaperAdapter(AdapterMethod):
+    """
+    BayesAdapter faithful to the released BayesAdapter code.
+
+    和当前 GaussianPerClassAdapter 的关键差异：
+    1) posterior log sigma 是 per-class scalar，形状 (C,)
+    2) KL 权重采用作者代码中的:
+         (epoch / total_epochs) * 1 / (kl_scale_divisor * C * D)
+    3) train / eval 的 MC sample 数可分开设置
+    """
+
+    input_kind: TextStateKind = "vector"
+
+    def __init__(
+        self,
+        base_text_features: torch.Tensor,
+        initialization: str = "BAYESADAPTER",
+        prior_sigma: float = 0.01,
+        train_mc_samples: int = 3,
+        eval_mc_samples: int = 10,
+        total_epochs: int = 300,
+        kl_scale_divisor: float = 1000.0,
+    ):
+        super().__init__(initialization)
+
+        n_classes, feat_dim = base_text_features.shape
+        dtype = base_text_features.dtype
+        device = base_text_features.device
+
+        prior_sigma = float(max(prior_sigma, 1e-8))
+        train_mc_samples = int(max(train_mc_samples, 1))
+        eval_mc_samples = int(max(eval_mc_samples, 1))
+        total_epochs = int(max(total_epochs, 1))
+        kl_scale_divisor = float(max(kl_scale_divisor, 1e-8))
+
+        # 后验均值：与作者代码中的 text_features_unnorm_mean 对应
+        self.variational_mu = nn.Parameter(base_text_features.clone())
+
+        # 后验 log std：按作者代码，是 per-class scalar，形状 (C,)
+        self.variational_log_sigma = nn.Parameter(
+            torch.full(
+                (n_classes,),
+                math.log(prior_sigma),
+                device=device,
+                dtype=dtype,
+            )
+        )
+
+        # 先验：均值来自 base_text_features，std 为固定标量 prior_sigma
+        self.register_buffer("prior_mu", base_text_features.clone())
+        self.register_buffer(
+            "prior_log_sigma",
+            torch.full(
+                (n_classes,),
+                math.log(prior_sigma),
+                device=device,
+                dtype=dtype,
+            ),
+        )
+
+        self.train_mc_samples = train_mc_samples
+        self.eval_mc_samples = eval_mc_samples
+        self.total_epochs = total_epochs
+        self.kl_scale_divisor = kl_scale_divisor
+        self.kl_weight = 0.0
+
+    def set_epoch(self, epoch: int) -> None:
+        """
+        尽量贴近作者代码：
+            kl_weight = (epoch / num_epochs) * 1/(1000 * C * D)
+        你当前 trainer 的 epoch 是 1-based，这里减 1 来对齐作者代码最初 epoch=0。
+        """
+        epoch0 = max(int(epoch) - 1, 0)
+        epoch0 = min(epoch0, self.total_epochs)
+
+        n_classes, feat_dim = self.variational_mu.shape
+        self.kl_weight = float(epoch0 / float(self.total_epochs)) * (
+            1.0 / (self.kl_scale_divisor * float(n_classes * feat_dim))
+        )
+
+    def sample_prototypes(self, n_samples: Optional[int] = None) -> torch.Tensor:
+        n_samples = int(
+            n_samples
+            or (self.train_mc_samples if self.training else self.eval_mc_samples)
+        )
+
+        eps = torch.randn(
+            (n_samples, *self.variational_mu.shape),
+            device=self.variational_mu.device,
+            dtype=self.variational_mu.dtype,
+        )
+        sigma = torch.exp(self.variational_log_sigma).view(1, -1, 1)
+        return self.variational_mu.unsqueeze(0) + eps * sigma
+
+    def kl_divergence(self) -> torch.Tensor:
+        """
+        复现作者代码中的 KL 形式，不额外改写成标准 1/2 KL 公式。
+        """
+        posterior_std = torch.exp(self.variational_log_sigma) + 1e-8   # (C,)
+        prior_std = torch.exp(self.prior_log_sigma).to(self.variational_mu.device) + 1e-8
+        prior_mu = self.prior_mu.to(self.variational_mu.device)
+
+        _, feat_dim = self.variational_mu.shape
+
+        kl_trace = feat_dim * (posterior_std.pow(2) / prior_std.pow(2)).sum()
+        kl_diff_sq = (
+            (self.variational_mu - prior_mu).pow(2) / prior_std.pow(2)[:, None]
+        ).sum()
+        kl_logdet = feat_dim * (
+            prior_std.pow(2).log() - posterior_std.pow(2).log()
+        ).sum()
+
+        return kl_trace + kl_diff_sq + kl_logdet
+
+    def mc_logits(
+        self,
+        image_features: torch.Tensor,
+        logit_scale: torch.Tensor,
+        n_samples: Optional[int] = None,
+    ) -> torch.Tensor:
+        n_samples = int(
+            n_samples
+            or (self.train_mc_samples if self.training else self.eval_mc_samples)
+        )
+
+        image_features_norm = self._normalize_features(image_features)
+
+        prototypes = self.sample_prototypes(n_samples=n_samples)
+        prototypes = self._normalize_features(prototypes)
+        prototypes = prototypes.to(
+            device=image_features_norm.device,
+            dtype=image_features_norm.dtype,
+        )
+
+        scale = self._exp_scale(
+            logit_scale,
+            image_features_norm.dtype,
+            image_features_norm.device,
+        )
+
+        # logits shape: (B, S, C)，随后对 S 维做平均
+        logits = torch.einsum("bd,scd->bsc", image_features_norm, prototypes) * scale
+        return logits.mean(dim=1)
+
+    def forward(
+        self,
+        image_features: torch.Tensor,
+        logit_scale: torch.Tensor,
+    ) -> torch.Tensor:
+        return self.mc_logits(
+            image_features=image_features,
+            logit_scale=logit_scale,
+            n_samples=self.train_mc_samples if self.training else self.eval_mc_samples,
+        )
+
+    def regularization_loss(self) -> Tuple[torch.Tensor, Dict[str, float]]:
+        kl_raw = self.kl_divergence()
+        loss = kl_raw * float(self.kl_weight)
+        return loss, {
+            "loss_kl_raw": float(kl_raw.detach().item()),
+            "kl_weight": float(self.kl_weight),
+            "loss_kl": float(loss.detach().item()),
+        }
+
+
+
+
 ADAPTER_REGISTRY = {
     "LP": LinearProbeAdapter,
     "LINEARPROBE": LinearProbeAdapter,
@@ -445,6 +612,8 @@ ADAPTER_REGISTRY = {
     "TIPADAPTER": TipAdapter,
     "CROSSMODAL": CrossModalAdapter,
     "GAUSSIAN_PER_CLASS": GaussianPerClassAdapter,
+    "BAYESADAPTER": BayesPaperAdapter,
+    "BAYES_ADAPTER": BayesPaperAdapter,
 }
 
 

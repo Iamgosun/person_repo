@@ -71,6 +71,7 @@ class VLMAdapterRecipe(BaseRecipe):
         print(f"[note] pseudo_data_count={args.pseudo_data_count} 仅为兼容旧接口保留。")
 
     def build_state(self, ctx, args) -> dict[str, Any]:
+
         cfg = {
             "model": args.model,
             "model_name_or_path": args.local_model_path,
@@ -87,7 +88,15 @@ class VLMAdapterRecipe(BaseRecipe):
             "gaussian_prior_sigma": args.gaussian_prior_sigma,
             "gaussian_mc_samples": args.gaussian_mc_samples,
             "gaussian_anneal_start_epoch": args.gaussian_anneal_start_epoch,
+
+            # BayesAdapter (paper-faithful)
+            "bayesadapter_prior_sigma": args.bayesadapter_prior_sigma,
+            "bayesadapter_train_mc_samples": args.bayesadapter_train_mc_samples,
+            "bayesadapter_eval_mc_samples": args.bayesadapter_eval_mc_samples,
+            "bayesadapter_kl_scale_divisor": args.bayesadapter_kl_scale_divisor,
         }
+
+
 
         model = build_vlm_adapter_model(
             cfg=cfg,
@@ -132,6 +141,7 @@ class VLMAdapterRecipe(BaseRecipe):
         }
 
     def build_config_extra(self, state: dict[str, Any], ctx, args) -> dict[str, Any]:
+
         return {
             "adapter_name": args.adapter_name,
             "initialization": args.initialization,
@@ -145,8 +155,18 @@ class VLMAdapterRecipe(BaseRecipe):
             "gaussian_prior_sigma": args.gaussian_prior_sigma,
             "gaussian_mc_samples": args.gaussian_mc_samples,
             "gaussian_anneal_start_epoch": args.gaussian_anneal_start_epoch,
+
+            # BayesAdapter (paper-faithful)
+            "bayesadapter_prior_sigma": args.bayesadapter_prior_sigma,
+            "bayesadapter_train_mc_samples": args.bayesadapter_train_mc_samples,
+            "bayesadapter_eval_mc_samples": args.bayesadapter_eval_mc_samples,
+            "bayesadapter_kl_scale_divisor": args.bayesadapter_kl_scale_divisor,
+
             "zero_shot_test": state["zero_shot_test"],
         }
+
+
+
 
     def train_one_epoch(self, state: dict[str, Any], ctx, args, epoch: int) -> dict[str, Any]:
         model = state["model"]

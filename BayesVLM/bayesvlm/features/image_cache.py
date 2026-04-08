@@ -16,7 +16,7 @@ from bayesvlm.precompute import precompute_image_features
 @dataclass(frozen=True)
 class ImageFeatureCacheSpec:
     dataset: str
-    split: str                  # train_full / val / test
+    split: str                  # train_full / val / test / train_fewshot_aug_seedX_shotY_repZ
     model_str: str
     local_model_path: str | None
     image_size: int
@@ -90,11 +90,25 @@ def extract_sample_keys_and_paths(ds: Any) -> tuple[list[str], list[str] | None]
     """
     优先使用 image_path 作为跨任务稳定 key。
     如果底层数据集没有路径信息，再退化成 base-dataset 索引 key。
+
+    新增支持：
+    - 自定义 wrapper 只要暴露 sample_keys / image_paths，就直接使用
     """
+    if hasattr(ds, "sample_keys"):
+        sample_keys = list(ds.sample_keys)
+        image_paths = list(ds.image_paths) if hasattr(ds, "image_paths") and ds.image_paths is not None else None
+        return sample_keys, image_paths
+
     base_ds, base_indices = unwrap_dataset_and_indices(ds)
 
     if hasattr(base_ds, "_samples"):
         src = base_ds._samples
+        idxs = base_indices if base_indices is not None else list(range(len(src)))
+        image_paths = [str(src[i][0]) for i in idxs]
+        return image_paths, image_paths
+
+    if hasattr(base_ds, "_split_info"):
+        src = base_ds._split_info
         idxs = base_indices if base_indices is not None else list(range(len(src)))
         image_paths = [str(src[i][0]) for i in idxs]
         return image_paths, image_paths

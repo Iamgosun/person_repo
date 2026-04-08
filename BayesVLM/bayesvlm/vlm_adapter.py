@@ -211,6 +211,24 @@ class VLMAdapter(nn.Module):
                 self._cfg_get("epochs", self._cfg_get("max_epoch", 300))
             )
 
+
+        elif name in {"BAYESADAPTER", "BAYES_ADAPTER"}:
+            kwargs["prior_sigma"] = float(
+                self._cfg_get("bayesadapter_prior_sigma", 0.01)
+            )
+            kwargs["train_mc_samples"] = int(
+                self._cfg_get("bayesadapter_train_mc_samples", 3)
+            )
+            kwargs["eval_mc_samples"] = int(
+                self._cfg_get("bayesadapter_eval_mc_samples", 10)
+            )
+            kwargs["kl_scale_divisor"] = float(
+                self._cfg_get("bayesadapter_kl_scale_divisor", 1000.0)
+            )
+            kwargs["total_epochs"] = int(
+                self._cfg_get("epochs", self._cfg_get("max_epoch", 300))
+            )
+
         return kwargs
 
     def _build_adapter(self) -> nn.Module:

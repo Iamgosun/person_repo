@@ -76,6 +76,10 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--image_feature_cache_root", type=str, default="./cache/image_features")
     parser.add_argument("--rebuild_image_feature_cache", action="store_true", default=False)
 
+    parser.add_argument("--use_data_augmentation", action="store_true", default=False)
+    parser.add_argument("--use_augmented_train_cache", action="store_true", default=False)
+    parser.add_argument("--train_aug_repeats", type=int, default=20)    
+
     # text_only_bayes_coop 相关
     parser.add_argument("--hessian_dir", type=str, default=None)
     parser.add_argument("--pseudo_data_count", type=int, default=4)
@@ -100,6 +104,13 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--gaussian_mc_samples", type=int, default=3)
     parser.add_argument("--gaussian_anneal_start_epoch", type=int, default=20)
 
+    # BayesAdapter (paper-faithful) 相关
+    parser.add_argument("--bayesadapter_prior_sigma", type=float, default=0.01)
+    parser.add_argument("--bayesadapter_train_mc_samples", type=int, default=3)
+    parser.add_argument("--bayesadapter_eval_mc_samples", type=int, default=10)
+    parser.add_argument("--bayesadapter_kl_scale_divisor", type=float, default=1000.0)
+
+
     return parser
 
 
@@ -108,6 +119,7 @@ def prepare_args(args) -> None:
     if not args.method_name:
         args.method_name = args.recipe_name
     args.cache_image_features = not args.disable_cache_image_features
+    args.train_aug_repeats = int(max(args.train_aug_repeats, 1))
 
     if args.recipe_name == "text_only_bayes_coop" and not args.hessian_dir:
         raise ValueError("text_only_bayes_coop 必须传 --hessian_dir。")
@@ -120,6 +132,7 @@ def parse_and_run_fixed_recipe(recipe_name: str, parser: argparse.ArgumentParser
     if not getattr(args, "method_name", None):
         args.method_name = args.recipe_name
     args.cache_image_features = not args.disable_cache_image_features
+    args.train_aug_repeats = int(max(args.train_aug_repeats, 1))
 
     if args.recipe_name == "text_only_bayes_coop" and not args.hessian_dir:
         raise ValueError("text_only_bayes_coop 必须传 --hessian_dir。")

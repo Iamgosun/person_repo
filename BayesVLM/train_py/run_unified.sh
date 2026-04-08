@@ -85,6 +85,7 @@ CACHE_ROOT="./cache/image_features"
 #       TIPA
 #       CROSSMODAL
 #       GAUSSIAN_PER_CLASS
+#       BAYESADAPTER
 #
 #   常见写法示例：
 #       "LP:RANDOM"
@@ -94,6 +95,8 @@ CACHE_ROOT="./cache/image_features"
 #       "TIPA:TIPA"
 #       "CROSSMODAL:CROSSMODAL"
 #       "GAUSSIAN_PER_CLASS:GAUSSIAN_PER_CLASS"
+#       "BAYESADAPTER:BAYESADAPTER"
+
 # ========================= 
 # "food101" "cifar10" "flowers102" "ucf101"
 DATASETS=("ucf101" )
@@ -101,13 +104,14 @@ DATASETS=("ucf101" )
 SHOTS_PER_CLASS_LIST=("1" "2" "4" "8" "16")
 SEEDS=("1" ) # "1" "2" "3"
 METHODS=(
-  "LP:RANDOM"
+  # "LP:RANDOM"
   # "LP:MEAN"
   # "TR:TR"
   # "CLIPA:CLIPA"
   # "TIPA:TIPA"
   # "CROSSMODAL:CROSSMODAL"
   # "GAUSSIAN_PER_CLASS:GAUSSIAN_PER_CLASS"
+  "BAYESADAPTER:BAYESADAPTER"
 )
 
 # =========================
@@ -138,6 +142,10 @@ PREDICTION_TOPK=5
 # =========================
 REBUILD_IMAGE_CACHE=0
 DISABLE_IMAGE_CACHE=0
+
+USE_DATA_AUGMENTATION=0
+USE_AUGMENTED_TRAIN_CACHE=0
+TRAIN_AUG_REPEATS=20
 
 # =========================
 # 6) Prompt 相关通用参数
@@ -177,9 +185,9 @@ CLASS_TOKEN_POSITION="end"
 # MOMENTUM / NESTEROV:
 #   主要对 SGD 有意义
 # =========================
-LR=0.002
+LR=0.1
 WEIGHT_DECAY=0
-EPOCHS=200
+EPOCHS=300
 
 OPTIMIZER="sgd"
 # OPTIMIZER="sgd"
@@ -290,6 +298,11 @@ GAUSSIAN_PRIOR_SIGMA=0.01
 GAUSSIAN_MC_SAMPLES=3
 GAUSSIAN_ANNEAL_START_EPOCH=20
 
+BAYESADAPTER_PRIOR_SIGMA=0.01
+BAYESADAPTER_TRAIN_MC_SAMPLES=3
+BAYESADAPTER_EVAL_MC_SAMPLES=10
+BAYESADAPTER_KL_SCALE_DIVISOR=1000.0
+
 # =========================
 # 11) 常用推荐组合
 # -------------------------
@@ -355,6 +368,17 @@ append_common_optional_args() {
   if [[ -n "${SELECTION_MODE}" ]]; then
     EXTRA_ARGS+=("--selection_mode" "${SELECTION_MODE}")
   fi
+
+  if [[ "${USE_DATA_AUGMENTATION}" -eq 1 ]]; then
+    EXTRA_ARGS+=("--use_data_augmentation")
+  fi
+
+  if [[ "${USE_AUGMENTED_TRAIN_CACHE}" -eq 1 ]]; then
+    EXTRA_ARGS+=("--use_augmented_train_cache")
+  fi
+
+  EXTRA_ARGS+=("--train_aug_repeats" "${TRAIN_AUG_REPEATS}")
+  
 }
 
 print_common_header() {
@@ -370,6 +394,9 @@ print_common_header() {
   echo "cache_root=${CACHE_ROOT}"
   echo "rebuild_image_cache=${REBUILD_IMAGE_CACHE}"
   echo "disable_image_cache=${DISABLE_IMAGE_CACHE}"
+  echo "use_data_augmentation=${USE_DATA_AUGMENTATION}"
+  echo "use_augmented_train_cache=${USE_AUGMENTED_TRAIN_CACHE}"
+  echo "train_aug_repeats=${TRAIN_AUG_REPEATS}"
   echo "============================================================"
 }
 
@@ -548,11 +575,20 @@ run_vlm_adapter() {
     --clipa_hidden_dim "${CLIPA_HIDDEN_DIM}"
     --tipa_alpha "${TIPA_ALPHA}"
     --tipa_beta "${TIPA_BETA}"
+
     --gaussian_prior_sigma "${GAUSSIAN_PRIOR_SIGMA}"
     --gaussian_mc_samples "${GAUSSIAN_MC_SAMPLES}"
     --gaussian_anneal_start_epoch "${GAUSSIAN_ANNEAL_START_EPOCH}"
+
+    --bayesadapter_prior_sigma "${BAYESADAPTER_PRIOR_SIGMA}"
+    --bayesadapter_train_mc_samples "${BAYESADAPTER_TRAIN_MC_SAMPLES}"
+    --bayesadapter_eval_mc_samples "${BAYESADAPTER_EVAL_MC_SAMPLES}"
+    --bayesadapter_kl_scale_divisor "${BAYESADAPTER_KL_SCALE_DIVISOR}"
+
     --hessian_dir "${HESSIAN_DIR}"
     --pseudo_data_count "${PSEUDO_DATA_COUNT}"
+
+
   )
 
   # 默认保持与当前 vlm_adapter recipe 一致
