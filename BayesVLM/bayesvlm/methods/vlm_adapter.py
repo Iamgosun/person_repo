@@ -34,6 +34,41 @@ def _get_batch_item(batch, key: str, idx: int, default=None):
 
     return value
 
+def reduce_logits_for_inference(logits: torch.Tensor) -> torch.Tensor:
+    """
+    统一推理语义：
+    - [B, C] -> 原样返回
+    - [S, B, C] -> 按官方 BayesAdapter 逻辑，对 MC 维求均值
+    """
+    if logits.dim() == 2:
+        return logits
+    if logits.dim() == 3:
+        return logits.mean(dim=0)
+    raise ValueError(f"Unexpected logits shape: {tuple(logits.shape)}")
+
+
+def compute_classification_loss_from_logits(
+    logits: torch.Tensor,
+    labels: torch.Tensor,
+) -> torch.Tensor:
+    """
+    统一训练/评估损失语义：
+    - [B, C]：普通 CE
+    - [S, B, C]：官方 BayesAdapter 的逐 MC sample CE 平均
+    """
+    if logits.dim() == 2:
+        return F.cross_entropy(logits, labels)
+
+    if logits.dim() == 3:
+        num_samples = logits.shape[0]
+        return F.cross_entropy(
+            logits.permute(1, 2, 0),                       # [B, C, S]
+            labels.unsqueeze(1).expand(-1, num_samples),   # [B, S]
+            reduction="none",
+        ).mean()
+
+    raise ValueError(f"Unexpected logits shape: {tuple(logits.shape)}")
+
 
 def build_vlm_adapter_model(
     *,
@@ -134,12 +169,15 @@ def evaluate_vlm_adapter(
 
     for batch in loader:
         labels = batch["class_id"].to(device)
-        logits = model(batch=batch)
+        raw_logits = model(batch=batch)
+        logits = reduce_logits_for_inference(raw_logits)
         probs = torch.softmax(logits, dim=-1)
 
         all_probs.append(probs.detach().cpu())
         all_labels.append(labels.detach().cpu())
-        total_loss += F.cross_entropy(logits, labels, reduction="sum").item()
+
+        batch_loss = compute_classification_loss_from_logits(raw_logits, labels)
+        total_loss += batch_loss.item() * labels.size(0)
 
     all_probs = torch.cat(all_probs, dim=0)
     all_labels = torch.cat(all_labels, dim=0)
@@ -210,7 +248,8 @@ def collect_vlm_adapter_predictions(
 
     for batch in loader:
         labels = batch["class_id"].to(device)
-        logits = model(batch=batch)
+        raw_logits = model(batch=batch)
+        logits = reduce_logits_for_inference(raw_logits)
         probs = torch.softmax(logits, dim=-1)
         preds = probs.argmax(dim=1)
 

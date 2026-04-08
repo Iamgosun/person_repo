@@ -4,4 +4,5 @@ MODEL_NAME_MAP = {
     'clip-huge': ('laion', 'CLIP-ViT-H-14-laion2B-s32B-b79K', 224),
     'siglip-base': ('google', 'siglip-base-patch16-256', 265),
     'siglip-large': ('google', 'siglip-large-patch16-256', 265),
+    'clip-rn50': ('openai', 'RN50', 224),
 }

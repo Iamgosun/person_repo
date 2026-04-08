@@ -6,12 +6,13 @@ from typing import Callable, Literal, Optional, Tuple
 from bayesvlm.constants import MODEL_NAME_MAP
 from bayesvlm.data.common import default_transform, siglip_transform
 from bayesvlm.image_encoder import CLIPImageEncoder, SiglipImageEncoder
+from bayesvlm.openai_clip_wrappers import load_openai_clip_rn50
 from bayesvlm.text_encoder import CLIPTextEncoder, SiglipTextEncoder
 from bayesvlm.vlm import CLIP, SIGLIP
 
 
 def get_model_type_and_size(model_str: str) -> Tuple[str, str]:
-    name, size = model_str.split("-")
+    name, size = model_str.split("-", 1)
     return name, size
 
 
@@ -44,18 +45,20 @@ def load_model(
 ) -> Tuple[CLIPImageEncoder, CLIPTextEncoder, CLIP] | Tuple[SiglipImageEncoder, SiglipTextEncoder, SIGLIP]:
     """
     中文说明：
-    这里是这次解耦的关键入口修改：
-    - image encoder 从 bayesvlm.image_encoder 导入
-    - text encoder 从 bayesvlm.text_encoder 导入
-    - VLM 头从 bayesvlm.vlm 导入
+    - 默认仍走原来的 Hugging Face CLIP / SigLIP 路径
+    - 对 clip-rn50 单独走 OpenAI CLIP RN50 包装器
     """
-    model_type, _ = get_model_type_and_size(model_str)
+    model_type, model_size = get_model_type_and_size(model_str)
 
-    # 中文说明：
-    # 优先使用本地目录；否则走原来的远程 repo id。
+    # 专门给 vlm_adapter 的 OpenAI CLIP RN50
+    if model_str == "clip-rn50":
+        return load_openai_clip_rn50(
+            device=device,
+            local_model_path=local_model_path,
+        )
+
+    # 原有逻辑保持不变
     model_source = local_model_path if local_model_path is not None else get_model_url(model_str)
-
-    # 只要传了本地目录，或者这个 source 本身就是本地目录，就启用离线加载。
     local_files_only = local_model_path is not None or os.path.isdir(model_source)
 
     if model_type == "siglip":

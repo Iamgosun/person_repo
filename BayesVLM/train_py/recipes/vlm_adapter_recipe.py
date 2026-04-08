@@ -9,6 +9,7 @@ from bayesvlm.methods.vlm_adapter import (
     build_vlm_adapter_model,
     compute_adapter_regularization_loss,
     compute_crossmodal_text_loss,
+    compute_classification_loss_from_logits,
     dump_vlm_adapter_predictions,
     evaluate_vlm_adapter,
     evaluate_zero_shot_vlm_adapter,
@@ -188,8 +189,7 @@ class VLMAdapterRecipe(BaseRecipe):
             optimizer.zero_grad(set_to_none=True)
 
             logits = model(batch=batch)
-            ce_loss = torch.nn.functional.cross_entropy(logits, labels)
-
+            ce_loss = compute_classification_loss_from_logits(logits, labels)
             reg_loss, reg_info = compute_adapter_regularization_loss(model)
             total_loss = ce_loss + reg_loss
 

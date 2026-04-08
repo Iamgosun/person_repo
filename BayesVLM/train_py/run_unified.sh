@@ -100,8 +100,8 @@ CACHE_ROOT="./cache/image_features"
 # ========================= 
 # "food101" "cifar10" "flowers102" "ucf101"
 DATASETS=("ucf101" )
-
-SHOTS_PER_CLASS_LIST=("1" "2" "4" "8" "16")
+# "1" "2" "4" "8" "16"
+SHOTS_PER_CLASS_LIST=("1" )
 SEEDS=("1" ) # "1" "2" "3"
 METHODS=(
   # "LP:RANDOM"
@@ -111,7 +111,7 @@ METHODS=(
   # "TIPA:TIPA"
   # "CROSSMODAL:CROSSMODAL"
   # "GAUSSIAN_PER_CLASS:GAUSSIAN_PER_CLASS"
-  "BAYESADAPTER:BAYESADAPTER"
+   "BAYESADAPTER:BAYESADAPTER"
 )
 
 # =========================
@@ -143,8 +143,8 @@ PREDICTION_TOPK=5
 REBUILD_IMAGE_CACHE=0
 DISABLE_IMAGE_CACHE=0
 
-USE_DATA_AUGMENTATION=0
-USE_AUGMENTED_TRAIN_CACHE=0
+USE_DATA_AUGMENTATION=1
+USE_AUGMENTED_TRAIN_CACHE=1
 TRAIN_AUG_REPEATS=20
 
 # =========================
@@ -185,7 +185,7 @@ CLASS_TOKEN_POSITION="end"
 # MOMENTUM / NESTEROV:
 #   主要对 SGD 有意义
 # =========================
-LR=0.1
+LR=0.01
 WEIGHT_DECAY=0
 EPOCHS=300
 
@@ -200,7 +200,7 @@ LR_SCHEDULER="cosine"
 # LR_SCHEDULER="cosine"
 # LR_SCHEDULER="none"
 
-WARMUP_EPOCH=1
+WARMUP_EPOCH=0
 WARMUP_CONS_LR=1e-5
 
 # =========================
@@ -554,6 +554,7 @@ run_vlm_adapter() {
     --recipe_name vlm_adapter
     --method_name "${method_name}"
     --dataset "${dataset}"
+    --model "clip-rn50"
     --model "${MODEL_STR}"
     --local_model_path "${MODEL_PATH}"
     --data_root "${DATA_ROOT}"

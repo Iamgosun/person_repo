@@ -395,10 +395,14 @@ class GaussianPerClassAdapter(AdapterMethod):
         logit_scale: torch.Tensor,
         n_samples: Optional[int] = None,
     ) -> torch.Tensor:
-        n_samples = int(n_samples or self.mc_samples)
+        n_samples = int(
+            n_samples
+            or (self.train_mc_samples if self.training else self.eval_mc_samples)
+        )
+
         image_features_norm = self._normalize_features(image_features)
 
-        prototypes = self.sample_prototypes(n_samples=n_samples)
+        prototypes = self.sample_prototypes(n_samples=n_samples)   # [S, C, D]
         prototypes = self._normalize_features(prototypes)
         prototypes = prototypes.to(
             device=image_features_norm.device,
@@ -410,19 +414,35 @@ class GaussianPerClassAdapter(AdapterMethod):
             image_features_norm.dtype,
             image_features_norm.device,
         )
-        logits = torch.einsum("bd,scd->bsc", image_features_norm, prototypes) * scale
-        return logits.mean(dim=1)
 
-    def forward(
-        self,
-        image_features: torch.Tensor,
-        logit_scale: torch.Tensor,
-    ) -> torch.Tensor:
+        # official semantics: [S, B, C]
+        logits = torch.einsum("bd,scd->sbc", image_features_norm, prototypes) * scale
+        return logits
+
+
+
+
+
+
+
+    # def forward(
+    #     self,
+    #     image_features: torch.Tensor,
+    #     logit_scale: torch.Tensor,
+    # ) -> torch.Tensor:
+    #     return self.mc_logits(
+    #         image_features=image_features,
+    #         logit_scale=logit_scale,
+    #         n_samples=self.mc_samples,
+    #     )
+
+    def forward(self, image_features: torch.Tensor, logit_scale: torch.Tensor) -> torch.Tensor:
         return self.mc_logits(
             image_features=image_features,
             logit_scale=logit_scale,
-            n_samples=self.mc_samples,
+            n_samples=self.train_mc_samples if self.training else self.eval_mc_samples,
         )
+
 
     def regularization_loss(self) -> Tuple[torch.Tensor, Dict[str, float]]:
         kl = self.kl_divergence()
