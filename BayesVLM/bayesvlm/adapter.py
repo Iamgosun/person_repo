@@ -421,10 +421,6 @@ class GaussianPerClassAdapter(AdapterMethod):
 
 
 
-
-
-
-
     # def forward(
     #     self,
     #     image_features: torch.Tensor,

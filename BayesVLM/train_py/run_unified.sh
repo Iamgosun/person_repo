@@ -187,7 +187,7 @@ CLASS_TOKEN_POSITION="end"
 # =========================
 LR=0.01
 WEIGHT_DECAY=0
-EPOCHS=300
+EPOCHS=200
 
 OPTIMIZER="sgd"
 # OPTIMIZER="sgd"
