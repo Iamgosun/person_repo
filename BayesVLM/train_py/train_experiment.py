@@ -192,9 +192,37 @@ def run_recipe_from_args(args) -> None:
             last_state["_checkpoint_epoch"] = epoch
             last_state["_checkpoint_val_metrics"] = val_metrics
             torch.save(last_state, run_dir / recipe.last_checkpoint_filename)
+            
+
+            if args.recipe_name == "text_only_bayes_coop":
+                proto_dir = run_dir / "prototype_history"
+                proto_dir.mkdir(parents=True, exist_ok=True)
+
+                model = state["model"]
+                model.eval()
+
+                with torch.no_grad():
+                    mu, _, _, _ = model.compute_text_statistics()
+
+                num_keep = min(10, mu.shape[0])
+
+                proto_payload = {
+                    "epoch": epoch,
+                    "class_ids": list(range(num_keep)),
+                    "class_names": ctx.class_names[:num_keep],
+                    "prototypes": mu[:num_keep].detach().cpu(),
+                }
+
+                torch.save(proto_payload, proto_dir / f"epoch_{epoch:03d}.pt")
+
+
 
             save_json(run_dir / "metrics_history.json", metrics_history)
             save_csv(run_dir / "metrics_history.csv", flatten_metrics_history(metrics_history))
+
+
+
+
 
         if best_state is None:
             raise RuntimeError("训练未产生 best checkpoint")
