@@ -104,7 +104,7 @@ MODEL_PATH="./models/clip-vit-b32"              #   "openai/clip-vit-base-patch1
 # "food101" "cifar10" "flowers102" "ucf101"
 DATASETS=("ucf101" )
 # "1" "2" "4" "8" "16"
-SHOTS_PER_CLASS_LIST=("16")
+SHOTS_PER_CLASS_LIST=( "16")
 SEEDS=("1" ) # "1" "2" "3"
 METHODS=(
   # "LP:RANDOM"
@@ -146,8 +146,8 @@ PREDICTION_TOPK=5
 REBUILD_IMAGE_CACHE=0
 DISABLE_IMAGE_CACHE=0
 
-USE_DATA_AUGMENTATION=1
-USE_AUGMENTED_TRAIN_CACHE=1
+USE_DATA_AUGMENTATION=0
+USE_AUGMENTED_TRAIN_CACHE=0
 TRAIN_AUG_REPEATS=20
 
 # =========================
@@ -188,7 +188,7 @@ CLASS_TOKEN_POSITION="end"
 # MOMENTUM / NESTEROV:
 #   主要对 SGD 有意义
 # =========================
-LR=0.002
+LR=0.001
 WEIGHT_DECAY=0
 EPOCHS=200
 

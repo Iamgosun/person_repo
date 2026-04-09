@@ -13,7 +13,7 @@ from bayesvlm.coop_prompt import CoOpPromptLearner
 from bayesvlm.hessians import KroneckerFactorizedCovariance
 from bayesvlm.text_only_bayes_coop import TextOnlyBayesCoOpModel
 from bayesvlm.training.io import save_jsonl
-
+from bayesvlm.common import ProbabilisticLogits
 
 def _get_batch_item(batch, key: str, idx: int, default=None):
     if key not in batch:
@@ -153,7 +153,37 @@ def compute_text_only_bayes_coop_train_losses(
         "ctx_reg": ctx_reg,
     }
 
+@torch.no_grad()
+def _prepare_text_only_bayes_eval_cache(model: Any) -> dict[str, torch.Tensor | bool | None]:
+    model.eval()
 
+    mu, _, alpha, trace_sigma = model.compute_text_statistics()
+    mu = mu.float()
+    alpha = alpha.float()
+    trace_sigma = trace_sigma.float()
+
+    B_inv = model.text_covariance.B_inv.to(mu.device).float()
+    mu_norm2 = (mu ** 2).sum(dim=-1).clamp_min(1e-6)
+    denom_text = torch.sqrt(mu_norm2 + trace_sigma + 1e-6)
+
+    cache = {
+        "mu": mu,
+        "mu_t": mu.t().contiguous(),
+        "alpha": alpha,
+        "trace_sigma": trace_sigma,
+        "mu_norm2": mu_norm2,
+        "denom_text": denom_text,
+        "scale": model.logit_scale.exp().float(),
+        "logit_bias": None if model.logit_bias is None else model.logit_bias.float(),
+        "use_full_cov": bool(model.use_full_cov),
+    }
+
+    if model.use_full_cov:
+        cache["B_inv"] = B_inv
+    else:
+        cache["diag_B"] = torch.diagonal(B_inv)
+
+    return cache
 @torch.no_grad()
 def evaluate_text_only_bayes_coop(
     model: Any,
@@ -173,9 +203,35 @@ def evaluate_text_only_bayes_coop(
         norm="l1",
     ).to(device)
 
+
+    cache = _prepare_text_only_bayes_eval_cache(model)
+
     for batch in loader:
         labels = batch["class_id"].to(device)
-        prob_logits = model(batch=batch)
+        g = model.encode_image_batch(batch=batch).float()
+
+        g_norm2 = (g ** 2).sum(dim=-1, keepdim=True).clamp_min(1e-6)
+        g_norm = torch.sqrt(g_norm2)
+
+        mean_cos = (g @ cache["mu_t"]) / (g_norm * cache["denom_text"].unsqueeze(0))
+
+        if cache["use_full_cov"]:
+            g_quad = torch.einsum("bi,ij,bj->b", g, cache["B_inv"], g).unsqueeze(-1)
+        else:
+            g_quad = ((g ** 2) * cache["diag_B"].unsqueeze(0)).sum(dim=-1, keepdim=True)
+
+        denom_var = g_norm2 * (cache["mu_norm2"] + cache["trace_sigma"]).unsqueeze(0) + 1e-6
+        var_cos = (g_quad * cache["alpha"].unsqueeze(0)) / denom_var
+        var_cos = var_cos.clamp_min(0.0)
+
+        logits_mean = mean_cos * cache["scale"]
+        logits_var = var_cos * (cache["scale"] ** 2)
+
+        if cache["logit_bias"] is not None:
+            logits_mean = logits_mean + cache["logit_bias"]
+
+        prob_logits = ProbabilisticLogits(mean=logits_mean, var=logits_var)
+
         probs = prob_logits.softmax(num_samples=0)
 
         all_probs.append(probs)
@@ -224,9 +280,36 @@ def collect_text_only_bayes_coop_predictions(
 
     sample_index = 0
 
+
+    cache = _prepare_text_only_bayes_eval_cache(model)
+
     for batch in loader:
         labels = batch["class_id"].to(device)
-        prob_logits = model(batch=batch)
+        g = model.encode_image_batch(batch=batch).float()
+
+        g_norm2 = (g ** 2).sum(dim=-1, keepdim=True).clamp_min(1e-6)
+        g_norm = torch.sqrt(g_norm2)
+
+        mean_cos = (g @ cache["mu_t"]) / (g_norm * cache["denom_text"].unsqueeze(0))
+
+        if cache["use_full_cov"]:
+            g_quad = torch.einsum("bi,ij,bj->b", g, cache["B_inv"], g).unsqueeze(-1)
+        else:
+            g_quad = ((g ** 2) * cache["diag_B"].unsqueeze(0)).sum(dim=-1, keepdim=True)
+
+        denom_var = g_norm2 * (cache["mu_norm2"] + cache["trace_sigma"]).unsqueeze(0) + 1e-6
+        var_cos = (g_quad * cache["alpha"].unsqueeze(0)) / denom_var
+        var_cos = var_cos.clamp_min(0.0)
+
+        logits_mean = mean_cos * cache["scale"]
+        logits_var = var_cos * (cache["scale"] ** 2)
+
+        if cache["logit_bias"] is not None:
+            logits_mean = logits_mean + cache["logit_bias"]
+
+        prob_logits = ProbabilisticLogits(mean=logits_mean, var=logits_var)
+
+
         probs = prob_logits.softmax(num_samples=0)
         preds = probs.argmax(dim=1)
 

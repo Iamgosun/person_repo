@@ -85,7 +85,14 @@ def build_deterministic_coop_model(
 
     return prompt_learner, model
 
-
+@torch.no_grad()
+def _prepare_deterministic_eval_cache(model: Any) -> dict[str, torch.Tensor]:
+    model.eval()
+    text_outputs = model.prompt_learner()
+    text_features = text_outputs.embeds.float()
+    return {
+        "text_features": text_features,
+    }
 @torch.no_grad()
 def evaluate_deterministic_coop(
     model: Any,
@@ -105,9 +112,14 @@ def evaluate_deterministic_coop(
         norm="l1",
     ).to(device)
 
+    cache = _prepare_deterministic_eval_cache(model)
+    text_features = cache["text_features"]
+
     for batch in loader:
         labels = batch["class_id"].to(device)
-        logits = model(batch=batch)
+        g = model.encode_image_batch(batch=batch)
+        logits = model.vlm(g, text_features)
+
         probs = F.softmax(logits, dim=-1)
 
         all_probs.append(probs)
@@ -155,9 +167,13 @@ def collect_deterministic_coop_predictions(
 
     sample_index = 0
 
+    cache = _prepare_deterministic_eval_cache(model)
+    text_features = cache["text_features"]
+
     for batch in loader:
         labels = batch["class_id"].to(device)
-        logits = model(batch=batch)
+        g = model.encode_image_batch(batch=batch)
+        logits = model.vlm(g, text_features)
         probs = F.softmax(logits, dim=-1)
         preds = probs.argmax(dim=1)
 

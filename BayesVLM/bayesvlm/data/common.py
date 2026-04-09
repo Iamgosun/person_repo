@@ -90,12 +90,11 @@ def default_transform(image_size: int):
         Normalize(DEFAULT_MEAN, DEFAULT_STD),
     ])
 
-
 def default_train_aug_transform(image_size: int):
     return Compose([
         RandomResizedCrop(
             image_size,
-            scale=(0.7, 1.0),
+            scale=(0.08, 1.0),
             interpolation=InterpolationMode.BICUBIC,
         ),
         RandomHorizontalFlip(p=0.5),
@@ -103,6 +102,7 @@ def default_train_aug_transform(image_size: int):
         ToTensor(),
         Normalize(DEFAULT_MEAN, DEFAULT_STD),
     ])
+
 
 
 def corruption_transform(image_size: int, std: float):

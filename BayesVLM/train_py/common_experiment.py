@@ -23,7 +23,10 @@ from bayesvlm.utils import (
     get_transform,
     load_model,
 )
-
+from bayesvlm.features.feature_dataset import (
+    build_feature_loader,
+    build_random_repeated_feature_loader,
+)
 
 @dataclass
 class ExperimentContext:
@@ -317,12 +320,16 @@ def build_common_context(
                 force_rebuild=args.rebuild_image_feature_cache,
             )
 
-            train_loader = build_feature_loader(
+
+            train_loader = build_random_repeated_feature_loader(
                 augmented_train_features,
+                repeats=train_aug_repeats,
                 batch_size=args.batch_size,
                 num_workers=args.num_workers,
                 shuffle=True,
             )
+
+
             # 训练集评估仍用原始 few-shot 样本，不用 20x 增强副本
             train_eval_loader = build_feature_loader(
                 train_subset_features,

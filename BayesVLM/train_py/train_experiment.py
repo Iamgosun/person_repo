@@ -28,7 +28,10 @@ from train_py.train_runtime import (
     resolve_selection_metric,
     resolve_selection_mode,
 )
-
+from bayesvlm.features.feature_dataset import (
+    build_feature_loader,
+    build_random_repeated_feature_loader,
+)
 
 def _ensure_common_flags(args) -> None:
     if not hasattr(args, "cache_image_features"):
@@ -202,20 +205,37 @@ def run_recipe_from_args(args) -> None:
                 model.eval()
 
                 with torch.no_grad():
-                    mu, _, _, _ = model.compute_text_statistics()
+                    mu, _, alpha, trace_sigma = model.compute_text_statistics()
 
-                num_keep = min(10, mu.shape[0])
+                tracked_ids = getattr(args, "prototype_track_class_ids", None)
+                if tracked_ids is None:
+                    tracked_ids = list(range(min(10, mu.shape[0])))
+                elif isinstance(tracked_ids, str):
+                    tracked_ids = [int(x.strip()) for x in tracked_ids.split(",") if x.strip()]
+                else:
+                    tracked_ids = [int(x) for x in tracked_ids]
+
+                tracked_ids = [i for i in tracked_ids if 0 <= i < mu.shape[0]]
+                if len(tracked_ids) == 0:
+                    tracked_ids = list(range(min(10, mu.shape[0])))
+
+                idx = torch.tensor(tracked_ids, device=mu.device, dtype=torch.long)
 
                 proto_payload = {
                     "epoch": epoch,
-                    "class_ids": list(range(num_keep)),
-                    "class_names": ctx.class_names[:num_keep],
-                    "prototypes": mu[:num_keep].detach().cpu(),
+                    "class_ids": tracked_ids,
+                    "class_names": [ctx.class_names[i] for i in tracked_ids],
+
+                    # 推荐新字段
+                    "mu": mu[idx].detach().cpu().float(),
+                    "alpha": alpha[idx].detach().cpu().float(),
+                    "trace_sigma": trace_sigma[idx].detach().cpu().float(),
+
+                    # 为兼容你旧的分析代码/旧习惯，保留一份别名
+                    "prototypes": mu[idx].detach().cpu().float(),
                 }
 
                 torch.save(proto_payload, proto_dir / f"epoch_{epoch:03d}.pt")
-
-
 
             save_json(run_dir / "metrics_history.json", metrics_history)
             save_csv(run_dir / "metrics_history.csv", flatten_metrics_history(metrics_history))
