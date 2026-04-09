@@ -42,7 +42,7 @@ export PYTHONPATH="${ROOT_DIR}:${PYTHONPATH:-}"
 # 说明：
 #   你一次只跑一个任务类型。
 # =========================
-RECIPE_NAME="text_only_bayes_coop"
+RECIPE_NAME="deterministic_coop"
 # RECIPE_NAME="text_only_bayes_coop"
 # RECIPE_NAME="deterministic_coop"
 
@@ -59,7 +59,7 @@ HESSIAN_DIR="./hessians/hessian_CLIP-ViT-B-32-laion2B-s34B-b79K"
 CACHE_ROOT="./cache/image_features"
 
 MODEL_STR="clip-base"
-MODEL_PATH="./models/clip-vit-b32"              #   "openai/clip-vit-base-patch16"
+MODEL_PATH="./models/clip-vit-b32"            #   "openai/clip-vit-base-patch16"  ./models/clip-vit-b32
 
 # =========================
 # 3) sweep 配置
@@ -104,7 +104,7 @@ MODEL_PATH="./models/clip-vit-b32"              #   "openai/clip-vit-base-patch1
 # "food101" "cifar10" "flowers102" "ucf101"
 DATASETS=("ucf101" )
 # "1" "2" "4" "8" "16"
-SHOTS_PER_CLASS_LIST=( "16")
+SHOTS_PER_CLASS_LIST=( "1" "2" "4" "8" "16")
 SEEDS=("1" ) # "1" "2" "3"
 METHODS=(
   # "LP:RANDOM"
@@ -116,6 +116,44 @@ METHODS=(
   # "GAUSSIAN_PER_CLASS:GAUSSIAN_PER_CLASS"
    "BAYESADAPTER:BAYESADAPTER"
 )
+
+# =========================
+# 7) 优化器 / 调度器
+# -------------------------
+# OPTIMIZER 可选建议：
+#   "sgd"
+#   "adamw"
+#   留空 -> 用不同任务各自默认值
+#
+# LR_SCHEDULER 可选建议：
+#   "cosine"
+#   "none"
+#   留空 -> 用不同任务各自默认值
+#
+# MOMENTUM / NESTEROV:
+#   主要对 SGD 有意义
+# =========================
+LR=0.1
+WEIGHT_DECAY=0
+EPOCHS=300
+
+OPTIMIZER="sgd"
+# OPTIMIZER="sgd"
+# OPTIMIZER="adamw"
+
+MOMENTUM=0.9
+NESTEROV=0
+
+LR_SCHEDULER="cosine"
+# LR_SCHEDULER="cosine"
+# LR_SCHEDULER="none"
+
+WARMUP_EPOCH=0
+WARMUP_CONS_LR=1e-5
+
+
+
+
 
 # =========================
 # 4) 全局训练配置
@@ -172,39 +210,6 @@ CTX_INIT=""
 CSC=0
 CLASS_TOKEN_POSITION="end"
 
-# =========================
-# 7) 优化器 / 调度器
-# -------------------------
-# OPTIMIZER 可选建议：
-#   "sgd"
-#   "adamw"
-#   留空 -> 用不同任务各自默认值
-#
-# LR_SCHEDULER 可选建议：
-#   "cosine"
-#   "none"
-#   留空 -> 用不同任务各自默认值
-#
-# MOMENTUM / NESTEROV:
-#   主要对 SGD 有意义
-# =========================
-LR=0.001
-WEIGHT_DECAY=0
-EPOCHS=200
-
-OPTIMIZER="sgd"
-# OPTIMIZER="sgd"
-# OPTIMIZER="adamw"
-
-MOMENTUM=0.9
-NESTEROV=0
-
-LR_SCHEDULER="cosine"
-# LR_SCHEDULER="cosine"
-# LR_SCHEDULER="none"
-
-WARMUP_EPOCH=0
-WARMUP_CONS_LR=1e-5
 
 # =========================
 # 8) checkpoint 选择策略
