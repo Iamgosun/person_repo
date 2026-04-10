@@ -292,33 +292,51 @@ def _to_jsonable(value: Any) -> Any:
     return str(value)
 
 
+
 def _build_model_cfg_from_args(
     args,
     bayesadapter_prior_payload: dict[str, Any] | None,
 ) -> dict[str, Any]:
-    """
-    关键改动：
-    - 不再在 recipe 层手工枚举 taskres_alpha / tipa_alpha / gaussian_* / bayesadapter_*。
-    - 直接把 XML 解析后的公开 args 透传给下游 VLMAdapter。
-    - 新增 adapter 参数时，只要 method XML + adapter/VLMAdapter 能消费即可，
-      不需要再改 recipe。
-    """
     cfg = dict(_public_namespace_dict(args))
 
-    # 兼容下游旧别名
     cfg.setdefault("model_name_or_path", cfg.get("local_model_path"))
     cfg.setdefault("datasetname", cfg.get("dataset"))
 
     if bayesadapter_prior_payload is not None:
-        cfg["bayesadapter_prior_mu"] = bayesadapter_prior_payload["prior_mu"]
+        # text-only 重建出的 mu
+        mu_text = bayesadapter_prior_payload["prior_mu"]
 
-        cov_mode = str(getattr(args, "bayesadapter_covariance_mode", "paper_scalar")).lower()
-        if cov_mode == "diag":
-            cfg["bayesadapter_prior_log_sigma"] = bayesadapter_prior_payload["prior_log_sigma_diag"]
+        # 新增两个开关
+        bridge_mode = str(
+            getattr(args, "bayesadapter_prior_mu_mode", "replace")
+        ).lower()
+        bridge_lambda = float(
+            getattr(args, "bayesadapter_prior_mu_lambda", 1.0)
+        )
+
+        # 先把 text-only mu 暂存，后面在 VLMAdapter 里和 base_text_features 混合
+        cfg["bayesadapter_prior_mu_text_only"] = mu_text
+        cfg["bayesadapter_prior_mu_mode"] = bridge_mode
+        cfg["bayesadapter_prior_mu_lambda"] = bridge_lambda
+
+        # sigma 单独控制
+        use_prior_sigma = bool(
+            getattr(args, "bayesadapter_use_text_only_prior_sigma", False)
+        )
+
+        if use_prior_sigma:
+            cov_mode = str(
+                getattr(args, "bayesadapter_covariance_mode", "paper_scalar")
+            ).lower()
+            if cov_mode == "diag":
+                cfg["bayesadapter_prior_log_sigma"] = bayesadapter_prior_payload["prior_log_sigma_diag"]
+            else:
+                cfg["bayesadapter_prior_log_sigma"] = bayesadapter_prior_payload["prior_log_sigma_paper"]
         else:
-            cfg["bayesadapter_prior_log_sigma"] = bayesadapter_prior_payload["prior_log_sigma_paper"]
+            cfg.pop("bayesadapter_prior_log_sigma", None)
 
     return cfg
+
 
 
 class VLMAdapterRecipe(BaseRecipe):
