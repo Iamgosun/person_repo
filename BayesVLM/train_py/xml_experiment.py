@@ -439,8 +439,8 @@ def _require_keys(cfg: dict[str, Any], required: set[str], where: str) -> None:
 
 
 def _validate_value_ranges(cfg: dict[str, Any]) -> None:
-    if int(cfg["epochs"]) <= 0:
-        raise ValueError("epochs 必须 > 0")
+    if int(cfg["epochs"]) < 0:
+        raise ValueError("epochs 必须 >= 0")
     if int(cfg["batch_size"]) <= 0:
         raise ValueError("batch_size 必须 > 0")
     if int(cfg["num_workers"]) < 0:

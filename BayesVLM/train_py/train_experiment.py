@@ -33,6 +33,7 @@ from bayesvlm.features.feature_dataset import (
     build_random_repeated_feature_loader,
 )
 
+
 def _ensure_common_flags(args) -> None:
     if not hasattr(args, "cache_image_features"):
         args.cache_image_features = not getattr(args, "disable_cache_image_features", False)
@@ -67,6 +68,46 @@ def _print_run_header(args, run_dir: Path, optimizer_name: str, scheduler_name: 
     print(f"[run] cache_image_features={args.cache_image_features}")
     print(f"[run] image_feature_cache_root={args.image_feature_cache_root}")
     print(f"[run] rebuild_image_feature_cache={args.rebuild_image_feature_cache}")
+
+
+def _maybe_dump_text_only_proto_payload(run_dir: Path, state, ctx, args, epoch: int) -> None:
+    if args.recipe_name != "text_only_bayes_coop":
+        return
+
+    proto_dir = run_dir / "prototype_history"
+    proto_dir.mkdir(parents=True, exist_ok=True)
+
+    model = state["model"]
+    model.eval()
+
+    with torch.no_grad():
+        mu, _, alpha, trace_sigma = model.compute_text_statistics()
+
+    tracked_ids = getattr(args, "prototype_track_class_ids", None)
+    if tracked_ids is None:
+        tracked_ids = list(range(min(10, mu.shape[0])))
+    elif isinstance(tracked_ids, str):
+        tracked_ids = [int(x.strip()) for x in tracked_ids.split(",") if x.strip()]
+    else:
+        tracked_ids = [int(x) for x in tracked_ids]
+
+    tracked_ids = [i for i in tracked_ids if 0 <= i < mu.shape[0]]
+    if len(tracked_ids) == 0:
+        tracked_ids = list(range(min(10, mu.shape[0])))
+
+    idx = torch.tensor(tracked_ids, device=mu.device, dtype=torch.long)
+
+    proto_payload = {
+        "epoch": epoch,
+        "class_ids": tracked_ids,
+        "class_names": [ctx.class_names[i] for i in tracked_ids],
+        "mu": mu[idx].detach().cpu().float(),
+        "alpha": alpha[idx].detach().cpu().float(),
+        "trace_sigma": trace_sigma[idx].detach().cpu().float(),
+        "prototypes": mu[idx].detach().cpu().float(),
+    }
+
+    torch.save(proto_payload, proto_dir / f"epoch_{epoch:03d}.pt")
 
 
 def run_recipe_from_args(args) -> None:
@@ -146,103 +187,114 @@ def run_recipe_from_args(args) -> None:
         last_val_metrics = None
         metrics_history = []
 
-        for epoch in range(1, args.epochs + 1):
-            train_row = recipe.train_one_epoch(state, ctx, args, epoch)
+        if int(args.epochs) == 0:
+            print("[train] epochs=0，跳过训练循环，直接评估初始化权重 ...")
 
-            if scheduler is not None:
-                scheduler.step()
-
-            val_metrics = recipe.evaluate_split(state, ctx.val_loader, ctx, args)
-            current_score = extract_metric_value(val_metrics, selection_metric)
+            init_val_metrics = recipe.evaluate_split(state, ctx.val_loader, ctx, args)
+            init_score = extract_metric_value(init_val_metrics, selection_metric)
             current_lr = get_current_lr(optimizer, scheduler)
 
             row = {
-                "epoch": epoch,
+                "epoch": 0,
                 "lr": current_lr,
-                **train_row,
-                "val": val_metrics,
+                "init_only": True,
+                "val": init_val_metrics,
             }
             metrics_history.append(row)
 
-            print(recipe.format_epoch_log(row, ctx, args))
+            print(
+                "[Epoch 000][init-only] "
+                f"val={json.dumps(init_val_metrics, ensure_ascii=False)}"
+            )
 
-            if is_better_metric(current_score, best_score, selection_mode):
-                best_score = current_score
-                best_epoch = epoch
-                best_val_metrics = val_metrics
-                best_state = recipe.build_best_state(
+            best_score = init_score
+            best_epoch = 0
+            best_val_metrics = init_val_metrics
+            best_state = recipe.build_best_state(
+                state=state,
+                ctx=ctx,
+                args=args,
+                epoch=0,
+                val_metrics=init_val_metrics,
+            )
+            best_state["_checkpoint_epoch"] = 0
+            best_state["_checkpoint_val_metrics"] = init_val_metrics
+            best_state["_selection_metric"] = selection_metric
+            best_state["_selection_metric_value"] = init_score
+            torch.save(best_state, run_dir / recipe.best_checkpoint_filename)
+
+            last_epoch = 0
+            last_val_metrics = init_val_metrics
+            last_state = recipe.build_best_state(
+                state=state,
+                ctx=ctx,
+                args=args,
+                epoch=0,
+                val_metrics=init_val_metrics,
+            )
+            last_state["_checkpoint_epoch"] = 0
+            last_state["_checkpoint_val_metrics"] = init_val_metrics
+            torch.save(last_state, run_dir / recipe.last_checkpoint_filename)
+
+            _maybe_dump_text_only_proto_payload(run_dir, state, ctx, args, epoch=0)
+
+            save_json(run_dir / "metrics_history.json", metrics_history)
+            save_csv(run_dir / "metrics_history.csv", flatten_metrics_history(metrics_history))
+        else:
+            for epoch in range(1, args.epochs + 1):
+                train_row = recipe.train_one_epoch(state, ctx, args, epoch)
+
+                if scheduler is not None:
+                    scheduler.step()
+
+                val_metrics = recipe.evaluate_split(state, ctx.val_loader, ctx, args)
+                current_score = extract_metric_value(val_metrics, selection_metric)
+                current_lr = get_current_lr(optimizer, scheduler)
+
+                row = {
+                    "epoch": epoch,
+                    "lr": current_lr,
+                    **train_row,
+                    "val": val_metrics,
+                }
+                metrics_history.append(row)
+
+                print(recipe.format_epoch_log(row, ctx, args))
+
+                if is_better_metric(current_score, best_score, selection_mode):
+                    best_score = current_score
+                    best_epoch = epoch
+                    best_val_metrics = val_metrics
+                    best_state = recipe.build_best_state(
+                        state=state,
+                        ctx=ctx,
+                        args=args,
+                        epoch=epoch,
+                        val_metrics=val_metrics,
+                    )
+                    best_state["_checkpoint_epoch"] = epoch
+                    best_state["_checkpoint_val_metrics"] = val_metrics
+                    best_state["_selection_metric"] = selection_metric
+                    best_state["_selection_metric_value"] = current_score
+                    torch.save(best_state, run_dir / recipe.best_checkpoint_filename)
+
+                last_epoch = epoch
+                last_val_metrics = val_metrics
+                last_state = recipe.build_best_state(
                     state=state,
                     ctx=ctx,
                     args=args,
                     epoch=epoch,
                     val_metrics=val_metrics,
                 )
-                best_state["_checkpoint_epoch"] = epoch
-                best_state["_checkpoint_val_metrics"] = val_metrics
-                best_state["_selection_metric"] = selection_metric
-                best_state["_selection_metric_value"] = current_score
-                torch.save(best_state, run_dir / recipe.best_checkpoint_filename)
+                last_state["_checkpoint_epoch"] = epoch
+                last_state["_checkpoint_val_metrics"] = val_metrics
+                torch.save(last_state, run_dir / recipe.last_checkpoint_filename)
 
-            last_epoch = epoch
-            last_val_metrics = val_metrics
-            last_state = recipe.build_best_state(
-                state=state,
-                ctx=ctx,
-                args=args,
-                epoch=epoch,
-                val_metrics=val_metrics,
-            )
-            last_state["_checkpoint_epoch"] = epoch
-            last_state["_checkpoint_val_metrics"] = val_metrics
-            torch.save(last_state, run_dir / recipe.last_checkpoint_filename)
-            
+                _maybe_dump_text_only_proto_payload(run_dir, state, ctx, args, epoch)
 
-            if args.recipe_name == "text_only_bayes_coop":
-                proto_dir = run_dir / "prototype_history"
-                proto_dir.mkdir(parents=True, exist_ok=True)
-
-                model = state["model"]
-                model.eval()
-
-                with torch.no_grad():
-                    mu, _, alpha, trace_sigma = model.compute_text_statistics()
-
-                tracked_ids = getattr(args, "prototype_track_class_ids", None)
-                if tracked_ids is None:
-                    tracked_ids = list(range(min(10, mu.shape[0])))
-                elif isinstance(tracked_ids, str):
-                    tracked_ids = [int(x.strip()) for x in tracked_ids.split(",") if x.strip()]
-                else:
-                    tracked_ids = [int(x) for x in tracked_ids]
-
-                tracked_ids = [i for i in tracked_ids if 0 <= i < mu.shape[0]]
-                if len(tracked_ids) == 0:
-                    tracked_ids = list(range(min(10, mu.shape[0])))
-
-                idx = torch.tensor(tracked_ids, device=mu.device, dtype=torch.long)
-
-                proto_payload = {
-                    "epoch": epoch,
-                    "class_ids": tracked_ids,
-                    "class_names": [ctx.class_names[i] for i in tracked_ids],
-
-                    # 推荐新字段
-                    "mu": mu[idx].detach().cpu().float(),
-                    "alpha": alpha[idx].detach().cpu().float(),
-                    "trace_sigma": trace_sigma[idx].detach().cpu().float(),
-
-                    # 为兼容你旧的分析代码/旧习惯，保留一份别名
-                    "prototypes": mu[idx].detach().cpu().float(),
-                }
-
-                torch.save(proto_payload, proto_dir / f"epoch_{epoch:03d}.pt")
-
-            save_json(run_dir / "metrics_history.json", metrics_history)
-            save_csv(run_dir / "metrics_history.csv", flatten_metrics_history(metrics_history))
-
-
-
-
+                save_json(run_dir / "metrics_history.json", metrics_history)
+                save_csv(run_dir / "metrics_history.csv", flatten_metrics_history(metrics_history))
 
         if best_state is None:
             raise RuntimeError("训练未产生 best checkpoint")

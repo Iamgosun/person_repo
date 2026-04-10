@@ -8,9 +8,9 @@
   <bayesadapter_eval_mc_samples>10</bayesadapter_eval_mc_samples>
   <bayesadapter_kl_scale_divisor>1000.0</bayesadapter_kl_scale_divisor>
   <!--  paper_scalar diag -->
-  <bayesadapter_covariance_mode>paper_scalar</bayesadapter_covariance_mode>
+  <bayesadapter_covariance_mode>diag</bayesadapter_covariance_mode>
   <!-- base_text text_only_bayes_coop -->
-  <bayesadapter_prior_source>base_text</bayesadapter_prior_source>
+  <bayesadapter_prior_source>text_only_bayes_coop</bayesadapter_prior_source>
 
   <text_only_method_name>text_only_bayes_coop_bayes</text_only_method_name>
   <bayesadapter_text_only_ckpt>last</bayesadapter_text_only_ckpt>
