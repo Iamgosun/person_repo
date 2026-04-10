@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<config>
+  <recipe_name>deterministic_coop</recipe_name>
+  <method_name>deterministic_coop_standard</method_name>
+</config>

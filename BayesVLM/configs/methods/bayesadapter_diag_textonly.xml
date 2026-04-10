@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<config>
+  <adapter_name>BAYESADAPTER</adapter_name>
+  <initialization>BAYESADAPTER</initialization>
+
+  <bayesadapter_prior_sigma>0.01</bayesadapter_prior_sigma>
+  <bayesadapter_train_mc_samples>3</bayesadapter_train_mc_samples>
+  <bayesadapter_eval_mc_samples>10</bayesadapter_eval_mc_samples>
+  <bayesadapter_kl_scale_divisor>1000.0</bayesadapter_kl_scale_divisor>
+  <bayesadapter_covariance_mode>diag</bayesadapter_covariance_mode>
+  <bayesadapter_prior_source>text_only_bayes_coop</bayesadapter_prior_source>
+
+  <text_only_method_name>text_only_bayes_coop_bayes</text_only_method_name>
+  <bayesadapter_text_only_ckpt>last</bayesadapter_text_only_ckpt>
+  <bayesadapter_text_only_run_dir_template>{save_dir}/{text_only_method_name}/{dataset}/shot_{shots_per_class}/seed_{seed}</bayesadapter_text_only_run_dir_template>
+</config>

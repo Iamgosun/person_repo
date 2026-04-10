@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<config>
+  <recipe_name>vlm_adapter</recipe_name>
+  <method_name>vlm_adapter</method_name>
+
+  <!-- 可选：仅为兼容当前日志 / config 输出保留 -->
+  <hessian_dir>./hessians/hessian_CLIP-ViT-B-32-laion2B-s34B-b79K</hessian_dir>
+  <pseudo_data_count>4</pseudo_data_count>
+</config>

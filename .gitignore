@@ -11,5 +11,6 @@ __pycache__/
 **/saved_models/
 *.safetensors
 *.pth
+**/.ipynb_checkpoints
 Posterior-Network/
 *.pt

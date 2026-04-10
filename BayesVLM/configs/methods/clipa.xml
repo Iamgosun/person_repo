@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<config>
+  <adapter_name>CLIPA</adapter_name>
+  <initialization>CLIPA</initialization>
+  <clipa_ratio>0.2</clipa_ratio>
+  <clipa_hidden_dim>0</clipa_hidden_dim>
+</config>

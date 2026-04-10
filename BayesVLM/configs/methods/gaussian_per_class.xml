@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<config>
+  <adapter_name>GAUSSIAN_PER_CLASS</adapter_name>
+  <initialization>GAUSSIAN_PER_CLASS</initialization>
+  <gaussian_prior_sigma>0.01</gaussian_prior_sigma>
+  <gaussian_mc_samples>3</gaussian_mc_samples>
+  <gaussian_anneal_start_epoch>20</gaussian_anneal_start_epoch>
+</config>

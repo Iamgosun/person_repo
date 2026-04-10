@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<config>
+  <!-- ===================================================== -->
+  <!-- 所有实验共用的显式配置                                -->
+  <!-- 不允许依赖 parser 默认值，也不允许依赖 shell 默认值   -->
+  <!-- ===================================================== -->
+
+  <!-- 模型 / 路径 -->
+  <model>clip-base</model>
+  <local_model_path>./models/clip-vit-b32</local_model_path>
+  <data_root>./datasets</data_root>
+  <save_dir>./output</save_dir>
+  <image_feature_cache_root>./cache/image_features</image_feature_cache_root>
+
+  <!-- 优化器 / 训练参数 -->
+  <optimizer>sgd</optimizer>
+  <momentum>0.9</momentum>
+  <nesterov>false</nesterov>
+
+  <lr>0.1</lr>
+  <weight_decay>0.0</weight_decay>
+  <epochs>300</epochs>
+
+  <lr_scheduler>cosine</lr_scheduler>
+  <warmup_epoch>0</warmup_epoch>
+  <warmup_cons_lr>1e-5</warmup_cons_lr>
+
+  <!-- checkpoint 选择策略 -->
+  <model_selection>last</model_selection>
+  <selection_metric>acc</selection_metric>
+  <selection_mode>max</selection_mode>
+
+  <!-- runtime -->
+  <device>cuda</device>
+  <batch_size>256</batch_size>
+  <num_workers>8</num_workers>
+  <prediction_topk>5</prediction_topk>
+
+  <!-- 图像缓存 -->
+  <rebuild_image_feature_cache>false</rebuild_image_feature_cache>
+  <disable_cache_image_features>false</disable_cache_image_features>
+
+  <!-- 数据增强 -->
+  <use_data_augmentation>false</use_data_augmentation>
+  <use_augmented_train_cache>false</use_augmented_train_cache>
+  <train_aug_repeats>20</train_aug_repeats>
+
+</config>
