@@ -664,20 +664,15 @@ class BayesPaperAdapter(AdapterMethod):
 
         return kl_trace + kl_diff_sq + kl_logdet
 
-    def mc_logits(
-        self,
-        image_features: torch.Tensor,
-        logit_scale: torch.Tensor,
-        n_samples: Optional[int] = None,
-    ) -> torch.Tensor:
+
+    def mc_logits(self, image_features, logit_scale, n_samples=None):
         n_samples = int(
-            n_samples
-            or (self.train_mc_samples if self.training else self.eval_mc_samples)
+            n_samples or (self.train_mc_samples if self.training else self.eval_mc_samples)
         )
 
         image_features_norm = self._normalize_features(image_features)
 
-        prototypes = self.sample_prototypes(n_samples=n_samples)
+        prototypes = self.sample_prototypes(n_samples=n_samples)   # [S, C, D]
         prototypes = self._normalize_features(prototypes)
         prototypes = prototypes.to(
             device=image_features_norm.device,
@@ -690,8 +685,15 @@ class BayesPaperAdapter(AdapterMethod):
             image_features_norm.device,
         )
 
-        logits = torch.einsum("bd,scd->bsc", image_features_norm, prototypes) * scale
-        return logits.mean(dim=1)
+        # official semantics: [S, B, C]
+        logits = torch.einsum("bd,scd->sbc", image_features_norm, prototypes) * scale
+        return logits
+
+
+
+
+
+
 
     def forward(
         self,
