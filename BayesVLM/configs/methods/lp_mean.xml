@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <config>
   <adapter_name>LP</adapter_name>
-  <initialization>MEAN</initialization>
+  <initialization>RANDOM</initialization>
 </config>
+<!-- RANDOM -->

@@ -220,6 +220,7 @@ def _build_text_only_bayesadapter_prior(ctx, args) -> dict[str, Any] | None:
 
     if mu.ndim != 2:
         raise ValueError(f"重建得到的 mu 形状非法：{tuple(mu.shape)}")
+
     if mu.shape[0] != len(ctx.class_names):
         raise ValueError(
             "重建得到的类别数与当前任务不一致："
@@ -233,13 +234,9 @@ def _build_text_only_bayesadapter_prior(ctx, args) -> dict[str, Any] | None:
     B_inv = text_only_model.text_covariance.B_inv.detach().float().cpu()
     diag_B = torch.diagonal(B_inv, 0)
 
-    # 论文一致的 paper-scalar 模式：
-    # Sigma_c ≈ sigma_c^2 I_D, sigma_c^2 = trace(Sigma_c) / D
     scalar_prior_sigma = torch.sqrt((trace_sigma / float(feat_dim)).clamp_min(1e-12))
     prior_log_sigma_paper = scalar_prior_sigma.log()
 
-    # 扩展 diag 模式：
-    # Sigma_c ≈ diag(alpha_c * diag(B_inv))
     diag_prior_var = (alpha[:, None] * diag_B[None, :]).clamp_min(1e-12)
     prior_log_sigma_diag = 0.5 * torch.log(diag_prior_var)
 
@@ -264,6 +261,66 @@ def _build_text_only_bayesadapter_prior(ctx, args) -> dict[str, Any] | None:
     }
 
 
+def _public_namespace_dict(args) -> dict[str, Any]:
+    return {
+        k: v
+        for k, v in vars(args).items()
+        if not k.startswith("_")
+    }
+
+
+def _to_jsonable(value: Any) -> Any:
+    if value is None or isinstance(value, (bool, int, float, str)):
+        return value
+
+    if isinstance(value, Path):
+        return str(value)
+
+    if isinstance(value, (list, tuple)):
+        return [_to_jsonable(v) for v in value]
+
+    if isinstance(value, dict):
+        return {str(k): _to_jsonable(v) for k, v in value.items()}
+
+    if torch.is_tensor(value):
+        return {
+            "_type": "tensor",
+            "shape": list(value.shape),
+            "dtype": str(value.dtype),
+        }
+
+    return str(value)
+
+
+def _build_model_cfg_from_args(
+    args,
+    bayesadapter_prior_payload: dict[str, Any] | None,
+) -> dict[str, Any]:
+    """
+    关键改动：
+    - 不再在 recipe 层手工枚举 taskres_alpha / tipa_alpha / gaussian_* / bayesadapter_*。
+    - 直接把 XML 解析后的公开 args 透传给下游 VLMAdapter。
+    - 新增 adapter 参数时，只要 method XML + adapter/VLMAdapter 能消费即可，
+      不需要再改 recipe。
+    """
+    cfg = dict(_public_namespace_dict(args))
+
+    # 兼容下游旧别名
+    cfg.setdefault("model_name_or_path", cfg.get("local_model_path"))
+    cfg.setdefault("datasetname", cfg.get("dataset"))
+
+    if bayesadapter_prior_payload is not None:
+        cfg["bayesadapter_prior_mu"] = bayesadapter_prior_payload["prior_mu"]
+
+        cov_mode = str(getattr(args, "bayesadapter_covariance_mode", "paper_scalar")).lower()
+        if cov_mode == "diag":
+            cfg["bayesadapter_prior_log_sigma"] = bayesadapter_prior_payload["prior_log_sigma_diag"]
+        else:
+            cfg["bayesadapter_prior_log_sigma"] = bayesadapter_prior_payload["prior_log_sigma_paper"]
+
+    return cfg
+
+
 class VLMAdapterRecipe(BaseRecipe):
     method_name = "vlm_adapter"
     best_checkpoint_filename = "best_adapter.pt"
@@ -285,7 +342,6 @@ class VLMAdapterRecipe(BaseRecipe):
             cov_mode = str(getattr(args, "bayesadapter_covariance_mode", "paper_scalar")).lower()
             prior_source = str(getattr(args, "bayesadapter_prior_source", "base_text")).lower()
 
-            # 默认 paper_scalar + base_text 保持老路径，不影响原逻辑
             if cov_mode != "paper_scalar":
                 parts.append(f"cov_{cov_mode}")
 
@@ -302,9 +358,9 @@ class VLMAdapterRecipe(BaseRecipe):
         return parts
 
     def validate_and_note(self, args) -> None:
-        if args.hessian_dir:
+        if getattr(args, "hessian_dir", None):
             print(f"[note] hessian_dir={args.hessian_dir} 当前 cached adapter 训练不会直接使用。")
-        print(f"[note] pseudo_data_count={args.pseudo_data_count} 仅为兼容旧接口保留。")
+        print(f"[note] pseudo_data_count={getattr(args, 'pseudo_data_count', None)} 仅为兼容旧接口保留。")
 
         adapter_key = str(args.adapter_name).upper()
         if adapter_key in {"BAYESADAPTER", "BAYES_ADAPTER"}:
@@ -323,50 +379,15 @@ class VLMAdapterRecipe(BaseRecipe):
                     )
 
                 print(f"[note] bayesadapter_text_only_run_dir={run_dir}")
-                print(f"[note] bayesadapter_text_only_ckpt={args.bayesadapter_text_only_ckpt}")
+                print(f"[note] bayesadapter_text_only_ckpt={getattr(args, 'bayesadapter_text_only_ckpt', 'auto')}")
 
     def build_state(self, ctx, args) -> dict[str, Any]:
         bayesadapter_prior_payload = _build_text_only_bayesadapter_prior(ctx, args)
 
-        cfg = {
-            "model": args.model,
-            "model_name_or_path": args.local_model_path,
-            "datasetname": args.dataset,
-            "adapter_name": args.adapter_name,
-            "initialization": args.initialization,
-            "device": args.device,
-            "epochs": args.epochs,
-            "taskres_alpha": args.taskres_alpha,
-            "clipa_ratio": args.clipa_ratio,
-            "clipa_hidden_dim": None if args.clipa_hidden_dim <= 0 else args.clipa_hidden_dim,
-            "tipa_alpha": args.tipa_alpha,
-            "tipa_beta": args.tipa_beta,
-            "gaussian_prior_sigma": args.gaussian_prior_sigma,
-            "gaussian_mc_samples": args.gaussian_mc_samples,
-            "gaussian_anneal_start_epoch": args.gaussian_anneal_start_epoch,
-
-            "bayesadapter_prior_sigma": args.bayesadapter_prior_sigma,
-            "bayesadapter_train_mc_samples": args.bayesadapter_train_mc_samples,
-            "bayesadapter_eval_mc_samples": args.bayesadapter_eval_mc_samples,
-            "bayesadapter_kl_scale_divisor": args.bayesadapter_kl_scale_divisor,
-            "bayesadapter_covariance_mode": args.bayesadapter_covariance_mode,
-            "bayesadapter_prior_source": args.bayesadapter_prior_source,
-            "bayesadapter_text_only_run_dir": args.bayesadapter_text_only_run_dir,
-            "bayesadapter_text_only_ckpt": args.bayesadapter_text_only_ckpt,
-
-            # 只放给模型用，不进 config.json
-            "bayesadapter_prior_mu": None,
-            "bayesadapter_prior_log_sigma": None,
-        }
-
-        if bayesadapter_prior_payload is not None:
-            cfg["bayesadapter_prior_mu"] = bayesadapter_prior_payload["prior_mu"]
-
-            cov_mode = str(args.bayesadapter_covariance_mode).lower()
-            if cov_mode == "diag":
-                cfg["bayesadapter_prior_log_sigma"] = bayesadapter_prior_payload["prior_log_sigma_diag"]
-            else:
-                cfg["bayesadapter_prior_log_sigma"] = bayesadapter_prior_payload["prior_log_sigma_paper"]
+        cfg = _build_model_cfg_from_args(
+            args=args,
+            bayesadapter_prior_payload=bayesadapter_prior_payload,
+        )
 
         model = build_vlm_adapter_model(
             cfg=cfg,
@@ -409,32 +430,18 @@ class VLMAdapterRecipe(BaseRecipe):
             "optimizer": optimizer,
             "zero_shot_test": zero_shot_test,
             "bayesadapter_prior_payload": bayesadapter_prior_payload,
+            "resolved_recipe_args": _to_jsonable(_public_namespace_dict(args)),
         }
 
     def build_config_extra(self, state: dict[str, Any], ctx, args) -> dict[str, Any]:
         extra = {
             "adapter_name": args.adapter_name,
             "initialization": args.initialization,
-            "hessian_dir_ignored": args.hessian_dir,
-            "pseudo_data_count_ignored": args.pseudo_data_count,
-            "taskres_alpha": args.taskres_alpha,
-            "clipa_ratio": args.clipa_ratio,
-            "clipa_hidden_dim": None if args.clipa_hidden_dim <= 0 else args.clipa_hidden_dim,
-            "tipa_alpha": args.tipa_alpha,
-            "tipa_beta": args.tipa_beta,
-            "gaussian_prior_sigma": args.gaussian_prior_sigma,
-            "gaussian_mc_samples": args.gaussian_mc_samples,
-            "gaussian_anneal_start_epoch": args.gaussian_anneal_start_epoch,
-
-            "bayesadapter_prior_sigma": args.bayesadapter_prior_sigma,
-            "bayesadapter_train_mc_samples": args.bayesadapter_train_mc_samples,
-            "bayesadapter_eval_mc_samples": args.bayesadapter_eval_mc_samples,
-            "bayesadapter_kl_scale_divisor": args.bayesadapter_kl_scale_divisor,
-            "bayesadapter_covariance_mode": args.bayesadapter_covariance_mode,
-            "bayesadapter_prior_source": args.bayesadapter_prior_source,
-            "bayesadapter_text_only_run_dir": args.bayesadapter_text_only_run_dir or None,
-            "bayesadapter_text_only_ckpt": args.bayesadapter_text_only_ckpt,
-
+            "hessian_dir_ignored": getattr(args, "hessian_dir", None),
+            "pseudo_data_count_ignored": getattr(args, "pseudo_data_count", None),
+            # 不再手工枚举一长串 adapter-specific 参数；
+            # 直接保存 XML 解析后的当前 recipe 参数快照，新增参数无需再改这里。
+            "resolved_recipe_args": state["resolved_recipe_args"],
             "zero_shot_test": state["zero_shot_test"],
         }
 
@@ -596,8 +603,7 @@ class VLMAdapterRecipe(BaseRecipe):
             "adapter_name": args.adapter_name,
             "initialization": args.initialization,
             "zero_shot_test": state["zero_shot_test"],
-            "bayesadapter_covariance_mode": getattr(args, "bayesadapter_covariance_mode", "paper_scalar"),
-            "bayesadapter_prior_source": getattr(args, "bayesadapter_prior_source", "base_text"),
+            "resolved_recipe_args": state["resolved_recipe_args"],
         }
 
         prior_payload = state.get("bayesadapter_prior_payload", None)
