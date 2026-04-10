@@ -42,7 +42,7 @@ export PYTHONPATH="${ROOT_DIR}:${PYTHONPATH:-}"
 # 说明：
 #   你一次只跑一个任务类型。
 # =========================
-RECIPE_NAME="deterministic_coop"
+RECIPE_NAME="vlm_adapter"
 # RECIPE_NAME="text_only_bayes_coop"
 # RECIPE_NAME="deterministic_coop"
 
@@ -104,7 +104,7 @@ MODEL_PATH="./models/clip-vit-b32"            #   "openai/clip-vit-base-patch16"
 # "food101" "cifar10" "flowers102" "ucf101"
 DATASETS=("ucf101" )
 # "1" "2" "4" "8" "16"
-SHOTS_PER_CLASS_LIST=( "1" "2" "4" "8" "16")
+SHOTS_PER_CLASS_LIST=(  "16")
 SEEDS=("1" ) # "1" "2" "3"
 METHODS=(
   # "LP:RANDOM"
@@ -306,10 +306,29 @@ GAUSSIAN_PRIOR_SIGMA=0.01
 GAUSSIAN_MC_SAMPLES=3
 GAUSSIAN_ANNEAL_START_EPOCH=20
 
+
+
 BAYESADAPTER_PRIOR_SIGMA=0.01
 BAYESADAPTER_TRAIN_MC_SAMPLES=3
 BAYESADAPTER_EVAL_MC_SAMPLES=10
 BAYESADAPTER_KL_SCALE_DIVISOR=1000.0
+
+# 选择 covariance 结构：
+#   paper_scalar -> 论文一致，每类一个标量 sigma
+#   diag         -> 扩展版，每类一个 D 维对角 sigma
+BAYESADAPTER_COVARIANCE_MODE="diag"
+
+# 选择先验来源：
+#   base_text             -> 当前默认 zero-shot text prior
+#   text_only_bayes_coop  -> 从 text_only_bayes_coop run_dir 重建 prior
+BAYESADAPTER_PRIOR_SOURCE="text_only_bayes_coop"
+
+# 当 PRIOR_SOURCE=text_only_bayes_coop 时使用
+BAYESADAPTER_TEXT_ONLY_RUN_DIR="./output/text_only_bayes_coop_bayes/ucf101/shot_16/seed_1"  #"./output/text_only_bayes_coop_bayes/ucf101/shot_16"
+BAYESADAPTER_TEXT_ONLY_CKPT="last"
+
+
+
 
 # =========================
 # 11) 常用推荐组合
@@ -555,6 +574,13 @@ run_vlm_adapter() {
   echo "adapter_name=${adapter_name}"
   echo "initialization=${initialization}"
   echo "model_selection=${MODEL_SELECTION:-best}"
+
+  if [[ "${adapter_name}" == "BAYESADAPTER" || "${adapter_name}" == "BAYES_ADAPTER" ]]; then
+    echo "bayesadapter_covariance_mode=${BAYESADAPTER_COVARIANCE_MODE}"
+    echo "bayesadapter_prior_source=${BAYESADAPTER_PRIOR_SOURCE}"
+    echo "bayesadapter_text_only_run_dir=${BAYESADAPTER_TEXT_ONLY_RUN_DIR}"
+    echo "bayesadapter_text_only_ckpt=${BAYESADAPTER_TEXT_ONLY_CKPT}"
+  fi
   echo
 
   local cmd=(
@@ -593,6 +619,12 @@ run_vlm_adapter() {
     --bayesadapter_train_mc_samples "${BAYESADAPTER_TRAIN_MC_SAMPLES}"
     --bayesadapter_eval_mc_samples "${BAYESADAPTER_EVAL_MC_SAMPLES}"
     --bayesadapter_kl_scale_divisor "${BAYESADAPTER_KL_SCALE_DIVISOR}"
+    --bayesadapter_covariance_mode "${BAYESADAPTER_COVARIANCE_MODE}"
+    --bayesadapter_prior_source "${BAYESADAPTER_PRIOR_SOURCE}"
+    --bayesadapter_text_only_run_dir "${BAYESADAPTER_TEXT_ONLY_RUN_DIR}"
+    --bayesadapter_text_only_ckpt "${BAYESADAPTER_TEXT_ONLY_CKPT}"
+
+
 
     --hessian_dir "${HESSIAN_DIR}"
     --pseudo_data_count "${PSEUDO_DATA_COUNT}"

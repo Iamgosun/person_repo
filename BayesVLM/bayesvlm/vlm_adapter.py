@@ -77,6 +77,25 @@ class VLMAdapter(nn.Module):
         self.logit_scale = self.vlm.logit_scale
         self.logit_bias = getattr(self.vlm, "logit_bias", None)
 
+
+    def _cfg_tensor(self, key: str) -> torch.Tensor | None:
+        value = self._cfg_get(key, None)
+        if value is None:
+            return None
+
+        if torch.is_tensor(value):
+            return value.to(
+                device=self.base_text_features.device,
+                dtype=self.base_text_features.dtype,
+            )
+
+        return torch.as_tensor(
+            value,
+            device=self.base_text_features.device,
+            dtype=self.base_text_features.dtype,
+        )
+
+
     def _cfg_get(self, key: str, default=None):
         if isinstance(self.cfg, dict):
             return self.cfg.get(key, default)
@@ -182,6 +201,8 @@ class VLMAdapter(nn.Module):
 
         return torch.stack(class_features, dim=0)
 
+
+
     def _adapter_kwargs(self) -> dict:
         kwargs = {}
         name = self.adapter_name
@@ -211,7 +232,6 @@ class VLMAdapter(nn.Module):
                 self._cfg_get("epochs", self._cfg_get("max_epoch", 300))
             )
 
-
         elif name in {"BAYESADAPTER", "BAYES_ADAPTER"}:
             kwargs["prior_sigma"] = float(
                 self._cfg_get("bayesadapter_prior_sigma", 0.01)
@@ -228,8 +248,21 @@ class VLMAdapter(nn.Module):
             kwargs["total_epochs"] = int(
                 self._cfg_get("epochs", self._cfg_get("max_epoch", 300))
             )
+            kwargs["covariance_mode"] = str(
+                self._cfg_get("bayesadapter_covariance_mode", "paper_scalar")
+            ).lower()
+
+            prior_mu = self._cfg_tensor("bayesadapter_prior_mu")
+            prior_log_sigma = self._cfg_tensor("bayesadapter_prior_log_sigma")
+
+            if prior_mu is not None:
+                kwargs["prior_mu"] = prior_mu
+
+            if prior_log_sigma is not None:
+                kwargs["prior_log_sigma"] = prior_log_sigma
 
         return kwargs
+
 
     def _build_adapter(self) -> nn.Module:
         if self.adapter_input_kind != "vector":

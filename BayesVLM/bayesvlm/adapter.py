@@ -452,13 +452,15 @@ class GaussianPerClassAdapter(AdapterMethod):
 
 class BayesPaperAdapter(AdapterMethod):
     """
-    BayesAdapter faithful to the released BayesAdapter code.
+    BayesAdapter.
 
-    和当前 GaussianPerClassAdapter 的关键差异：
-    1) posterior log sigma 是 per-class scalar，形状 (C,)
-    2) KL 权重采用作者代码中的:
-         (epoch / total_epochs) * 1 / (kl_scale_divisor * C * D)
-    3) train / eval 的 MC sample 数可分开设置
+    支持两种 covariance mode:
+    1) paper_scalar:
+       与论文/当前实现一致。每类一个标量 sigma，协方差为 sigma_c^2 I_D。
+    2) diag:
+       扩展版。每类一个 D 维对角 sigma，协方差为 diag(sigma_{c,1}^2, ..., sigma_{c,D}^2)。
+
+    默认仍为 paper_scalar，因此不传新参数时保持原逻辑不变。
     """
 
     input_kind: TextStateKind = "vector"
@@ -472,6 +474,9 @@ class BayesPaperAdapter(AdapterMethod):
         eval_mc_samples: int = 10,
         total_epochs: int = 300,
         kl_scale_divisor: float = 1000.0,
+        covariance_mode: str = "paper_scalar",
+        prior_mu: Optional[torch.Tensor] = None,
+        prior_log_sigma: Optional[torch.Tensor] = None,
     ):
         super().__init__(initialization)
 
@@ -485,30 +490,99 @@ class BayesPaperAdapter(AdapterMethod):
         total_epochs = int(max(total_epochs, 1))
         kl_scale_divisor = float(max(kl_scale_divisor, 1e-8))
 
-        # 后验均值：与作者代码中的 text_features_unnorm_mean 对应
-        self.variational_mu = nn.Parameter(base_text_features.clone())
-
-        # 后验 log std：按作者代码，是 per-class scalar，形状 (C,)
-        self.variational_log_sigma = nn.Parameter(
-            torch.full(
-                (n_classes,),
-                math.log(prior_sigma),
-                device=device,
-                dtype=dtype,
+        covariance_mode = str(covariance_mode).lower()
+        if covariance_mode not in {"paper_scalar", "diag"}:
+            raise ValueError(
+                f"Unsupported covariance_mode={covariance_mode}. "
+                "Choices: ['paper_scalar', 'diag']"
             )
-        )
+        self.covariance_mode = covariance_mode
 
-        # 先验：均值来自 base_text_features，std 为固定标量 prior_sigma
-        self.register_buffer("prior_mu", base_text_features.clone())
-        self.register_buffer(
-            "prior_log_sigma",
-            torch.full(
-                (n_classes,),
-                math.log(prior_sigma),
+        # 先验均值
+        if prior_mu is None:
+            prior_mu_tensor = base_text_features.clone()
+        else:
+            prior_mu_tensor = torch.as_tensor(
+                prior_mu,
                 device=device,
                 dtype=dtype,
-            ),
-        )
+            ).clone()
+            if prior_mu_tensor.shape != base_text_features.shape:
+                raise ValueError(
+                    "BayesPaperAdapter.prior_mu shape 不匹配："
+                    f"expected {tuple(base_text_features.shape)}, "
+                    f"got {tuple(prior_mu_tensor.shape)}"
+                )
+
+        min_log_sigma = math.log(1e-8)
+
+        if self.covariance_mode == "paper_scalar":
+            # (C,)
+            if prior_log_sigma is None:
+                prior_log_sigma_tensor = torch.full(
+                    (n_classes,),
+                    math.log(prior_sigma),
+                    device=device,
+                    dtype=dtype,
+                )
+            else:
+                prior_log_sigma_tensor = torch.as_tensor(
+                    prior_log_sigma,
+                    device=device,
+                    dtype=dtype,
+                ).flatten().clone()
+                if prior_log_sigma_tensor.shape != (n_classes,):
+                    raise ValueError(
+                        "paper_scalar 模式下 prior_log_sigma 必须是形状 (C,)："
+                        f"expected {(n_classes,)}, got {tuple(prior_log_sigma_tensor.shape)}"
+                    )
+
+            prior_log_sigma_tensor = torch.clamp(prior_log_sigma_tensor, min=min_log_sigma)
+
+            # 默认保持原逻辑：posterior 初值 = prior 初值
+            self.variational_mu = nn.Parameter(prior_mu_tensor.clone())
+            self.variational_log_sigma = nn.Parameter(prior_log_sigma_tensor.clone())
+
+            self.register_buffer("prior_mu", prior_mu_tensor.clone())
+            self.register_buffer("prior_log_sigma", prior_log_sigma_tensor.clone())
+
+        else:
+            # diag 模式：prior_log_sigma 形状优先要求 (C, D)
+            # 为了兼容，也允许传 (C,) ，会自动广播成 (C, D)
+            if prior_log_sigma is None:
+                prior_log_sigma_tensor = torch.full(
+                    (n_classes, feat_dim),
+                    math.log(prior_sigma),
+                    device=device,
+                    dtype=dtype,
+                )
+            else:
+                prior_log_sigma_tensor = torch.as_tensor(
+                    prior_log_sigma,
+                    device=device,
+                    dtype=dtype,
+                ).clone()
+
+                if prior_log_sigma_tensor.shape == (n_classes,):
+                    prior_log_sigma_tensor = (
+                        prior_log_sigma_tensor[:, None]
+                        .expand(-1, feat_dim)
+                        .clone()
+                    )
+                elif prior_log_sigma_tensor.shape != (n_classes, feat_dim):
+                    raise ValueError(
+                        "diag 模式下 prior_log_sigma 必须是形状 (C, D) 或 (C,)："
+                        f"expected {(n_classes, feat_dim)} or {(n_classes,)}, "
+                        f"got {tuple(prior_log_sigma_tensor.shape)}"
+                    )
+
+            prior_log_sigma_tensor = torch.clamp(prior_log_sigma_tensor, min=min_log_sigma)
+
+            self.variational_mu = nn.Parameter(prior_mu_tensor.clone())
+            self.variational_log_sigma = nn.Parameter(prior_log_sigma_tensor.clone())
+
+            self.register_buffer("prior_mu", prior_mu_tensor.clone())
+            self.register_buffer("prior_log_sigma", prior_log_sigma_tensor.clone())
 
         self.train_mc_samples = train_mc_samples
         self.eval_mc_samples = eval_mc_samples
@@ -518,9 +592,8 @@ class BayesPaperAdapter(AdapterMethod):
 
     def set_epoch(self, epoch: int) -> None:
         """
-        尽量贴近作者代码：
+        尽量保持和你当前 paper-faithful 逻辑一致：
             kl_weight = (epoch / num_epochs) * 1/(1000 * C * D)
-        你当前 trainer 的 epoch 是 1-based，这里减 1 来对齐作者代码最初 epoch=0。
         """
         epoch0 = max(int(epoch) - 1, 0)
         epoch0 = min(epoch0, self.total_epochs)
@@ -541,24 +614,51 @@ class BayesPaperAdapter(AdapterMethod):
             device=self.variational_mu.device,
             dtype=self.variational_mu.dtype,
         )
-        sigma = torch.exp(self.variational_log_sigma).view(1, -1, 1)
+
+        sigma = torch.exp(self.variational_log_sigma)
+
+        if self.covariance_mode == "paper_scalar":
+            # sigma: (C,) -> (1, C, 1)
+            sigma = sigma.view(1, -1, 1)
+        else:
+            # sigma: (C, D) -> (1, C, D)
+            sigma = sigma.unsqueeze(0)
+
         return self.variational_mu.unsqueeze(0) + eps * sigma
 
     def kl_divergence(self) -> torch.Tensor:
         """
-        复现作者代码中的 KL 形式，不额外改写成标准 1/2 KL 公式。
+        说明：
+        - paper_scalar 分支保持你当前仓库的 paper-faithful 写法；
+        - diag 分支采用同风格的按维对角 KL 写法；
+        - 与 paper 分支一样，省略了只差一个常数的项，不影响梯度方向。
         """
-        posterior_std = torch.exp(self.variational_log_sigma) + 1e-8   # (C,)
-        prior_std = torch.exp(self.prior_log_sigma).to(self.variational_mu.device) + 1e-8
         prior_mu = self.prior_mu.to(self.variational_mu.device)
 
-        _, feat_dim = self.variational_mu.shape
+        if self.covariance_mode == "paper_scalar":
+            posterior_std = torch.exp(self.variational_log_sigma) + 1e-8   # (C,)
+            prior_std = torch.exp(self.prior_log_sigma).to(self.variational_mu.device) + 1e-8
+            _, feat_dim = self.variational_mu.shape
 
-        kl_trace = feat_dim * (posterior_std.pow(2) / prior_std.pow(2)).sum()
+            kl_trace = feat_dim * (posterior_std.pow(2) / prior_std.pow(2)).sum()
+            kl_diff_sq = (
+                (self.variational_mu - prior_mu).pow(2) / prior_std.pow(2)[:, None]
+            ).sum()
+            kl_logdet = feat_dim * (
+                prior_std.pow(2).log() - posterior_std.pow(2).log()
+            ).sum()
+
+            return kl_trace + kl_diff_sq + kl_logdet
+
+        # diag 模式
+        posterior_std = torch.exp(self.variational_log_sigma) + 1e-8        # (C, D)
+        prior_std = torch.exp(self.prior_log_sigma).to(self.variational_mu.device) + 1e-8
+
+        kl_trace = (posterior_std.pow(2) / prior_std.pow(2)).sum()
         kl_diff_sq = (
-            (self.variational_mu - prior_mu).pow(2) / prior_std.pow(2)[:, None]
+            (self.variational_mu - prior_mu).pow(2) / prior_std.pow(2)
         ).sum()
-        kl_logdet = feat_dim * (
+        kl_logdet = (
             prior_std.pow(2).log() - posterior_std.pow(2).log()
         ).sum()
 
@@ -590,7 +690,6 @@ class BayesPaperAdapter(AdapterMethod):
             image_features_norm.device,
         )
 
-        # logits shape: (B, S, C)，随后对 S 维做平均
         logits = torch.einsum("bd,scd->bsc", image_features_norm, prototypes) * scale
         return logits.mean(dim=1)
 
@@ -613,7 +712,6 @@ class BayesPaperAdapter(AdapterMethod):
             "kl_weight": float(self.kl_weight),
             "loss_kl": float(loss.detach().item()),
         }
-
 
 
 
