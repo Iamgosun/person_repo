@@ -18,6 +18,7 @@
   <bayes_loss_weight>1.0</bayes_loss_weight>
   <ctx_reg_weight>1e-4</ctx_reg_weight>
 
+  <save_prototype_history>false</save_prototype_history>
   <!-- 为了做到“配置显式完整”，把 prototype 跟踪类别也写出来 -->
   <prototype_track_class_ids>
     <item>0</item>

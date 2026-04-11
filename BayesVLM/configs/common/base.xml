@@ -56,4 +56,23 @@
   <use_augmented_train_cache>false</use_augmented_train_cache>
   <train_aug_repeats>20</train_aug_repeats>
 
+
+
+  <generalization_datasets>
+    <item></item>
+    <item></item>
+  </generalization_datasets>
+
+
+  <ood_datasets>
+    <item></item>
+    <item></item>
+  </ood_datasets>
+
+  <ood_scores>
+    <item>msp</item>
+    <item>entropy</item>
+    <item>energy</item>
+  </ood_scores>
+
 </config>

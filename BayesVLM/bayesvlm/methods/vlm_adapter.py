@@ -34,6 +34,7 @@ def _get_batch_item(batch, key: str, idx: int, default=None):
 
     return value
 
+
 def reduce_logits_for_inference(logits: torch.Tensor) -> torch.Tensor:
     """
     统一推理语义：
@@ -62,8 +63,8 @@ def compute_classification_loss_from_logits(
     if logits.dim() == 3:
         num_samples = logits.shape[0]
         return F.cross_entropy(
-            logits.permute(1, 2, 0),                       # [B, C, S]
-            labels.unsqueeze(1).expand(-1, num_samples),   # [B, S]
+            logits.permute(1, 2, 0),
+            labels.unsqueeze(1).expand(-1, num_samples),
             reduction="none",
         ).mean()
 
@@ -324,5 +325,8 @@ def dump_vlm_adapter_predictions(
         topk=topk,
     )
 
-    save_jsonl(run_dir / f"{split_name}_predictions.jsonl", rows)
-    torch.save(tensor_payload, run_dir / f"{split_name}_predictions.pt")
+    split_dir = run_dir / "eval" / "id" / split_name
+    split_dir.mkdir(parents=True, exist_ok=True)
+
+    save_jsonl(split_dir / "predictions.jsonl", rows)
+    torch.save(tensor_payload, split_dir / "predictions.pt")

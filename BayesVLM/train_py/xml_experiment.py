@@ -33,6 +33,7 @@ BOOL_KEYS = {
     "use_data_augmentation",
     "use_augmented_train_cache",
     "use_full_cov",
+    "save_prototype_history",
 }
 
 INT_KEYS = {
@@ -143,7 +144,9 @@ RECIPE_REQUIRED_KEYS: dict[str, set[str]] = {
         "map_loss_weight",
         "bayes_loss_weight",
         "ctx_reg_weight",
+        "save_prototype_history",
         "prototype_track_class_ids",
+
     },
     "deterministic_coop": {
         "recipe_name",

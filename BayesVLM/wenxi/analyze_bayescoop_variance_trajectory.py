@@ -12,16 +12,8 @@ from train_py.recipes import build_recipe
 
 
 def _to_namespace_from_config(cfg: dict, device: str | None = None):
-    """
-    根据 run_dir/config.json 重建一个足够给 build_common_context + recipe.build_state 使用的 args。
-    注意：
-    1. 当前 config.json 里保存的是 local_model_path_raw / data_root_raw，而不是训练脚本入参名；
-       这里要映射回 local_model_path / data_root。
-    2. 这里只重建 text_only_bayes_coop 分析所需字段。
-    """
     args = SimpleNamespace()
 
-    # 通用字段
     args.recipe_name = cfg["recipe_name"]
     args.method_name = cfg.get("method_name", cfg["recipe_name"])
     args.dataset = cfg["dataset"]
@@ -42,7 +34,6 @@ def _to_namespace_from_config(cfg: dict, device: str | None = None):
     args.prediction_topk = int(cfg.get("prediction_topk", 5))
     args.save_dir = str(Path(cfg["run_dir"]).parent.parent.parent) if "run_dir" in cfg else "./output"
 
-    # 优化器/训练字段：虽然分析不训练，但 recipe.build_state 会构造 optimizer，所以这些字段要在
     args.lr = float(cfg.get("lr", 2e-3))
     args.weight_decay = float(cfg.get("weight_decay", 0.0))
     args.epochs = int(cfg.get("epochs", 1))
@@ -56,7 +47,6 @@ def _to_namespace_from_config(cfg: dict, device: str | None = None):
     args.selection_metric = cfg.get("selection_metric", "acc")
     args.selection_mode = cfg.get("selection_mode", "auto")
 
-    # few-shot / prompt 相关
     args.shots_per_class = int(cfg["shots_per_class"])
     args.n_ctx = int(cfg["n_ctx"])
     args.ctx_init = cfg.get("ctx_init", "")
@@ -64,7 +54,6 @@ def _to_namespace_from_config(cfg: dict, device: str | None = None):
     args.class_token_position = cfg.get("class_token_position", "end")
     args.use_full_cov = bool(cfg.get("use_full_cov", False))
 
-    # text_only_bayes_coop 专属
     args.hessian_dir = cfg["hessian_dir"]
     args.pseudo_data_count = int(cfg["pseudo_data_count"])
     args.lambda_txt_init = float(cfg["lambda_txt_init"])
@@ -75,7 +64,6 @@ def _to_namespace_from_config(cfg: dict, device: str | None = None):
     args.bayes_loss_weight = float(cfg.get("bayes_loss_weight", 1.0))
     args.ctx_reg_weight = float(cfg.get("ctx_reg_weight", 1e-4))
 
-    # 兼容字段
     args.use_data_augmentation = bool(cfg.get("use_data_augmentation", False))
     args.use_augmented_train_cache = bool(cfg.get("use_augmented_train_cache", False))
     args.train_aug_repeats = int(cfg.get("train_aug_repeats", 20))
@@ -84,17 +72,10 @@ def _to_namespace_from_config(cfg: dict, device: str | None = None):
 
 
 def _extract_prompt_state_dict(ckpt_obj: dict) -> dict:
-    """
-    兼容当前项目保存格式：
-    1. 当前 text_only_bayes_coop 的 checkpoint 是一个 dict，
-       其中真正的 prompt state_dict 放在 ckpt_obj["prompt_learner"] 里。
-    2. 也兼容直接保存 flat state_dict 的情况。
-    """
     if isinstance(ckpt_obj, dict) and "prompt_learner" in ckpt_obj and isinstance(ckpt_obj["prompt_learner"], dict):
         return ckpt_obj["prompt_learner"]
 
     if isinstance(ckpt_obj, dict):
-        # 兼容直接存 state_dict 的情况
         has_tensor_value = any(torch.is_tensor(v) for v in ckpt_obj.values())
         if has_tensor_value:
             return ckpt_obj
@@ -104,19 +85,6 @@ def _extract_prompt_state_dict(ckpt_obj: dict) -> dict:
 
 @torch.no_grad()
 def _collect_checkpoint_stats(state, ctx, args, checkpoint_tag: str):
-    """
-    计算两层统计：
-
-    A. class-level:
-       - alpha_c
-       - trace_sigma_c
-       - ||mu_c||
-       - 类原型与同类训练图像均值的 cosine 相似度
-
-    B. sample-level:
-       - 训练样本在真实类别上的 Bayes logit var 平均值
-       - 训练样本在真实类别上的 MAP logit 平均值
-    """
     model = state["model"]
     model.eval()
 
@@ -129,7 +97,6 @@ def _collect_checkpoint_stats(state, ctx, args, checkpoint_tag: str):
 
     num_classes = len(ctx.class_names)
 
-    # 先收集训练集 image embedding
     class_embed_buckets = [[] for _ in range(num_classes)]
     class_true_var_buckets = [[] for _ in range(num_classes)]
     class_true_mean_buckets = [[] for _ in range(num_classes)]
@@ -275,26 +242,25 @@ def _write_csv(rows: list[dict], path: Path):
 def main():
     parser = argparse.ArgumentParser(description="分析 text_only_bayes_coop 中类原型方差与训练适配关系的轨迹脚本")
     parser.add_argument("--run-dir", type=str, required=True, help="某次 text_only_bayes_coop 实验的 run_dir")
-    parser.add_argument("--device", type=str, default=None, help="分析设备，默认沿用 config.json 中的 device")
+    parser.add_argument("--device", type=str, default=None, help="分析设备，默认沿用 config/config.json 中的 device")
     parser.add_argument(
         "--checkpoint-glob",
         type=str,
-        default="epoch_checkpoints/epoch_*.pt",
-        help="相对于 run_dir 的 checkpoint 通配符；若不存在，则退化为 init/best/last 三点分析",
+        default="checkpoints/epoch_checkpoints/epoch_*.pt",
+        help="相对于 run_dir 的 checkpoint 通配符；若不存在，则退化为 best/last 两点分析",
     )
     args = parser.parse_args()
 
     run_dir = Path(args.run_dir).resolve()
-    config_path = run_dir / "config.json"
+    config_path = run_dir / "config" / "config.json"
     if not config_path.exists():
-        raise FileNotFoundError(f"找不到 config.json: {config_path}")
+        raise FileNotFoundError(f"找不到 config/config.json: {config_path}")
 
     with open(config_path, "r", encoding="utf-8") as f:
         cfg = json.load(f)
 
     rebuilt_args = _to_namespace_from_config(cfg, device=args.device)
 
-    # 这一步很重要：为了重建和训练时一致的 few-shot 子集与初始化，需要先设回原 seed
     set_seed(rebuilt_args.seed)
 
     recipe = build_recipe("text_only_bayes_coop")
@@ -308,7 +274,6 @@ def main():
     all_class_rows = []
     all_summary_rows = []
 
-    # 先分析 init
     init_class_rows, init_summary_row = _collect_checkpoint_stats(
         state=state,
         ctx=ctx,
@@ -318,7 +283,6 @@ def main():
     all_class_rows.extend(init_class_rows)
     all_summary_rows.append(init_summary_row)
 
-    # 再分析 epoch 轨迹；如果没有 epoch ckpt，则至少分析 best/last
     ckpt_paths = sorted((run_dir / ".").glob(args.checkpoint_glob))
     if len(ckpt_paths) > 0:
         for ckpt_path in ckpt_paths:
@@ -337,7 +301,7 @@ def main():
             all_summary_rows.append(summary_row)
     else:
         for name in ["best_prompt_learner.pt", "last_prompt_learner.pt"]:
-            ckpt_path = run_dir / name
+            ckpt_path = run_dir / "checkpoints" / name
             if not ckpt_path.exists():
                 continue
 
@@ -354,7 +318,7 @@ def main():
             all_class_rows.extend(class_rows)
             all_summary_rows.append(summary_row)
 
-    out_dir = run_dir / "variance_analysis"
+    out_dir = run_dir / "analysis" / "variance_trajectory"
     out_dir.mkdir(parents=True, exist_ok=True)
 
     _write_csv(all_class_rows, out_dir / "class_level_trajectory.csv")

@@ -6,35 +6,6 @@
     <seed>1</seed>
   </experiment>
 
-  <experiment>
-    <dataset>ucf101</dataset>
-    <shots_per_class>2</shots_per_class>
-    <seed>1</seed>
-  </experiment>
-
-
-  <experiment>
-    <dataset>ucf101</dataset>
-    <shots_per_class>4</shots_per_class>
-    <seed>1</seed>
-  </experiment>
-
-
-
-  <experiment>
-    <dataset>ucf101</dataset>
-    <shots_per_class>8</shots_per_class>
-    <seed>1</seed>
-  </experiment>
-
-
-
-  <experiment>
-    <dataset>ucf101</dataset>
-    <shots_per_class>16</shots_per_class>
-    <seed>1</seed>
-  </experiment>
-
 
 
 

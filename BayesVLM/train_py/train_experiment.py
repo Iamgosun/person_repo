@@ -28,10 +28,6 @@ from train_py.train_runtime import (
     resolve_selection_metric,
     resolve_selection_mode,
 )
-from bayesvlm.features.feature_dataset import (
-    build_feature_loader,
-    build_random_repeated_feature_loader,
-)
 
 
 def _ensure_common_flags(args) -> None:
@@ -73,8 +69,9 @@ def _print_run_header(args, run_dir: Path, optimizer_name: str, scheduler_name: 
 def _maybe_dump_text_only_proto_payload(run_dir: Path, state, ctx, args, epoch: int) -> None:
     if args.recipe_name != "text_only_bayes_coop":
         return
-
-    proto_dir = run_dir / "prototype_history"
+    if not bool(getattr(args, "save_prototype_history", False)):
+        return
+    proto_dir = run_dir / "analysis" / "prototype_history"
     proto_dir.mkdir(parents=True, exist_ok=True)
 
     model = state["model"]
@@ -136,7 +133,15 @@ def run_recipe_from_args(args) -> None:
     )
     run_dir.mkdir(parents=True, exist_ok=True)
 
-    with tee_output(run_dir / "train.log"):
+    config_dir = run_dir / "config"
+    checkpoints_dir = run_dir / "checkpoints"
+    train_dir = run_dir / "train"
+
+    config_dir.mkdir(parents=True, exist_ok=True)
+    checkpoints_dir.mkdir(parents=True, exist_ok=True)
+    train_dir.mkdir(parents=True, exist_ok=True)
+
+    with tee_output(train_dir / "train.log"):
         run_start_time = time.time()
 
         _print_run_header(args, run_dir, optimizer_name, scheduler_name)
@@ -175,7 +180,7 @@ def run_recipe_from_args(args) -> None:
             "selection_mode": selection_mode,
             **recipe.build_config_extra(state, ctx, args),
         }
-        save_json(run_dir / "config.json", config)
+        save_json(config_dir / "config.json", config)
 
         print("[train] 开始训练 ...")
         best_score = None
@@ -188,7 +193,7 @@ def run_recipe_from_args(args) -> None:
         metrics_history = []
 
         if int(args.epochs) == 0:
-            print("[train] epochs=0，跳过训练循环，直接评估初始化权重 ...")
+            print("[train] epochs=0，跳过训练循环，仅保存初始化权重与 val 指标 ...")
 
             init_val_metrics = recipe.evaluate_split(state, ctx.val_loader, ctx, args)
             init_score = extract_metric_value(init_val_metrics, selection_metric)
@@ -221,7 +226,7 @@ def run_recipe_from_args(args) -> None:
             best_state["_checkpoint_val_metrics"] = init_val_metrics
             best_state["_selection_metric"] = selection_metric
             best_state["_selection_metric_value"] = init_score
-            torch.save(best_state, run_dir / recipe.best_checkpoint_filename)
+            torch.save(best_state, checkpoints_dir / recipe.best_checkpoint_filename)
 
             last_epoch = 0
             last_val_metrics = init_val_metrics
@@ -234,12 +239,10 @@ def run_recipe_from_args(args) -> None:
             )
             last_state["_checkpoint_epoch"] = 0
             last_state["_checkpoint_val_metrics"] = init_val_metrics
-            torch.save(last_state, run_dir / recipe.last_checkpoint_filename)
+            torch.save(last_state, checkpoints_dir / recipe.last_checkpoint_filename)
 
             _maybe_dump_text_only_proto_payload(run_dir, state, ctx, args, epoch=0)
-
-            save_json(run_dir / "metrics_history.json", metrics_history)
-            save_csv(run_dir / "metrics_history.csv", flatten_metrics_history(metrics_history))
+            save_csv(train_dir / "metrics_history.csv", flatten_metrics_history(metrics_history))
         else:
             for epoch in range(1, args.epochs + 1):
                 train_row = recipe.train_one_epoch(state, ctx, args, epoch)
@@ -276,7 +279,7 @@ def run_recipe_from_args(args) -> None:
                     best_state["_checkpoint_val_metrics"] = val_metrics
                     best_state["_selection_metric"] = selection_metric
                     best_state["_selection_metric_value"] = current_score
-                    torch.save(best_state, run_dir / recipe.best_checkpoint_filename)
+                    torch.save(best_state, checkpoints_dir / recipe.best_checkpoint_filename)
 
                 last_epoch = epoch
                 last_val_metrics = val_metrics
@@ -289,39 +292,15 @@ def run_recipe_from_args(args) -> None:
                 )
                 last_state["_checkpoint_epoch"] = epoch
                 last_state["_checkpoint_val_metrics"] = val_metrics
-                torch.save(last_state, run_dir / recipe.last_checkpoint_filename)
+                torch.save(last_state, checkpoints_dir / recipe.last_checkpoint_filename)
 
                 _maybe_dump_text_only_proto_payload(run_dir, state, ctx, args, epoch)
-
-                save_json(run_dir / "metrics_history.json", metrics_history)
-                save_csv(run_dir / "metrics_history.csv", flatten_metrics_history(metrics_history))
+                save_csv(train_dir / "metrics_history.csv", flatten_metrics_history(metrics_history))
 
         if best_state is None:
             raise RuntimeError("训练未产生 best checkpoint")
 
-        if args.model_selection == "best":
-            selected_label = "best"
-            selected_ckpt_path = run_dir / recipe.best_checkpoint_filename
-        elif args.model_selection == "last":
-            selected_label = "last"
-            selected_ckpt_path = run_dir / recipe.last_checkpoint_filename
-        else:
-            raise ValueError(f"未知 model_selection: {args.model_selection}")
-
-        if not selected_ckpt_path.exists():
-            raise RuntimeError(f"未找到目标权重文件：{selected_ckpt_path}")
-
-        print(f"[final] 加载 {selected_label} 权重并导出最终预测 ...")
-        selected_state = torch.load(selected_ckpt_path, map_location=args.device)
-        recipe.load_best_state(state, selected_state, ctx, args)
-
-        final_train_metrics = recipe.evaluate_split(state, ctx.train_eval_loader, ctx, args)
-        final_val_metrics = recipe.evaluate_split(state, ctx.val_loader, ctx, args)
-        final_test_metrics = recipe.evaluate_split(state, ctx.test_loader, ctx, args)
-
-        recipe.dump_predictions(state, ctx, args)
-
-        summary = {
+        train_summary = {
             "recipe_name": args.recipe_name,
             "method_name": args.method_name,
             "dataset": args.dataset,
@@ -329,36 +308,22 @@ def run_recipe_from_args(args) -> None:
             "model_selection": args.model_selection,
             "selection_metric": selection_metric,
             "selection_mode": selection_mode,
-            "selected_checkpoint": selected_label,
-            "selected_epoch": selected_state.get("_checkpoint_epoch"),
-            "selected_val_metrics": selected_state.get("_checkpoint_val_metrics"),
             "best_epoch": best_epoch,
             "best_val_metrics_saved": best_val_metrics,
             "last_epoch": last_epoch,
             "last_val_metrics_saved": last_val_metrics,
-            "final_train_metrics_recomputed": final_train_metrics,
-            "final_val_metrics_recomputed": final_val_metrics,
-            "final_test_metrics_recomputed": final_test_metrics,
             "run_dir": str(run_dir),
             "elapsed_seconds": round(time.time() - run_start_time, 2),
             "artifacts": {
-                "log_file": "train.log",
-                "config_file": "config.json",
-                "class_names_file": "class_names.json",
-                "metrics_json_file": "metrics_history.json",
-                "metrics_csv_file": "metrics_history.csv",
-                "best_ckpt_file": recipe.best_checkpoint_filename,
-                "last_ckpt_file": recipe.last_checkpoint_filename,
-                "train_predictions_jsonl": "train_predictions.jsonl",
-                "train_predictions_pt": "train_predictions.pt",
-                "val_predictions_jsonl": "val_predictions.jsonl",
-                "val_predictions_pt": "val_predictions.pt",
-                "test_predictions_jsonl": "test_predictions.jsonl",
-                "test_predictions_pt": "test_predictions.pt",
+                "log_file": "train/train.log",
+                "config_file": "config/config.json",
+                "class_names_file": "config/class_names.json",
+                "metrics_csv_file": "train/metrics_history.csv",
+                "best_ckpt_file": f"checkpoints/{recipe.best_checkpoint_filename}",
+                "last_ckpt_file": f"checkpoints/{recipe.last_checkpoint_filename}",
             },
         }
-        summary.update(recipe.build_summary_extra(state, best_state, ctx, args))
-        save_json(run_dir / "summary.json", summary)
+        save_json(train_dir / "train_summary.json", train_summary)
 
-        print("[done] 最终结果：")
-        print(json.dumps(summary, ensure_ascii=False, indent=2))
+        print("[done] 训练阶段完成：")
+        print(json.dumps(train_summary, ensure_ascii=False, indent=2))

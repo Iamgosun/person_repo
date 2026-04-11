@@ -9,6 +9,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+from train_py.eval_experiment import eval_recipe_from_args
 from train_py.train_experiment import run_recipe_from_args
 from train_py.xml_experiment import build_resolved_run_namespaces
 
@@ -24,9 +25,16 @@ def build_parser() -> argparse.ArgumentParser:
         help="XML plan 文件路径，例如 configs/plans/vlm_adapter_bayesadapter_diag_textonly.xml",
     )
     parser.add_argument(
+        "--stage",
+        type=str,
+        default="all",
+        choices=["train", "eval", "all"],
+        help="运行阶段：train / eval / all。",
+    )
+    parser.add_argument(
         "--dry_run",
         action="store_true",
-        help="只打印展开后的最终配置，不真正运行训练。",
+        help="只打印展开后的最终配置，不真正运行。",
     )
     parser.add_argument(
         "--only_index",
@@ -35,6 +43,29 @@ def build_parser() -> argparse.ArgumentParser:
         help="只运行某一条 experiment（从 1 开始计数）。",
     )
     return parser
+
+
+def _print_experiment_brief(ns, idx: int, total: int, stage: str) -> None:
+    print("=" * 80)
+    print(f"[xml-runner] stage={stage} experiment {idx}/{total}")
+    print(
+        json.dumps(
+            {
+                "recipe_name": ns.recipe_name,
+                "method_name": ns.method_name,
+                "dataset": ns.dataset,
+                "shots_per_class": ns.shots_per_class,
+                "seed": ns.seed,
+                "adapter_name": getattr(ns, "adapter_name", None),
+                "initialization": getattr(ns, "initialization", None),
+                "bayesadapter_text_only_run_dir": getattr(
+                    ns, "bayesadapter_text_only_run_dir", None
+                ),
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+    )
 
 
 def main() -> None:
@@ -54,31 +85,19 @@ def main() -> None:
     if args.dry_run:
         for idx, ns in enumerate(namespaces, start=1):
             print("=" * 80)
-            print(f"[dry-run] experiment {idx}/{len(namespaces)}")
+            print(f"[dry-run] stage={args.stage} experiment {idx}/{len(namespaces)}")
             print(json.dumps(vars(ns), ensure_ascii=False, indent=2))
         return
 
     total = len(namespaces)
     for idx, ns in enumerate(namespaces, start=1):
-        print("=" * 80)
-        print(f"[xml-runner] start experiment {idx}/{total}")
-        print(
-            json.dumps(
-                {
-                    "recipe_name": ns.recipe_name,
-                    "method_name": ns.method_name,
-                    "dataset": ns.dataset,
-                    "shots_per_class": ns.shots_per_class,
-                    "seed": ns.seed,
-                    "adapter_name": getattr(ns, "adapter_name", None),
-                    "initialization": getattr(ns, "initialization", None),
-                    "bayesadapter_text_only_run_dir": getattr(ns, "bayesadapter_text_only_run_dir", None),
-                },
-                ensure_ascii=False,
-                indent=2,
-            )
-        )
-        run_recipe_from_args(ns)
+        if args.stage in {"train", "all"}:
+            _print_experiment_brief(ns, idx, total, stage="train")
+            run_recipe_from_args(ns)
+
+        if args.stage in {"eval", "all"}:
+            _print_experiment_brief(ns, idx, total, stage="eval")
+            eval_recipe_from_args(ns)
 
 
 if __name__ == "__main__":

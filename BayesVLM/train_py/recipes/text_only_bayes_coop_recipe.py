@@ -174,6 +174,7 @@ class TextOnlyBayesCoOpRecipe(BaseRecipe):
             "map_loss_weight": getattr(args, "map_loss_weight", 1.0),
             "bayes_loss_weight": getattr(args, "bayes_loss_weight", 1.0),
             "ctx_reg_weight": getattr(args, "ctx_reg_weight", 1e-4),
+            "save_prototype_history": bool(getattr(args, "save_prototype_history", False)),
         }
 
     def train_one_epoch(self, state: dict[str, Any], ctx, args, epoch: int) -> dict[str, Any]:

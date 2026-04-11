@@ -28,6 +28,7 @@ from bayesvlm.features.feature_dataset import (
     build_random_repeated_feature_loader,
 )
 
+
 @dataclass
 class ExperimentContext:
     run_dir: Path
@@ -122,7 +123,6 @@ def build_common_context(
     model_type, _ = get_model_type_and_size(args.model)
     transform_image_size = get_image_size(args.model)
 
-    # 当前项目的原始路径：train/test 默认都用 eval transform
     eval_transform = get_transform(model_type, transform_image_size)
     eval_transform_name = stable_transform_name(
         model_type,
@@ -139,7 +139,6 @@ def build_common_context(
     local_model_path_cache_key = normalize_path_for_cache(args.local_model_path)
     image_feature_cache_root_path = Path(args.image_feature_cache_root).resolve()
 
-    # 基础 data bundle：保持原始 eval transform，不影响现有 no-aug 行为
     data = prepare_experiment_data(
         dataset=args.dataset,
         data_root=str(data_root_path),
@@ -156,7 +155,10 @@ def build_common_context(
 
     print_class_counts(data.train_ds, split_name="train")
     print_class_counts(data.test_ds, split_name="test")
-    save_json(run_dir / "class_names.json", {"class_names": data.class_names})
+
+    config_dir = run_dir / "config"
+    config_dir.mkdir(parents=True, exist_ok=True)
+    save_json(config_dir / "class_names.json", {"class_names": data.class_names})
 
     image_encoder, text_encoder, vlm = load_model(
         model_str=args.model,
@@ -254,7 +256,6 @@ def build_common_context(
             f"fewshot_train_samples={len(train_indices)}"
         )
 
-        # 原始 few-shot 训练缓存（未增强），用于 train_eval_loader 以及不开增强训练缓存时的 train_loader
         train_subset_features = train_full_features.subset(train_indices)
 
         if train_cache_aug_active:
@@ -320,7 +321,6 @@ def build_common_context(
                 force_rebuild=args.rebuild_image_feature_cache,
             )
 
-
             train_loader = build_random_repeated_feature_loader(
                 augmented_train_features,
                 repeats=train_aug_repeats,
@@ -329,8 +329,6 @@ def build_common_context(
                 shuffle=True,
             )
 
-
-            # 训练集评估仍用原始 few-shot 样本，不用 20x 增强副本
             train_eval_loader = build_feature_loader(
                 train_subset_features,
                 batch_size=args.batch_size,
@@ -364,7 +362,6 @@ def build_common_context(
             shuffle=False,
         )
     else:
-        # 不使用缓存时，保持当前项目现有路径不变
         train_loader = data.train_loader
         train_eval_loader = data.train_eval_loader
         val_loader = data.val_loader

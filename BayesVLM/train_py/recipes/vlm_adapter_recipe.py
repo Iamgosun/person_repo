@@ -4,7 +4,7 @@ import copy
 import json
 from pathlib import Path
 from typing import Any
-from bayesvlm.text_priors import _build_templates
+
 import torch
 
 from bayesvlm.hessians import load_hessians
@@ -15,12 +15,13 @@ from bayesvlm.methods.text_only_bayes_coop import (
 from bayesvlm.methods.vlm_adapter import (
     build_vlm_adapter_model,
     compute_adapter_regularization_loss,
-    compute_crossmodal_text_loss,
     compute_classification_loss_from_logits,
+    compute_crossmodal_text_loss,
     dump_vlm_adapter_predictions,
     evaluate_vlm_adapter,
     evaluate_zero_shot_vlm_adapter,
 )
+from bayesvlm.text_priors import _build_templates
 from train_py.common_experiment import resolve_existing_path
 from train_py.recipes.base import BaseRecipe
 from train_py.train_runtime import build_optimizer_from_args
@@ -85,7 +86,7 @@ def _extract_prompt_state_dict(ckpt_obj: dict[str, Any]) -> dict[str, torch.Tens
 
 
 def _read_saved_class_names(run_dir: Path) -> list[str] | None:
-    class_names_path = run_dir / "class_names.json"
+    class_names_path = run_dir / "config" / "class_names.json"
     if not class_names_path.exists():
         return None
 
@@ -110,10 +111,11 @@ def _resolve_text_only_ckpt_path(
         selection = str(config.get("model_selection", "last")).strip().lower()
         spec = "best" if selection == "best" else "last"
 
+    checkpoints_dir = run_dir / "checkpoints"
     if spec == "best":
-        ckpt_path = run_dir / "best_prompt_learner.pt"
+        ckpt_path = checkpoints_dir / "best_prompt_learner.pt"
     elif spec == "last":
-        ckpt_path = run_dir / "last_prompt_learner.pt"
+        ckpt_path = checkpoints_dir / "last_prompt_learner.pt"
     else:
         candidate = Path(spec)
         ckpt_path = candidate if candidate.is_absolute() else (run_dir / candidate)
@@ -122,9 +124,6 @@ def _resolve_text_only_ckpt_path(
     if not ckpt_path.exists():
         raise FileNotFoundError(f"找不到 text_only_bayes_coop checkpoint: {ckpt_path}")
     return ckpt_path
-
-
-
 
 
 def _has_text_only_bridge(args) -> bool:
@@ -247,8 +246,6 @@ def _resolve_bayesadapter_canonical_prior(
     }
 
 
-
-
 @torch.no_grad()
 def _build_text_only_bayesadapter_prior(ctx, args) -> dict[str, Any] | None:
     adapter_key = str(args.adapter_name).upper()
@@ -267,9 +264,9 @@ def _build_text_only_bayesadapter_prior(ctx, args) -> dict[str, Any] | None:
         )
 
     run_dir = Path(run_dir_raw).expanduser().resolve()
-    config_path = run_dir / "config.json"
+    config_path = run_dir / "config" / "config.json"
     if not config_path.exists():
-        raise FileNotFoundError(f"找不到 text_only_bayes_coop config.json: {config_path}")
+        raise FileNotFoundError(f"找不到 text_only_bayes_coop config/config.json: {config_path}")
 
     with open(config_path, "r", encoding="utf-8") as f:
         text_only_cfg = json.load(f)
@@ -386,9 +383,6 @@ def _build_text_only_bayesadapter_prior(ctx, args) -> dict[str, Any] | None:
     }
 
 
-
-
-
 def _public_namespace_dict(args) -> dict[str, Any]:
     return {
         k: v
@@ -443,7 +437,6 @@ def _build_model_cfg_from_args(
         else:
             cfg.pop("bayesadapter_prior_log_sigma", None)
 
-    # text-only bridge 只属于 recipe 侧语义，不传给 model 层
     for key in [
         "bayesadapter_text_only_run_dir",
         "bayesadapter_text_only_run_dir_template",
@@ -455,6 +448,7 @@ def _build_model_cfg_from_args(
         cfg.pop(key, None)
 
     return cfg
+
 
 class VLMAdapterRecipe(BaseRecipe):
     method_name = "vlm_adapter"
@@ -492,7 +486,6 @@ class VLMAdapterRecipe(BaseRecipe):
         parts.append(f"shot_{args.shots_per_class}")
         return parts
 
-
     def validate_and_note(self, args) -> None:
         if getattr(args, "hessian_dir", None):
             print(f"[note] hessian_dir={args.hessian_dir} 当前 cached adapter 训练不会直接使用。")
@@ -521,7 +514,6 @@ class VLMAdapterRecipe(BaseRecipe):
                         "[note] bayesadapter_text_only_mu_blend_lambda="
                         f"{getattr(args, 'bayesadapter_text_only_mu_blend_lambda', None)}"
                     )
-
 
     def build_state(self, ctx, args) -> dict[str, Any]:
         text_only_source_payload = _build_text_only_bayesadapter_prior(ctx, args)
@@ -595,11 +587,6 @@ class VLMAdapterRecipe(BaseRecipe):
             extra["bayesadapter_prior_bridge"] = bridge_info
 
         return extra
-
-
-
-
-
 
     def train_one_epoch(self, state: dict[str, Any], ctx, args, epoch: int) -> dict[str, Any]:
         model = state["model"]
@@ -731,23 +718,23 @@ class VLMAdapterRecipe(BaseRecipe):
             topk=args.prediction_topk,
         )
 
+    def build_summary_extra(
+        self,
+        state: dict[str, Any],
+        best_state: dict[str, Any],
+        ctx,
+        args,
+    ) -> dict[str, Any]:
+        del best_state
+        extra = {
+            "adapter_name": args.adapter_name,
+            "initialization": args.initialization,
+            "zero_shot_test": state["zero_shot_test"],
+            "resolved_recipe_args": state["resolved_recipe_args"],
+        }
 
-def build_summary_extra(
-    self,
-    state: dict[str, Any],
-    best_state: dict[str, Any],
-    ctx,
-    args,
-) -> dict[str, Any]:
-    extra = {
-        "adapter_name": args.adapter_name,
-        "initialization": args.initialization,
-        "zero_shot_test": state["zero_shot_test"],
-        "resolved_recipe_args": state["resolved_recipe_args"],
-    }
+        bridge_info = state.get("bayesadapter_bridge_info", None)
+        if bridge_info is not None:
+            extra["bayesadapter_prior_bridge"] = bridge_info
 
-    bridge_info = state.get("bayesadapter_bridge_info", None)
-    if bridge_info is not None:
-        extra["bayesadapter_prior_bridge"] = bridge_info
-
-    return extra
+        return extra

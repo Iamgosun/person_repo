@@ -6,11 +6,11 @@ import torch.distributions as dists
 from pathlib import Path
 from typing import Any
 from torch.utils.data import DataLoader
-from torchmetrics.classification import MulticlassCalibrationError
 
 from bayesvlm.coop_prompt import CoOpPromptLearner
 from bayesvlm.deterministic_coop import DeterministicCoOpModel
 from bayesvlm.training.io import save_jsonl
+from bayesvlm.training.metrics import calculate_official_bayesadapter_ece
 
 
 def _get_batch_item(batch, key: str, idx: int, default=None):
@@ -85,6 +85,7 @@ def build_deterministic_coop_model(
 
     return prompt_learner, model
 
+
 @torch.no_grad()
 def _prepare_deterministic_eval_cache(model: Any) -> dict[str, torch.Tensor]:
     model.eval()
@@ -93,6 +94,8 @@ def _prepare_deterministic_eval_cache(model: Any) -> dict[str, torch.Tensor]:
     return {
         "text_features": text_features,
     }
+
+
 @torch.no_grad()
 def evaluate_deterministic_coop(
     model: Any,
@@ -105,12 +108,6 @@ def evaluate_deterministic_coop(
     all_probs = []
     all_labels = []
     total_loss = 0.0
-
-    ece_metric = MulticlassCalibrationError(
-        num_classes=num_classes,
-        n_bins=20,
-        norm="l1",
-    ).to(device)
 
     cache = _prepare_deterministic_eval_cache(model)
     text_features = cache["text_features"]
@@ -137,7 +134,7 @@ def evaluate_deterministic_coop(
     preds = all_probs.argmax(dim=1)
     acc = (preds == all_labels).float().mean().item()
     nlpd = -dists.Categorical(all_probs).log_prob(all_labels).mean().item()
-    ece = ece_metric(all_probs, all_labels).item()
+    ece = calculate_official_bayesadapter_ece(all_probs, all_labels, n_bins=10)
     loss = total_loss / len(loader.dataset)
 
     return {
@@ -250,5 +247,8 @@ def dump_deterministic_coop_predictions(
         topk=topk,
     )
 
-    save_jsonl(run_dir / f"{split_name}_predictions.jsonl", rows)
-    torch.save(tensor_payload, run_dir / f"{split_name}_predictions.pt")
+    split_dir = run_dir / "eval" / "id" / split_name
+    split_dir.mkdir(parents=True, exist_ok=True)
+
+    save_jsonl(split_dir / "predictions.jsonl", rows)
+    torch.save(tensor_payload, split_dir / "predictions.pt")

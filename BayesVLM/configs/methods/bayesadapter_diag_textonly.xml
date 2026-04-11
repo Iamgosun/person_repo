@@ -20,5 +20,5 @@
   <bayesadapter_text_only_mu_blend_lambda>0.0</bayesadapter_text_only_mu_blend_lambda>
 
   <!-- ignore / override -->
-  <bayesadapter_text_only_sigma_strategy>override</bayesadapter_text_only_sigma_strategy>
+  <bayesadapter_text_only_sigma_strategy>ignore</bayesadapter_text_only_sigma_strategy>
 </config>

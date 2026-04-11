@@ -77,7 +77,7 @@ def analyze_prototype_history(
     file_glob: str = "epoch_*.pt",
     allow_mu_only: bool = False,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]], dict[str, Any]]:
-    proto_dir = run_dir / "prototype_history"
+    proto_dir = run_dir / "analysis" / "prototype_history"
     if not proto_dir.exists():
         raise FileNotFoundError(f"prototype_history not found: {proto_dir}")
 
@@ -203,7 +203,7 @@ def analyze_prototype_history(
     }
 
     if output_dir is None:
-        output_dir = run_dir / "variance_analysis"
+        output_dir = run_dir / "analysis" / "prototype_summary"
     output_dir.mkdir(parents=True, exist_ok=True)
 
     class_csv = output_dir / "prototype_class_trajectory.csv"
@@ -236,13 +236,13 @@ def build_parser() -> argparse.ArgumentParser:
         "--output-dir",
         type=str,
         default=None,
-        help="Optional output directory. Defaults to <run_dir>/variance_analysis",
+        help="Optional output directory. Defaults to <run_dir>/analysis/prototype_summary",
     )
     parser.add_argument(
         "--glob",
         type=str,
         default="epoch_*.pt",
-        help="Glob pattern under prototype_history/, default: epoch_*.pt",
+        help="Glob pattern under analysis/prototype_history/, default: epoch_*.pt",
     )
     parser.add_argument(
         "--allow-mu-only",
