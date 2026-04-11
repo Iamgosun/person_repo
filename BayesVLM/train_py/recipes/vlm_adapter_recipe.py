@@ -4,7 +4,7 @@ import copy
 import json
 from pathlib import Path
 from typing import Any
-
+from bayesvlm.text_priors import _build_templates
 import torch
 
 from bayesvlm.hessians import load_hessians
@@ -124,20 +124,145 @@ def _resolve_text_only_ckpt_path(
     return ckpt_path
 
 
+
+
+
+def _has_text_only_bridge(args) -> bool:
+    run_dir_raw = str(getattr(args, "bayesadapter_text_only_run_dir", "")).strip()
+    run_dir_template = str(getattr(args, "bayesadapter_text_only_run_dir_template", "")).strip()
+    return bool(run_dir_raw or run_dir_template)
+
+
+def _module_device(module, fallback: str = "cpu") -> torch.device:
+    try:
+        return next(module.parameters()).device
+    except StopIteration:
+        return torch.device(fallback)
+
+
+@torch.no_grad()
+def _build_base_text_features_for_bridge(ctx, args) -> torch.Tensor:
+    templates = _build_templates(str(args.dataset))
+    device = _module_device(ctx.text_encoder, fallback=args.device)
+    class_features = []
+
+    ctx.text_encoder.eval()
+
+    for class_name in ctx.class_names:
+        prompts = [template.format(class_name.replace("_", " ")) for template in templates]
+        text_embeds = ctx.text_encoder(prompts)
+
+        if hasattr(text_embeds, "embeds"):
+            text_embeds = text_embeds.embeds
+        if isinstance(text_embeds, tuple):
+            text_embeds = text_embeds[0]
+
+        text_embeds = text_embeds.to(device=device, dtype=torch.float32)
+        class_features.append(text_embeds.mean(dim=0))
+
+    return torch.stack(class_features, dim=0)
+
+
+@torch.no_grad()
+def _resolve_bayesadapter_canonical_prior(
+    ctx,
+    args,
+    source_payload: dict[str, Any] | None,
+) -> dict[str, Any]:
+    adapter_key = str(args.adapter_name).upper()
+    if adapter_key not in {"BAYESADAPTER", "BAYES_ADAPTER"}:
+        return {
+            "prior_mu": None,
+            "prior_log_sigma": None,
+            "bridge_info": None,
+        }
+
+    if source_payload is None:
+        return {
+            "prior_mu": None,
+            "prior_log_sigma": None,
+            "bridge_info": None,
+        }
+
+    mu_strategy = str(getattr(args, "bayesadapter_text_only_mu_strategy", "replace")).strip().lower()
+    sigma_strategy = str(getattr(args, "bayesadapter_text_only_sigma_strategy", "ignore")).strip().lower()
+    cov_mode = str(getattr(args, "bayesadapter_covariance_mode", "paper_scalar")).strip().lower()
+
+    mu_text = source_payload["prior_mu"].detach().float().cpu()
+
+    if mu_strategy == "replace":
+        prior_mu = mu_text
+
+    elif mu_strategy == "blend":
+        lam = float(getattr(args, "bayesadapter_text_only_mu_blend_lambda", 1.0))
+        base_text = _build_base_text_features_for_bridge(ctx, args).detach().float().cpu()
+
+        if base_text.shape != mu_text.shape:
+            raise ValueError(
+                "base_text_features 与 text-only mu 形状不匹配："
+                f"base={tuple(base_text.shape)} vs text_only={tuple(mu_text.shape)}"
+            )
+
+        prior_mu = (1.0 - lam) * base_text + lam * mu_text
+
+    else:
+        raise ValueError(
+            f"Unsupported bayesadapter_text_only_mu_strategy={mu_strategy}"
+        )
+
+    if sigma_strategy == "ignore":
+        prior_log_sigma = None
+    elif sigma_strategy == "override":
+        if cov_mode == "diag":
+            prior_log_sigma = source_payload["prior_log_sigma_diag"].detach().float().cpu()
+        else:
+            prior_log_sigma = source_payload["prior_log_sigma_paper"].detach().float().cpu()
+    else:
+        raise ValueError(
+            f"Unsupported bayesadapter_text_only_sigma_strategy={sigma_strategy}"
+        )
+
+    bridge_info = {
+        "source_run_dir": source_payload["source_run_dir"],
+        "source_ckpt": source_payload["source_ckpt"],
+        "mu_strategy": mu_strategy,
+        "sigma_strategy": sigma_strategy,
+        "covariance_mode": cov_mode,
+        "lambda_txt": float(source_payload["lambda_txt"]),
+        "pseudo_data_count": float(source_payload["pseudo_data_count"]),
+        "mean_trace_sigma": float(source_payload["trace_sigma"].mean().item()),
+        "mean_scalar_prior_sigma": float(source_payload["prior_log_sigma_paper"].exp().mean().item()),
+        "mean_diag_prior_sigma": float(source_payload["prior_log_sigma_diag"].exp().mean().item()),
+    }
+
+    if mu_strategy == "blend":
+        bridge_info["mu_blend_lambda"] = float(
+            getattr(args, "bayesadapter_text_only_mu_blend_lambda", 1.0)
+        )
+
+    return {
+        "prior_mu": prior_mu,
+        "prior_log_sigma": prior_log_sigma,
+        "bridge_info": bridge_info,
+    }
+
+
+
+
 @torch.no_grad()
 def _build_text_only_bayesadapter_prior(ctx, args) -> dict[str, Any] | None:
     adapter_key = str(args.adapter_name).upper()
-    prior_source = str(getattr(args, "bayesadapter_prior_source", "base_text")).lower()
 
     if adapter_key not in {"BAYESADAPTER", "BAYES_ADAPTER"}:
         return None
-    if prior_source != "text_only_bayes_coop":
+
+    if not _has_text_only_bridge(args):
         return None
 
     run_dir_raw = str(getattr(args, "bayesadapter_text_only_run_dir", "")).strip()
     if not run_dir_raw:
         raise ValueError(
-            "当 bayesadapter_prior_source=text_only_bayes_coop 时，"
+            "启用 bayesadapter_text_only bridge 时，"
             "必须传 --bayesadapter_text_only_run_dir。"
         )
 
@@ -240,7 +365,7 @@ def _build_text_only_bayesadapter_prior(ctx, args) -> dict[str, Any] | None:
     diag_prior_var = (alpha[:, None] * diag_B[None, :]).clamp_min(1e-12)
     prior_log_sigma_diag = 0.5 * torch.log(diag_prior_var)
 
-    print("[BayesAdapter] 使用 text_only_bayes_coop 重建先验")
+    print("[BayesAdapter] 使用 text_only_bayes_coop 重建 source payload")
     print(f"  source_run_dir = {run_dir}")
     print(f"  source_ckpt    = {ckpt_path}")
     print(f"  lambda_txt     = {lambda_txt:.6f}")
@@ -259,6 +384,9 @@ def _build_text_only_bayesadapter_prior(ctx, args) -> dict[str, Any] | None:
         "alpha": alpha,
         "trace_sigma": trace_sigma,
     }
+
+
+
 
 
 def _public_namespace_dict(args) -> dict[str, Any]:
@@ -292,52 +420,41 @@ def _to_jsonable(value: Any) -> Any:
     return str(value)
 
 
-
 def _build_model_cfg_from_args(
     args,
-    bayesadapter_prior_payload: dict[str, Any] | None,
+    resolved_prior: dict[str, Any] | None,
 ) -> dict[str, Any]:
     cfg = dict(_public_namespace_dict(args))
 
     cfg.setdefault("model_name_or_path", cfg.get("local_model_path"))
     cfg.setdefault("datasetname", cfg.get("dataset"))
 
-    if bayesadapter_prior_payload is not None:
-        # text-only 重建出的 mu
-        mu_text = bayesadapter_prior_payload["prior_mu"]
+    if resolved_prior is not None:
+        prior_mu = resolved_prior.get("prior_mu", None)
+        prior_log_sigma = resolved_prior.get("prior_log_sigma", None)
 
-        # 新增两个开关
-        bridge_mode = str(
-            getattr(args, "bayesadapter_prior_mu_mode", "replace")
-        ).lower()
-        bridge_lambda = float(
-            getattr(args, "bayesadapter_prior_mu_lambda", 1.0)
-        )
+        if prior_mu is not None:
+            cfg["bayesadapter_prior_mu"] = prior_mu
+        else:
+            cfg.pop("bayesadapter_prior_mu", None)
 
-        # 先把 text-only mu 暂存，后面在 VLMAdapter 里和 base_text_features 混合
-        cfg["bayesadapter_prior_mu_text_only"] = mu_text
-        cfg["bayesadapter_prior_mu_mode"] = bridge_mode
-        cfg["bayesadapter_prior_mu_lambda"] = bridge_lambda
-
-        # sigma 单独控制
-        use_prior_sigma = bool(
-            getattr(args, "bayesadapter_use_text_only_prior_sigma", False)
-        )
-
-        if use_prior_sigma:
-            cov_mode = str(
-                getattr(args, "bayesadapter_covariance_mode", "paper_scalar")
-            ).lower()
-            if cov_mode == "diag":
-                cfg["bayesadapter_prior_log_sigma"] = bayesadapter_prior_payload["prior_log_sigma_diag"]
-            else:
-                cfg["bayesadapter_prior_log_sigma"] = bayesadapter_prior_payload["prior_log_sigma_paper"]
+        if prior_log_sigma is not None:
+            cfg["bayesadapter_prior_log_sigma"] = prior_log_sigma
         else:
             cfg.pop("bayesadapter_prior_log_sigma", None)
 
+    # text-only bridge 只属于 recipe 侧语义，不传给 model 层
+    for key in [
+        "bayesadapter_text_only_run_dir",
+        "bayesadapter_text_only_run_dir_template",
+        "bayesadapter_text_only_ckpt",
+        "bayesadapter_text_only_mu_strategy",
+        "bayesadapter_text_only_mu_blend_lambda",
+        "bayesadapter_text_only_sigma_strategy",
+    ]:
+        cfg.pop(key, None)
+
     return cfg
-
-
 
 class VLMAdapterRecipe(BaseRecipe):
     method_name = "vlm_adapter"
@@ -375,6 +492,7 @@ class VLMAdapterRecipe(BaseRecipe):
         parts.append(f"shot_{args.shots_per_class}")
         return parts
 
+
     def validate_and_note(self, args) -> None:
         if getattr(args, "hessian_dir", None):
             print(f"[note] hessian_dir={args.hessian_dir} 当前 cached adapter 训练不会直接使用。")
@@ -383,28 +501,39 @@ class VLMAdapterRecipe(BaseRecipe):
         adapter_key = str(args.adapter_name).upper()
         if adapter_key in {"BAYESADAPTER", "BAYES_ADAPTER"}:
             cov_mode = str(getattr(args, "bayesadapter_covariance_mode", "paper_scalar")).lower()
-            prior_source = str(getattr(args, "bayesadapter_prior_source", "base_text")).lower()
-
             print(f"[note] bayesadapter_covariance_mode={cov_mode}")
-            print(f"[note] bayesadapter_prior_source={prior_source}")
 
-            if prior_source == "text_only_bayes_coop":
+            if _has_text_only_bridge(args):
                 run_dir = str(getattr(args, "bayesadapter_text_only_run_dir", "")).strip()
                 if not run_dir:
                     raise ValueError(
-                        "当 adapter_name=BAYESADAPTER 且 bayesadapter_prior_source=text_only_bayes_coop 时，"
+                        "启用 bayesadapter_text_only bridge 时，"
                         "必须传 --bayesadapter_text_only_run_dir。"
                     )
 
                 print(f"[note] bayesadapter_text_only_run_dir={run_dir}")
                 print(f"[note] bayesadapter_text_only_ckpt={getattr(args, 'bayesadapter_text_only_ckpt', 'auto')}")
+                print(f"[note] bayesadapter_text_only_mu_strategy={getattr(args, 'bayesadapter_text_only_mu_strategy', 'replace')}")
+                print(f"[note] bayesadapter_text_only_sigma_strategy={getattr(args, 'bayesadapter_text_only_sigma_strategy', 'ignore')}")
+
+                if str(getattr(args, "bayesadapter_text_only_mu_strategy", "replace")).lower() == "blend":
+                    print(
+                        "[note] bayesadapter_text_only_mu_blend_lambda="
+                        f"{getattr(args, 'bayesadapter_text_only_mu_blend_lambda', None)}"
+                    )
+
 
     def build_state(self, ctx, args) -> dict[str, Any]:
-        bayesadapter_prior_payload = _build_text_only_bayesadapter_prior(ctx, args)
+        text_only_source_payload = _build_text_only_bayesadapter_prior(ctx, args)
+        resolved_prior = _resolve_bayesadapter_canonical_prior(
+            ctx=ctx,
+            args=args,
+            source_payload=text_only_source_payload,
+        )
 
         cfg = _build_model_cfg_from_args(
             args=args,
-            bayesadapter_prior_payload=bayesadapter_prior_payload,
+            resolved_prior=resolved_prior,
         )
 
         model = build_vlm_adapter_model(
@@ -447,7 +576,7 @@ class VLMAdapterRecipe(BaseRecipe):
             "model": model,
             "optimizer": optimizer,
             "zero_shot_test": zero_shot_test,
-            "bayesadapter_prior_payload": bayesadapter_prior_payload,
+            "bayesadapter_bridge_info": resolved_prior["bridge_info"],
             "resolved_recipe_args": _to_jsonable(_public_namespace_dict(args)),
         }
 
@@ -457,28 +586,20 @@ class VLMAdapterRecipe(BaseRecipe):
             "initialization": args.initialization,
             "hessian_dir_ignored": getattr(args, "hessian_dir", None),
             "pseudo_data_count_ignored": getattr(args, "pseudo_data_count", None),
-            # 不再手工枚举一长串 adapter-specific 参数；
-            # 直接保存 XML 解析后的当前 recipe 参数快照，新增参数无需再改这里。
             "resolved_recipe_args": state["resolved_recipe_args"],
             "zero_shot_test": state["zero_shot_test"],
         }
 
-        prior_payload = state.get("bayesadapter_prior_payload", None)
-        if prior_payload is not None:
-            extra["bayesadapter_prior_bridge"] = {
-                "source_run_dir": prior_payload["source_run_dir"],
-                "source_ckpt": prior_payload["source_ckpt"],
-                "lambda_txt": float(prior_payload["lambda_txt"]),
-                "pseudo_data_count": float(prior_payload["pseudo_data_count"]),
-                "mean_trace_sigma": float(prior_payload["trace_sigma"].mean().item()),
-                "std_trace_sigma": float(prior_payload["trace_sigma"].std(unbiased=False).item()),
-                "mean_scalar_prior_sigma": float(prior_payload["prior_log_sigma_paper"].exp().mean().item()),
-                "std_scalar_prior_sigma": float(prior_payload["prior_log_sigma_paper"].exp().std(unbiased=False).item()),
-                "mean_diag_prior_sigma": float(prior_payload["prior_log_sigma_diag"].exp().mean().item()),
-                "std_diag_prior_sigma": float(prior_payload["prior_log_sigma_diag"].exp().std(unbiased=False).item()),
-            }
+        bridge_info = state.get("bayesadapter_bridge_info", None)
+        if bridge_info is not None:
+            extra["bayesadapter_prior_bridge"] = bridge_info
 
         return extra
+
+
+
+
+
 
     def train_one_epoch(self, state: dict[str, Any], ctx, args, epoch: int) -> dict[str, Any]:
         model = state["model"]
@@ -610,29 +731,23 @@ class VLMAdapterRecipe(BaseRecipe):
             topk=args.prediction_topk,
         )
 
-    def build_summary_extra(
-        self,
-        state: dict[str, Any],
-        best_state: dict[str, Any],
-        ctx,
-        args,
-    ) -> dict[str, Any]:
-        extra = {
-            "adapter_name": args.adapter_name,
-            "initialization": args.initialization,
-            "zero_shot_test": state["zero_shot_test"],
-            "resolved_recipe_args": state["resolved_recipe_args"],
-        }
 
-        prior_payload = state.get("bayesadapter_prior_payload", None)
-        if prior_payload is not None:
-            extra["bayesadapter_prior_bridge"] = {
-                "source_run_dir": prior_payload["source_run_dir"],
-                "source_ckpt": prior_payload["source_ckpt"],
-                "lambda_txt": float(prior_payload["lambda_txt"]),
-                "mean_trace_sigma": float(prior_payload["trace_sigma"].mean().item()),
-                "mean_scalar_prior_sigma": float(prior_payload["prior_log_sigma_paper"].exp().mean().item()),
-                "mean_diag_prior_sigma": float(prior_payload["prior_log_sigma_diag"].exp().mean().item()),
-            }
+def build_summary_extra(
+    self,
+    state: dict[str, Any],
+    best_state: dict[str, Any],
+    ctx,
+    args,
+) -> dict[str, Any]:
+    extra = {
+        "adapter_name": args.adapter_name,
+        "initialization": args.initialization,
+        "zero_shot_test": state["zero_shot_test"],
+        "resolved_recipe_args": state["resolved_recipe_args"],
+    }
 
-        return extra
+    bridge_info = state.get("bayesadapter_bridge_info", None)
+    if bridge_info is not None:
+        extra["bayesadapter_prior_bridge"] = bridge_info
+
+    return extra

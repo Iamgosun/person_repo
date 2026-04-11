@@ -10,6 +10,20 @@ import xml.etree.ElementTree as ET
 # ============================================================
 # 1) 基础类型声明
 # ============================================================
+def _has_text_only_bridge(cfg: dict[str, Any]) -> bool:
+    run_dir = str(cfg.get("bayesadapter_text_only_run_dir", "")).strip()
+    run_dir_template = str(cfg.get("bayesadapter_text_only_run_dir_template", "")).strip()
+    return bool(run_dir or run_dir_template)
+
+
+def _reject_legacy_bayesadapter_text_only_keys(cfg: dict[str, Any]) -> None:
+    legacy = sorted(k for k in LEGACY_BAYESADAPTER_TEXT_ONLY_KEYS if k in cfg)
+    if legacy:
+        raise ValueError(
+            "以下旧参数已废弃，请改用新的 bayesadapter_text_only_* 参数："
+            f"{legacy}"
+        )
+
 
 BOOL_KEYS = {
     "csc",
@@ -57,7 +71,12 @@ FLOAT_KEYS = {
     "gaussian_prior_sigma",
     "bayesadapter_prior_sigma",
     "bayesadapter_kl_scale_divisor",
+    "bayesadapter_text_only_mu_blend_lambda",
 }
+
+
+
+
 
 LIST_INT_KEYS = {
     "prototype_track_class_ids",
@@ -166,14 +185,6 @@ GAUSSIAN_PER_CLASS_REQUIRED_KEYS = {
     "gaussian_anneal_start_epoch",
 }
 
-BAYESADAPTER_REQUIRED_KEYS = {
-    "bayesadapter_prior_sigma",
-    "bayesadapter_train_mc_samples",
-    "bayesadapter_eval_mc_samples",
-    "bayesadapter_kl_scale_divisor",
-    "bayesadapter_covariance_mode",
-    "bayesadapter_prior_source",
-}
 
 TEXT_ONLY_PRIOR_REQUIRED_KEYS = {
     "text_only_method_name",
@@ -181,7 +192,27 @@ TEXT_ONLY_PRIOR_REQUIRED_KEYS = {
     "bayesadapter_text_only_run_dir_template",
 }
 
+BAYESADAPTER_REQUIRED_KEYS = {
+    "bayesadapter_prior_sigma",
+    "bayesadapter_train_mc_samples",
+    "bayesadapter_eval_mc_samples",
+    "bayesadapter_kl_scale_divisor",
+    "bayesadapter_covariance_mode",
+}
 
+TEXT_ONLY_BRIDGE_REQUIRED_KEYS = {
+    "bayesadapter_text_only_ckpt",
+    "bayesadapter_text_only_mu_strategy",
+    "bayesadapter_text_only_sigma_strategy",
+}
+
+LEGACY_BAYESADAPTER_TEXT_ONLY_KEYS = {
+    "text_only_method_name",
+    "bayesadapter_prior_source",
+    "bayesadapter_prior_mu_mode",
+    "bayesadapter_prior_mu_lambda",
+    "bayesadapter_use_text_only_prior_sigma",
+}
 # ============================================================
 # 3) 数据结构
 # ============================================================
@@ -460,6 +491,12 @@ def _validate_value_ranges(cfg: dict[str, Any]) -> None:
     if float(cfg["weight_decay"]) < 0:
         raise ValueError("weight_decay 必须 >= 0")
 
+    if "bayesadapter_text_only_mu_blend_lambda" in cfg:
+        lam = float(cfg["bayesadapter_text_only_mu_blend_lambda"])
+        if not (0.0 <= lam <= 1.0):
+            raise ValueError("bayesadapter_text_only_mu_blend_lambda 必须在 [0, 1] 内")
+
+
 
 def _validate_enums(cfg: dict[str, Any]) -> None:
     optimizer = str(cfg["optimizer"]).strip().lower()
@@ -492,13 +529,24 @@ def _validate_enums(cfg: dict[str, Any]) -> None:
         if cov_mode not in {"paper_scalar", "diag"}:
             raise ValueError("bayesadapter_covariance_mode 必须是 ['paper_scalar', 'diag'] 之一")
 
-    if "bayesadapter_prior_source" in cfg:
-        prior_source = str(cfg["bayesadapter_prior_source"]).strip().lower()
-        if prior_source not in {"base_text", "text_only_bayes_coop"}:
-            raise ValueError("bayesadapter_prior_source 必须是 ['base_text', 'text_only_bayes_coop'] 之一")
+    if "bayesadapter_text_only_mu_strategy" in cfg:
+        mu_strategy = str(cfg["bayesadapter_text_only_mu_strategy"]).strip().lower()
+        if mu_strategy not in {"replace", "blend"}:
+            raise ValueError(
+                "bayesadapter_text_only_mu_strategy 必须是 ['replace', 'blend'] 之一"
+            )
+
+    if "bayesadapter_text_only_sigma_strategy" in cfg:
+        sigma_strategy = str(cfg["bayesadapter_text_only_sigma_strategy"]).strip().lower()
+        if sigma_strategy not in {"ignore", "override"}:
+            raise ValueError(
+                "bayesadapter_text_only_sigma_strategy 必须是 ['ignore', 'override'] 之一"
+            )
 
 
 def validate_final_config(cfg: dict[str, Any]) -> None:
+    _reject_legacy_bayesadapter_text_only_keys(cfg)
+
     _require_keys(cfg, REQUIRED_COMMON_KEYS, "公共配置")
     _require_keys(cfg, REQUIRED_EXPERIMENT_KEYS, "实验条目")
 
@@ -524,13 +572,20 @@ def validate_final_config(cfg: dict[str, Any]) -> None:
         elif adapter_key in {"BAYESADAPTER", "BAYES_ADAPTER"}:
             _require_keys(cfg, BAYESADAPTER_REQUIRED_KEYS, "BayesAdapter 配置")
 
-            prior_source = str(cfg["bayesadapter_prior_source"]).lower()
-            if prior_source == "text_only_bayes_coop":
-                _require_keys(cfg, TEXT_ONLY_PRIOR_REQUIRED_KEYS, "BayesAdapter text-only prior 配置")
+            if _has_text_only_bridge(cfg):
+                _require_keys(cfg, TEXT_ONLY_BRIDGE_REQUIRED_KEYS, "BayesAdapter text-only bridge 配置")
+
                 if "bayesadapter_text_only_run_dir" not in cfg:
                     raise ValueError(
-                        "当 bayesadapter_prior_source=text_only_bayes_coop 时，"
+                        "当启用 bayesadapter_text_only bridge 时，"
                         "必须先根据 template 派生出 bayesadapter_text_only_run_dir。"
+                    )
+
+                mu_strategy = str(cfg["bayesadapter_text_only_mu_strategy"]).strip().lower()
+                if mu_strategy == "blend" and "bayesadapter_text_only_mu_blend_lambda" not in cfg:
+                    raise ValueError(
+                        "当 bayesadapter_text_only_mu_strategy=blend 时，"
+                        "必须提供 bayesadapter_text_only_mu_blend_lambda。"
                     )
 
     _validate_enums(cfg)
@@ -540,6 +595,8 @@ def validate_final_config(cfg: dict[str, Any]) -> None:
 # ============================================================
 # 10) 派生字段
 # ============================================================
+
+
 
 def materialize_derived_fields(cfg: dict[str, Any]) -> dict[str, Any]:
     result = dict(cfg)
@@ -552,19 +609,17 @@ def materialize_derived_fields(cfg: dict[str, Any]) -> dict[str, Any]:
 
     recipe_name = str(result["recipe_name"])
     adapter_key = str(result.get("adapter_name", "")).upper()
-    prior_source = str(result.get("bayesadapter_prior_source", "")).lower()
 
     if (
         recipe_name == "vlm_adapter"
         and adapter_key in {"BAYESADAPTER", "BAYES_ADAPTER"}
-        and prior_source == "text_only_bayes_coop"
         and "bayesadapter_text_only_run_dir" not in result
+        and "bayesadapter_text_only_run_dir_template" in result
     ):
         template = str(result["bayesadapter_text_only_run_dir_template"])
 
         format_env = {
             "save_dir": result["save_dir"],
-            "text_only_method_name": result["text_only_method_name"],
             "dataset": result["dataset"],
             "shots_per_class": result["shots_per_class"],
             "seed": result["seed"],
@@ -578,6 +633,7 @@ def materialize_derived_fields(cfg: dict[str, Any]) -> dict[str, Any]:
             ) from exc
 
     return result
+
 
 
 # ============================================================
