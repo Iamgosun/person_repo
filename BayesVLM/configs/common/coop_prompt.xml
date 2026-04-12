@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<config>
-  <!-- CoOp-style prompt learner 共享参数 -->
-  <n_ctx>16</n_ctx>
-  <!-- a photo of a     -->
-  <ctx_init></ctx_init>
-  <csc>false</csc>
-  <class_token_position>end</class_token_position>
-</config>

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<config>
+  <family>deterministic_coop</family>
+  <output_name>deterministic_coop_standard</output_name>
+  <variant>default</variant>
+  <n_ctx>16</n_ctx>
+  <ctx_init></ctx_init>
+  <csc>false</csc>
+  <class_token_position>end</class_token_position>
+</config>

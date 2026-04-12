@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<config>
+  <variant>TIPA</variant>
+  <tipa_alpha>1.0</tipa_alpha>
+  <tipa_beta>1.0</tipa_beta>
+</config>

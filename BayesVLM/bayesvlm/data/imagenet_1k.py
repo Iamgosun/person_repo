@@ -79,8 +79,8 @@ def _load_imagenet_readable_names(dataset_root: Path, wnids):
 def _resolve_dataset_root(data_dir: Path, subdir_name: str) -> Path:
     """
     兼容两种传法：
-    1) data_dir=/.../imagenet_extracted
-    2) data_dir=/.../datasets   且下面有 imagenet_extracted/
+    1) data_dir=/.../imagenet
+    2) data_dir=/.../datasets   且下面有 imagenet/
     """
     if (data_dir / "train").is_dir():
         return data_dir

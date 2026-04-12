@@ -1,79 +1,33 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!--
-  所有实验共用的显式配置。
-  这里的训练策略字段（optimizer / lr / epochs / lr_scheduler / model_selection 等）
-  是全局统一配置。
-
-  规则：
-  1. recipe / method / experiment 不允许重新定义这些字段；
-  2. 这些字段不是 recipe 默认值，而是项目级统一策略；
-  3. 若其他 XML 片段定义这些字段，加载阶段直接报错。
--->
-
 <config>
-  <!-- ===================================================== -->
-  <!-- 所有实验共用的显式配置                                -->
-  <!-- 不允许依赖 parser 默认值，也不允许依赖 shell 默认值   -->
-  <!-- ===================================================== -->
-
-  <!-- 模型 / 路径 -->
   <model>clip-base</model>
   <local_model_path>./models/clip-vit-b32</local_model_path>
   <data_root>./datasets</data_root>
   <save_dir>./output</save_dir>
   <image_feature_cache_root>./cache/image_features</image_feature_cache_root>
 
-  <!-- 优化器 / 训练参数 -->
   <optimizer>sgd</optimizer>
   <momentum>0.9</momentum>
   <nesterov>false</nesterov>
-
   <lr>0.1</lr>
   <weight_decay>0.0</weight_decay>
   <epochs>300</epochs>
-
   <lr_scheduler>cosine</lr_scheduler>
   <warmup_epoch>0</warmup_epoch>
   <warmup_cons_lr>1e-5</warmup_cons_lr>
 
-  <!-- checkpoint 选择策略 -->
   <model_selection>last</model_selection>
   <selection_metric>acc</selection_metric>
   <selection_mode>max</selection_mode>
 
-  <!-- runtime -->
   <device>cuda</device>
   <batch_size>256</batch_size>
   <num_workers>8</num_workers>
   <prediction_topk>5</prediction_topk>
 
-  <!-- 图像缓存 -->
   <rebuild_image_feature_cache>false</rebuild_image_feature_cache>
   <disable_cache_image_features>false</disable_cache_image_features>
-
-  <!-- 数据增强 -->
   <use_data_augmentation>false</use_data_augmentation>
   <use_augmented_train_cache>false</use_augmented_train_cache>
   <train_aug_repeats>20</train_aug_repeats>
-
-
-  <!-- 跨域实验目前只在源域为 ImageNet 数据集上进行 -->
-  <!-- ImageNetV2 ImageNet-Sketch ImageNet-A ImageNet-R -->
-  <generalization_datasets>
-    <item></item>
-    <item></item>
-  </generalization_datasets>
-
-
-  <ood_datasets>
-    <item></item>
-    <item></item>
-  </ood_datasets>
-
-  <ood_scores>
-    <item>msp</item>
-    <item>entropy</item>
-    <item>energy</item>
-  </ood_scores>
-
 </config>

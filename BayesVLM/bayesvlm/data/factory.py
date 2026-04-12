@@ -31,6 +31,7 @@ from .homeoffice_da import (
 
 from .imagenet_wds import ImagenetWDSModule
 from .imagenet_1k import (
+    Imagenet1kDataModule,
     Imagenet50DataModule,
     Imagenet100DataModule,
 )
@@ -95,6 +96,7 @@ SUPPORTED_MODULES = {
 
     # imagenet datasets
     'imagenet-val-wds': ImagenetWDSModule,
+    'imagenet': Imagenet1kDataModule,
     'imagenet-100': Imagenet100DataModule,
     'imagenet-50': Imagenet50DataModule,
 

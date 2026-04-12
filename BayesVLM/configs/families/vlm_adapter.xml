@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<config>
+  <family>vlm_adapter</family>
+  <output_name>vlm_adapter</output_name>
+  <initialization>RANDOM</initialization>
+</config>

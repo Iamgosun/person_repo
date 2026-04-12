@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<config>
+  <protocol>base2new</protocol>
+  <evaluation_tasks>
+    <item>classification</item>
+  </evaluation_tasks>
+  <ood_reference_split>base_test</ood_reference_split>
+</config>

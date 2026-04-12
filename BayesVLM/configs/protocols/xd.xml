@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<config>
+  <protocol>xd</protocol>
+  <evaluation_tasks>
+    <item>classification</item>
+  </evaluation_tasks>
+  <ood_reference_split>source_test</ood_reference_split>
+  <target_datasets>
+    <item>imagenet-r</item>
+  </target_datasets>
+</config>

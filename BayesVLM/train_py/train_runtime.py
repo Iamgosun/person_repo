@@ -8,7 +8,6 @@ from torch.optim.lr_scheduler import _LRScheduler
 
 class _BaseWarmupScheduler(_LRScheduler):
     """
-    中文说明：
     与旧版 text_only_bayes_coop 训练脚本保持一致的 warmup 包装器。
     warmup 阶段使用固定学习率；结束后把 step 权交给 successor。
     """
@@ -40,7 +39,6 @@ class _BaseWarmupScheduler(_LRScheduler):
 
 class ConstantWarmupScheduler(_BaseWarmupScheduler):
     """
-    中文说明：
     前 warmup_epoch 个 epoch 固定学习率，之后切到后继 scheduler。
     """
 

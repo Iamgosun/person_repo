@@ -9,63 +9,33 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from train_py.eval_experiment import eval_recipe_from_args
-from train_py.train_experiment import run_recipe_from_args
+from train_py.runtime.eval_runtime import run_family_eval
+from train_py.runtime.train_runtime import run_family_train
 from train_py.xml_experiment import build_resolved_run_namespaces
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(
-        description="从 XML plan 读取实验配置并运行。"
-    )
-    parser.add_argument(
-        "--plan",
-        type=str,
-        required=True,
-        help="XML plan 文件路径，例如 configs/plans/vlm_adapter_bayesadapter_diag_textonly.xml",
-    )
-    parser.add_argument(
-        "--stage",
-        type=str,
-        default="all",
-        choices=["train", "eval", "all"],
-        help="运行阶段：train / eval / all。",
-    )
-    parser.add_argument(
-        "--dry_run",
-        action="store_true",
-        help="只打印展开后的最终配置，不真正运行。",
-    )
-    parser.add_argument(
-        "--only_index",
-        type=int,
-        default=None,
-        help="只运行某一条 experiment（从 1 开始计数）。",
-    )
+    parser = argparse.ArgumentParser(description="Run experiment plans from XML.")
+    parser.add_argument("--plan", type=str, required=True, help="XML experiment plan path")
+    parser.add_argument("--stage", type=str, default="all", choices=["train", "eval", "all"])
+    parser.add_argument("--dry_run", action="store_true")
+    parser.add_argument("--only_index", type=int, default=None)
     return parser
 
 
-def _print_experiment_brief(ns, idx: int, total: int, stage: str) -> None:
+def _brief(ns, idx: int, total: int, stage: str) -> None:
     print("=" * 80)
     print(f"[xml-runner] stage={stage} experiment {idx}/{total}")
-    print(
-        json.dumps(
-            {
-                "recipe_name": ns.recipe_name,
-                "method_name": ns.method_name,
-                "dataset": ns.dataset,
-                "shots_per_class": ns.shots_per_class,
-                "seed": ns.seed,
-                "adapter_name": getattr(ns, "adapter_name", None),
-                "initialization": getattr(ns, "initialization", None),
-                "bayesadapter_text_only_run_dir": getattr(
-                    ns, "bayesadapter_text_only_run_dir", None
-                ),
-            },
-            ensure_ascii=False,
-            indent=2,
-        )
-    )
+    payload = {
+        "family": ns.family,
+        "variant": ns.variant,
+        "protocol": ns.protocol,
+        "evaluation_tasks": ns.evaluation_tasks,
+        "dataset": ns.dataset,
+        "shots_per_class": ns.shots_per_class,
+        "seed": ns.seed,
+    }
+    print(json.dumps(payload, ensure_ascii=False, indent=2))
 
 
 def main() -> None:
@@ -73,12 +43,10 @@ def main() -> None:
     args = parser.parse_args()
 
     namespaces = build_resolved_run_namespaces(args.plan)
-
     if args.only_index is not None:
         if args.only_index < 1 or args.only_index > len(namespaces):
             raise ValueError(
-                f"--only_index 超出范围：当前共有 {len(namespaces)} 条 experiment，"
-                f"但你传的是 {args.only_index}"
+                f"--only_index out of range: got {args.only_index}, total {len(namespaces)}"
             )
         namespaces = [namespaces[args.only_index - 1]]
 
@@ -92,12 +60,11 @@ def main() -> None:
     total = len(namespaces)
     for idx, ns in enumerate(namespaces, start=1):
         if args.stage in {"train", "all"}:
-            _print_experiment_brief(ns, idx, total, stage="train")
-            run_recipe_from_args(ns)
-
+            _brief(ns, idx, total, stage="train")
+            run_family_train(ns)
         if args.stage in {"eval", "all"}:
-            _print_experiment_brief(ns, idx, total, stage="eval")
-            eval_recipe_from_args(ns)
+            _brief(ns, idx, total, stage="eval")
+            run_family_eval(ns)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<config>
+  <protocol>id</protocol>
+  <evaluation_tasks>
+    <item>classification</item>
+  </evaluation_tasks>
+</config>

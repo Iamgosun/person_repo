@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<experiment_plan>
+  <imports>
+    <import href="../common/base.xml"/>
+    <import href="../families/vlm_adapter.xml"/>
+    <import href="../variants/vlm_adapter_bayesadapter.xml"/>
+    <import href="../protocols/base2new.xml"/>
+  </imports>
+  <evaluation_tasks>
+    <item>classification</item>
+  </evaluation_tasks>
+  <experiments>
+    <import href="../experiments/cifar10_16shot.xml"/>
+  </experiments>
+</experiment_plan>
