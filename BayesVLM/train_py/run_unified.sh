@@ -30,7 +30,7 @@ export PYTHONPATH="${ROOT_DIR}:${PYTHONPATH:-}"
 # ----------------------------
 # 1) 选哪个实验 plan
 # ----------------------------
-PLAN_NAME="vlm_adapter_bayesadapter_diag_textonly"
+PLAN_NAME="text_only_bayes_coop_bayes"
 # PLAN_NAME="deterministic_coop"
 # PLAN_NAME="text_only_bayes_coop_bayes"
 # vlm_adapter_bayesadapter_diag_textonly

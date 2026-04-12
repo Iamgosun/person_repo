@@ -57,7 +57,8 @@
   <train_aug_repeats>20</train_aug_repeats>
 
 
-
+  <!-- 跨域实验目前只在源域为 ImageNet 数据集上进行 -->
+  <!-- ImageNetV2 ImageNet-Sketch ImageNet-A ImageNet-R -->
   <generalization_datasets>
     <item></item>
     <item></item>
