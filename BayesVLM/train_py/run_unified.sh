@@ -22,8 +22,8 @@ export PYTHONPATH="${ROOT_DIR}:${PYTHONPATH:-}"
 # DRY_RUN=1 prints resolved configs without running
 # ONLY_INDEX="N" runs only the N-th experiment (1-based)
 # ============================================================
-
-PLAN_NAME="sample_id"
+ # vmfproto_id sample_id
+PLAN_NAME="vmfproto_id"
 STAGE="all"
 DRY_RUN=0
 ONLY_INDEX=""

@@ -85,12 +85,19 @@ def _materialize_parameters(parameters: Iterable[torch.nn.Parameter]) -> list[to
     return params
 
 
+
 def build_optimizer_from_args(
     parameters: Iterable[torch.nn.Parameter],
     args,
     default_name: str,
+    allow_empty: bool = False,
 ):
-    params = _materialize_parameters(parameters)
+    params = [p for p in parameters if p.requires_grad]
+    if len(params) == 0:
+        if allow_empty:
+            return None
+        raise ValueError("当前方法没有可训练参数，无法构建 optimizer。")
+
     optimizer_name = _normalize_optimizer_name(getattr(args, "optimizer", None), default_name)
 
     if optimizer_name == "sgd":
@@ -116,6 +123,9 @@ def build_optimizer_from_args(
     )
 
 
+
+
+
 def resolve_optimizer_name(args, default_name: str) -> str:
     return _normalize_optimizer_name(getattr(args, "optimizer", None), default_name)
 
@@ -125,6 +135,9 @@ def build_scheduler_from_args(
     args,
     default_name: str,
 ):
+    if optimizer is None:
+        return None
+
     scheduler_name = _normalize_scheduler_name(getattr(args, "lr_scheduler", None), default_name)
 
     if scheduler_name == "none":
@@ -145,6 +158,7 @@ def build_scheduler_from_args(
         )
 
     return successor
+
 
 
 def resolve_scheduler_name(args, default_name: str) -> str:
@@ -184,6 +198,8 @@ def is_better_metric(current: float, best: float | None, mode: str) -> bool:
 
 
 def get_current_lr(optimizer, scheduler=None) -> float:
+    if optimizer is None:
+        return 0.0
     if scheduler is not None:
         lrs = scheduler.get_last_lr()
         if len(lrs) > 0:

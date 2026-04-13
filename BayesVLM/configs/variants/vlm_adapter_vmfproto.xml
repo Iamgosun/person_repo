@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<config>
+  <variant>VMFPROTO</variant>
+  <initialization>ZS</initialization>
+
+  <!-- training-free -->
+  <epochs>0</epochs>
+  <train_logit_scale>false</train_logit_scale>
+  <hessian_dir>./hessians/hessian_CLIP-ViT-B-32-laion2B-s34B-b79K</hessian_dir>
+  <!-- BayesVLM Hessian / covariance directory -->
+  <!-- <hessian_dir>./output/hessian/clip-base</hessian_dir> -->
+
+  <!-- kappa = alpha / (rho + eps) -->
+  <vmf_kappa_scale>1.0</vmf_kappa_scale>
+  <vmf_eps>1e-6</vmf_eps>
+</config>

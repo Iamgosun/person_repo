@@ -79,10 +79,28 @@ def run_family_train(args) -> None:
         family.validate_and_note(args)
         prepared = protocol.prepare_train_data(args)
         ctx = build_common_context(args=args, run_dir=run_dir, prepared=prepared, require_image_feature_cache=family.require_image_feature_cache)
+      
+      
+
+
         state = family.build_state(ctx, args)
         optimizer = state["optimizer"]
-        scheduler = build_scheduler_from_args(optimizer=optimizer, args=args, default_name=family.default_scheduler_name)
+        scheduler = build_scheduler_from_args(
+            optimizer=optimizer,
+            args=args,
+            default_name=family.default_scheduler_name,
+        )
         state["scheduler"] = scheduler
+
+        if int(args.epochs) > 0 and optimizer is None:
+            raise ValueError("epochs > 0 but this variant has no trainable parameters")
+
+
+
+
+
+
+
 
         config = {
             **vars(args),

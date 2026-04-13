@@ -717,6 +717,157 @@ class BayesPaperAdapter(AdapterMethod):
 
 
 
+
+class VMFPrototypeAdapter(AdapterMethod):
+    """
+    Training-free spherical prototype adapter.
+
+    - posterior_eta: [C, D], already includes
+        template-text prior + support updates
+    - A_img_inv / B_img_inv: BayesVLM image-side Kronecker covariance factors
+    - query-time uncertainty is computed from cached image activations
+
+    注意：
+    1) 这里不走 text-only run prior，text prior 已在 family 侧直接由模板 prompts 构造好；
+    2) 为了保持依赖最小，这里使用 dependency-free 的 log C_d(kappa) 近似；
+    3) forward 需要 activations，因此通过 forward_with_aux 调用。
+    """
+
+    input_kind: TextStateKind = "vector"
+
+    def __init__(
+        self,
+        base_text_features: torch.Tensor,
+        initialization: str = "VMFPROTO",
+        posterior_eta: Optional[torch.Tensor] = None,
+        A_img_inv: Optional[torch.Tensor] = None,
+        B_img_inv: Optional[torch.Tensor] = None,
+        kappa_scale: float = 1.0,
+        eps: float = 1e-6,
+    ):
+        super().__init__(initialization)
+
+        if posterior_eta is None:
+            raise ValueError("VMFPrototypeAdapter requires posterior_eta")
+        if A_img_inv is None or B_img_inv is None:
+            raise ValueError("VMFPrototypeAdapter requires A_img_inv and B_img_inv")
+
+        posterior_eta = torch.as_tensor(
+            posterior_eta,
+            device=base_text_features.device,
+            dtype=base_text_features.dtype,
+        )
+        A_img_inv = torch.as_tensor(
+            A_img_inv,
+            device=base_text_features.device,
+            dtype=base_text_features.dtype,
+        )
+        B_img_inv = torch.as_tensor(
+            B_img_inv,
+            device=base_text_features.device,
+            dtype=base_text_features.dtype,
+        )
+
+        if posterior_eta.ndim != 2:
+            raise ValueError(f"posterior_eta must be [C, D], got {tuple(posterior_eta.shape)}")
+        if A_img_inv.ndim != 2 or B_img_inv.ndim != 2:
+            raise ValueError("A_img_inv and B_img_inv must be matrices")
+
+        self.register_buffer("posterior_eta", posterior_eta.clone())
+        self.register_buffer("A_img_inv", A_img_inv.clone())
+        self.register_buffer("B_img_inv", B_img_inv.clone())
+
+        self.kappa_scale = float(kappa_scale)
+        self.eps = float(eps)
+        self.feat_dim = int(posterior_eta.shape[-1])
+
+        kappa_post = posterior_eta.norm(dim=-1).clamp_min(self.eps)
+        mu_post = posterior_eta / kappa_post.unsqueeze(-1)
+
+        self.register_buffer("kappa_post", kappa_post)
+        self.register_buffer("mu_post", mu_post)
+        self.register_buffer("logC_post", self._approx_log_vmf_C(kappa_post, self.feat_dim))
+
+    def _normalize_rows(self, x: torch.Tensor) -> torch.Tensor:
+        return x / x.norm(dim=-1, keepdim=True).clamp_min(self.eps)
+
+    def _approx_log_vmf_C(self, kappa: torch.Tensor, dim: int) -> torch.Tensor:
+        """
+        dependency-free 近似：
+        - 小 kappa：退化到球面均匀分布的常数
+        - 中大 kappa：使用大 kappa 渐近式
+        """
+        kappa = kappa.clamp_min(self.eps)
+        dtype = kappa.dtype
+        device = kappa.device
+
+        half_d = torch.tensor(0.5 * float(dim), device=device, dtype=dtype)
+        log_c0 = torch.lgamma(half_d) - math.log(2.0) - half_d * math.log(math.pi)
+        log_c0 = log_c0.expand_as(kappa)
+
+        approx = 0.5 * float(dim - 1) * (torch.log(kappa) - math.log(2.0 * math.pi)) - kappa
+        return torch.where(kappa < 1e-4, log_c0, approx)
+
+    def _query_kappa(
+        self,
+        image_features: torch.Tensor,
+        activations: torch.Tensor,
+    ) -> torch.Tensor:
+        mu = image_features.float()
+        u = self._normalize_rows(mu)
+
+        acts = activations.float()
+        alpha = torch.einsum("bi,ij,bj->b", acts, self.A_img_inv.float(), acts).clamp_min(0.0)
+
+        tr_B = torch.trace(self.B_img_inv.float())
+        Bu = torch.matmul(u, self.B_img_inv.float())
+        uBu = (Bu * u).sum(dim=-1)
+
+        mu_norm2 = (mu * mu).sum(dim=-1).clamp_min(self.eps)
+        rho = alpha * (tr_B - uBu).clamp_min(0.0) / (
+            (float(self.feat_dim - 1) * mu_norm2) + self.eps
+        )
+        kappa = self.kappa_scale / (rho + self.eps)
+        return kappa.clamp_min(self.eps)
+
+    def forward_with_aux(
+        self,
+        image_features: torch.Tensor,
+        activations: torch.Tensor | None,
+        residuals: torch.Tensor | None,
+        logit_scale: torch.Tensor | None = None,
+    ) -> torch.Tensor:
+        del residuals, logit_scale
+
+        if activations is None:
+            raise ValueError("VMFPrototypeAdapter requires activations for query-time uncertainty")
+
+        u = self._normalize_rows(image_features.float())                  # [B, D]
+        kappa_q = self._query_kappa(image_features, activations)          # [B]
+
+        eta = self.posterior_eta.to(device=u.device, dtype=u.dtype)       # [C, D]
+        r = torch.linalg.norm(
+            kappa_q[:, None, None] * u[:, None, :] + eta[None, :, :],
+            dim=-1,
+        )                                                                 # [B, C]
+
+        logits = self.logC_post.to(device=r.device, dtype=r.dtype).unsqueeze(0) - self._approx_log_vmf_C(r, self.feat_dim)
+        return logits
+
+    def forward(
+        self,
+        image_features: torch.Tensor,
+        logit_scale: torch.Tensor,
+    ) -> torch.Tensor:
+        del image_features, logit_scale
+        raise RuntimeError("VMFPrototypeAdapter must be called through forward_with_aux(...)")
+
+    def regularization_loss(self) -> Tuple[torch.Tensor, Dict[str, float]]:
+        zero = torch.zeros((), device=self.posterior_eta.device, dtype=torch.float32)
+        return zero, {}
+
+
+
 ADAPTER_REGISTRY = {
     "LP": LinearProbeAdapter,
     "LINEARPROBE": LinearProbeAdapter,
@@ -730,6 +881,8 @@ ADAPTER_REGISTRY = {
     "GAUSSIAN_PER_CLASS": GaussianPerClassAdapter,
     "BAYESADAPTER": BayesPaperAdapter,
     "BAYES_ADAPTER": BayesPaperAdapter,
+    "VMFPROTO": VMFPrototypeAdapter,
+    "VMF_PROTO": VMFPrototypeAdapter,
 }
 
 

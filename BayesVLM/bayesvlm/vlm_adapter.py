@@ -210,7 +210,6 @@ class VLMAdapter(nn.Module):
         return torch.stack(class_features, dim=0)
 
 
-
     def _adapter_kwargs(self) -> dict:
         kwargs = {}
         name = self.adapter_name
@@ -269,7 +268,22 @@ class VLMAdapter(nn.Module):
             if prior_log_sigma is not None:
                 kwargs["prior_log_sigma"] = prior_log_sigma
 
+        elif name == "VMFPROTO":
+            posterior_eta = self._cfg_tensor("vmfproto_posterior_eta")
+            A_img_inv = self._cfg_tensor("vmfproto_A_img_inv")
+            B_img_inv = self._cfg_tensor("vmfproto_B_img_inv")
+
+            if posterior_eta is None or A_img_inv is None or B_img_inv is None:
+                raise ValueError("VMFPROTO requires vmfproto_posterior_eta / A_img_inv / B_img_inv in cfg")
+
+            kwargs["posterior_eta"] = posterior_eta
+            kwargs["A_img_inv"] = A_img_inv
+            kwargs["B_img_inv"] = B_img_inv
+            kwargs["kappa_scale"] = float(self._cfg_get("vmf_kappa_scale", 1.0))
+            kwargs["eps"] = float(self._cfg_get("vmf_eps", 1e-6))
+
         return kwargs
+
 
 
     def _build_adapter(self) -> nn.Module:
@@ -324,6 +338,60 @@ class VLMAdapter(nn.Module):
     def _coerce_feature_tensor(self, features: torch.Tensor) -> torch.Tensor:
         return features.to(device=self._runtime_device(), dtype=torch.float32)
 
+
+    def _extract_image_state(
+        self,
+        batch=None,
+        image: torch.Tensor | None = None,
+        image_features: torch.Tensor | None = None,
+    ):
+        """
+        返回:
+            {
+                "image_features": [B, D],
+                "activations":    [B, H] or None,
+                "residuals":      [B, D] or None,
+            }
+        """
+        if image_features is not None:
+            return {
+                "image_features": self._coerce_feature_tensor(image_features),
+                "activations": None,
+                "residuals": None,
+            }
+
+        if isinstance(batch, dict):
+            if "image_embeds" in batch:
+                activations = batch.get("activations", None)
+                residuals = batch.get("residuals", None)
+                return {
+                    "image_features": self._coerce_feature_tensor(batch["image_embeds"]),
+                    "activations": None if activations is None else self._coerce_feature_tensor(activations),
+                    "residuals": None if residuals is None else self._coerce_feature_tensor(residuals),
+                }
+            if "embeds" in batch:
+                activations = batch.get("activations", None)
+                residuals = batch.get("residuals", None)
+                return {
+                    "image_features": self._coerce_feature_tensor(batch["embeds"]),
+                    "activations": None if activations is None else self._coerce_feature_tensor(activations),
+                    "residuals": None if residuals is None else self._coerce_feature_tensor(residuals),
+                }
+
+        if image is None:
+            if batch is None:
+                raise ValueError("batch、image、image_features 不能同时为空")
+            image = batch["image"] if isinstance(batch, dict) else batch
+
+        encoded = self.image_encoder(image, return_activations=True)
+        return {
+            "image_features": self._coerce_feature_tensor(encoded.embeds),
+            "activations": self._coerce_feature_tensor(encoded.activations),
+            "residuals": self._coerce_feature_tensor(encoded.residuals),
+        }
+
+
+
     def _extract_image_features(
         self,
         batch=None,
@@ -354,7 +422,20 @@ class VLMAdapter(nn.Module):
 
         return self._encode_image(image)
 
-    def _apply_adapter(self, image_features: torch.Tensor) -> torch.Tensor:
+    def _apply_adapter(
+        self,
+        image_features: torch.Tensor,
+        activations: torch.Tensor | None = None,
+        residuals: torch.Tensor | None = None,
+    ) -> torch.Tensor:
+        if hasattr(self.adapter, "forward_with_aux"):
+            return self.adapter.forward_with_aux(
+                image_features=image_features,
+                activations=activations,
+                residuals=residuals,
+                logit_scale=self.vlm.logit_scale,
+            )
+
         logits = self.adapter(image_features, self.vlm.logit_scale)
         if getattr(self.vlm, "logit_bias", None) is not None:
             logits = logits + self.vlm.logit_bias.to(
@@ -363,6 +444,7 @@ class VLMAdapter(nn.Module):
             )
         return logits
 
+
     def forward(
         self,
         batch=None,
@@ -370,16 +452,23 @@ class VLMAdapter(nn.Module):
         image_features: torch.Tensor | None = None,
         return_features: bool = False,
     ):
-        feats = self._extract_image_features(
+        state = self._extract_image_state(
             batch=batch,
             image=image,
             image_features=image_features,
         )
-        logits = self._apply_adapter(feats)
+        feats = state["image_features"]
+        logits = self._apply_adapter(
+            image_features=feats,
+            activations=state["activations"],
+            residuals=state["residuals"],
+        )
 
         if return_features:
             return logits, feats
         return logits
+
+
 
     def forward_features(self, features: torch.Tensor) -> torch.Tensor:
         features = self._coerce_feature_tensor(features)

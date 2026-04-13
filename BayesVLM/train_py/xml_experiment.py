@@ -55,6 +55,8 @@ FLOAT_KEYS = {
     "bayesadapter_prior_sigma",
     "bayesadapter_kl_scale_divisor",
     "bayesadapter_text_only_mu_blend_lambda",
+    "vmf_kappa_scale",
+    "vmf_eps",
 }
 
 LIST_INT_KEYS = {
@@ -156,6 +158,11 @@ VLM_VARIANT_REQUIRED_KEYS: dict[str, set[str]] = {
         "bayesadapter_text_only_run_dir_template",
         "bayesadapter_text_only_mu_strategy",
         "bayesadapter_text_only_sigma_strategy",
+    },
+    "VMFPROTO": {
+        "hessian_dir",
+        "vmf_kappa_scale",
+        "vmf_eps",
     },
 }
 

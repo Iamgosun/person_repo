@@ -8,7 +8,7 @@ from typing import Any
 
 import torch
 
-from bayesvlm.hessians import load_hessians
+from bayesvlm.hessians import load_covariances, load_hessians
 from bayesvlm.methods.text_only_bayes_coop import build_text_only_bayes_coop_model, compute_text_covariance
 from bayesvlm.methods.vlm_adapter import (
     build_vlm_adapter_model,
@@ -24,7 +24,6 @@ from bayesvlm.text_priors import _build_templates
 from train_py.families.base_family import BaseFamily
 from train_py.runtime.common_context import resolve_existing_path
 from train_py.train_runtime import build_optimizer_from_args
-
 
 def _slugify_path_part(text: str) -> str:
     text = str(text).strip()
@@ -87,6 +86,152 @@ def _module_device(module, fallback: str = "cpu") -> torch.device:
         return next(module.parameters()).device
     except StopIteration:
         return torch.device(fallback)
+
+
+def _normalize_rows(x: torch.Tensor, eps: float) -> torch.Tensor:
+    return x / x.norm(dim=-1, keepdim=True).clamp_min(eps)
+
+
+def _quadratic_form_rows(x: torch.Tensor, M: torch.Tensor) -> torch.Tensor:
+    return torch.einsum("bi,ij,bj->b", x.float(), M.float(), x.float())
+
+
+def _compute_kappa_from_mu_and_alpha(
+    mu: torch.Tensor,
+    alpha: torch.Tensor,
+    B_inv: torch.Tensor,
+    kappa_scale: float,
+    eps: float,
+) -> torch.Tensor:
+    mu = mu.float()
+    alpha = alpha.float().clamp_min(0.0)
+    B_inv = B_inv.float()
+
+    dim = int(mu.shape[-1])
+    if dim <= 1:
+        raise ValueError("feature dim must be > 1 for VMFPROTO")
+
+    u = _normalize_rows(mu, eps)
+    mu_norm2 = (mu * mu).sum(dim=-1).clamp_min(eps)
+
+    tr_B = torch.trace(B_inv)
+    Bu = torch.matmul(u, B_inv)
+    uBu = (Bu * u).sum(dim=-1)
+
+    rho = alpha * (tr_B - uBu).clamp_min(0.0) / ((float(dim - 1) * mu_norm2) + eps)
+    kappa = float(kappa_scale) / (rho + eps)
+    return kappa.clamp_min(eps)
+
+
+@torch.no_grad()
+def _build_template_vmf_prior(ctx, args, cov_txt) -> torch.Tensor:
+    """
+    直接用模板 prompts 构造 text prior。
+    这里不是 text-only run prior。
+    """
+    device = torch.device(args.device)
+    eps = float(getattr(args, "vmf_eps", 1e-6))
+    kappa_scale = float(getattr(args, "vmf_kappa_scale", 1.0))
+
+    templates = _build_templates(str(args.dataset))
+    if not templates:
+        raise ValueError(f"no templates found for dataset={args.dataset}")
+
+    A_txt_inv = cov_txt.A_inv.to(device)
+    B_txt_inv = cov_txt.B_inv.to(device)
+
+    ctx.text_encoder.eval()
+    eta_list = []
+
+    for class_name in ctx.class_names:
+        prompts = [template.format(class_name.replace("_", " ")) for template in templates]
+        text_out = ctx.text_encoder(prompts, return_activations=True)
+        mu = text_out.embeds.to(device=device, dtype=torch.float32)
+        acts = text_out.activations.to(device=device, dtype=torch.float32)
+
+        alpha = _quadratic_form_rows(acts, A_txt_inv)
+        kappa = _compute_kappa_from_mu_and_alpha(
+            mu=mu,
+            alpha=alpha,
+            B_inv=B_txt_inv,
+            kappa_scale=kappa_scale,
+            eps=eps,
+        )
+        u = _normalize_rows(mu, eps)
+        eta_c = (kappa[:, None] * u).sum(dim=0)
+        eta_list.append(eta_c)
+
+    return torch.stack(eta_list, dim=0)
+
+
+@torch.no_grad()
+def _update_vmf_posterior_from_support(
+    eta0: torch.Tensor,
+    loader,
+    cov_img,
+    args,
+) -> torch.Tensor:
+    device = torch.device(args.device)
+    eps = float(getattr(args, "vmf_eps", 1e-6))
+    kappa_scale = float(getattr(args, "vmf_kappa_scale", 1.0))
+
+    A_img_inv = cov_img.A_inv.to(device)
+    B_img_inv = cov_img.B_inv.to(device)
+
+    eta = eta0.to(device=device, dtype=torch.float32).clone()
+
+    for batch in loader:
+        if "image_embeds" not in batch or "activations" not in batch:
+            raise KeyError("VMFPROTO requires cached loader batches to contain image_embeds and activations")
+
+        mu = batch["image_embeds"].to(device=device, dtype=torch.float32)
+        acts = batch["activations"].to(device=device, dtype=torch.float32)
+        labels = batch["class_id"].to(device=device, dtype=torch.long)
+
+        alpha = _quadratic_form_rows(acts, A_img_inv)
+        kappa = _compute_kappa_from_mu_and_alpha(
+            mu=mu,
+            alpha=alpha,
+            B_inv=B_img_inv,
+            kappa_scale=kappa_scale,
+            eps=eps,
+        )
+        u = _normalize_rows(mu, eps)
+        eta.index_add_(0, labels, kappa[:, None] * u)
+
+    return eta
+
+
+@torch.no_grad()
+def _build_vmfproto_payload(ctx, args) -> dict[str, Any]:
+    hessian_dir = resolve_existing_path(str(args.hessian_dir))
+    if hessian_dir is None:
+        raise ValueError("VMFPROTO requires a valid hessian_dir")
+
+    cov_img, cov_txt = load_covariances(str(hessian_dir), return_info=False)
+    cov_img = cov_img.to(args.device)
+    cov_txt = cov_txt.to(args.device)
+
+    eta0 = _build_template_vmf_prior(ctx=ctx, args=args, cov_txt=cov_txt)
+    eta_post = _update_vmf_posterior_from_support(
+        eta0=eta0,
+        loader=ctx.train_eval_loader,
+        cov_img=cov_img,
+        args=args,
+    )
+
+    return {
+        "vmfproto_posterior_eta": eta_post.detach().float().cpu(),
+        "vmfproto_A_img_inv": cov_img.A_inv.detach().float().cpu(),
+        "vmfproto_B_img_inv": cov_img.B_inv.detach().float().cpu(),
+        "vmfproto_meta": {
+            "hessian_dir": str(hessian_dir),
+            "text_prior_source": "template_prompts",
+            "kappa_scale": float(getattr(args, "vmf_kappa_scale", 1.0)),
+            "eps": float(getattr(args, "vmf_eps", 1e-6)),
+        },
+    }
+
 
 
 @torch.no_grad()
@@ -288,14 +433,15 @@ class VLMAdapterFamily(BaseFamily):
     default_selection_metric = "loss"
     default_selection_mode = "auto"
 
-
     def run_path_parts(self, args) -> list[str]:
         parts = [str(args.initialization)]
 
         train_logit_scale = bool(getattr(args, "train_logit_scale", False))
         parts.append("logit_scale_train" if train_logit_scale else "logit_scale_frozen")
 
-        if str(args.variant).upper() == "BAYESADAPTER":
+        variant_key = str(args.variant).upper()
+
+        if variant_key == "BAYESADAPTER":
             cov_mode = str(getattr(args, "bayesadapter_covariance_mode", "paper_scalar")).lower()
             if cov_mode != "paper_scalar":
                 parts.append(f"cov_{cov_mode}")
@@ -306,16 +452,25 @@ class VLMAdapterFamily(BaseFamily):
                 ckpt_tag = _slugify_path_part(str(getattr(args, "bayesadapter_text_only_ckpt", "auto")))
                 parts.append(f"prior_text_only__{source_dir_name}__{ckpt_tag}")
 
+        if variant_key == "VMFPROTO":
+            hessian_tag = _slugify_path_part(Path(str(getattr(args, "hessian_dir", "hessian"))).name)
+            parts.append(f"hess_{hessian_tag}")
+            parts.append(f"vmf_a_{float(getattr(args, 'vmf_kappa_scale', 1.0)):g}")
+
         parts.append(f"shot_{args.shots_per_class}")
         return parts
 
 
 
     def validate_and_note(self, args) -> None:
-        if getattr(args, "hessian_dir", None):
-            print(f"[note] hessian_dir={args.hessian_dir} is ignored in cached adapter training.")
+        if getattr(args, "hessian_dir", None) and str(args.variant).upper() != "VMFPROTO":
+            print(f"[note] hessian_dir={args.hessian_dir} is ignored for variant={args.variant}.")
+
         print(f"[note] pseudo_data_count={getattr(args, 'pseudo_data_count', None)} retained only for explicit config parity.")
-        if str(args.variant).upper() == "BAYESADAPTER":
+
+        variant_key = str(args.variant).upper()
+
+        if variant_key == "BAYESADAPTER":
             print(f"[note] bayesadapter_covariance_mode={getattr(args, 'bayesadapter_covariance_mode', 'paper_scalar')}")
             if _has_text_only_bridge(args):
                 run_dir = str(getattr(args, "bayesadapter_text_only_run_dir", "")).strip()
@@ -323,14 +478,35 @@ class VLMAdapterFamily(BaseFamily):
                     raise ValueError("bayesadapter_text_only_run_dir must be provided when text-only bridge is enabled")
                 print(f"[note] bayesadapter_text_only_run_dir={run_dir}")
                 print(f"[note] bayesadapter_text_only_ckpt={getattr(args, 'bayesadapter_text_only_ckpt', 'auto')}")
+            else:
+                print("[note] BAYESADAPTER prior source = template text features (default path)")
 
+        if variant_key == "VMFPROTO":
+            if int(getattr(args, "epochs", 0)) != 0:
+                raise ValueError("VMFPROTO is training-free in the current implementation; set epochs=0")
+            if not str(getattr(args, "hessian_dir", "")).strip():
+                raise ValueError("VMFPROTO requires hessian_dir")
+            print(f"[note] VMFPROTO hessian_dir={args.hessian_dir}")
+            print(f"[note] VMFPROTO text prior source=template prompts")
+            print(f"[note] VMFPROTO kappa_scale={getattr(args, 'vmf_kappa_scale', 1.0)} eps={getattr(args, 'vmf_eps', 1e-6)}")
 
 
 
     def build_state(self, ctx, args) -> dict[str, Any]:
         text_only_source_payload = _build_text_only_bayesadapter_prior(ctx, args)
-        resolved_prior = _resolve_bayesadapter_canonical_prior(ctx=ctx, args=args, source_payload=text_only_source_payload)
+        resolved_prior = _resolve_bayesadapter_canonical_prior(
+            ctx=ctx,
+            args=args,
+            source_payload=text_only_source_payload,
+        )
         cfg = _build_model_cfg_from_args(args, resolved_prior=resolved_prior)
+
+        vmf_payload = None
+        if str(args.variant).upper() == "VMFPROTO":
+            vmf_payload = _build_vmfproto_payload(ctx=ctx, args=args)
+            cfg["vmfproto_posterior_eta"] = vmf_payload["vmfproto_posterior_eta"]
+            cfg["vmfproto_A_img_inv"] = vmf_payload["vmfproto_A_img_inv"]
+            cfg["vmfproto_B_img_inv"] = vmf_payload["vmfproto_B_img_inv"]
 
         model = build_vlm_adapter_model(
             cfg=cfg,
@@ -362,6 +538,7 @@ class VLMAdapterFamily(BaseFamily):
             model.trainable_parameters(),
             args,
             default_name=self.default_optimizer_name,
+            allow_empty=(str(args.variant).upper() == "VMFPROTO"),
         )
 
         return {
@@ -370,6 +547,7 @@ class VLMAdapterFamily(BaseFamily):
             "optimizer": optimizer,
             "zero_shot_test": zero_shot_test,
             "bayesadapter_bridge_info": resolved_prior["bridge_info"],
+            "vmfproto_meta": None if vmf_payload is None else vmf_payload["vmfproto_meta"],
             "resolved_family_args": _to_jsonable(_public_namespace_dict(args)),
             "train_logit_scale": bool(getattr(args, "train_logit_scale", False)),
         }
@@ -389,6 +567,9 @@ class VLMAdapterFamily(BaseFamily):
         bridge_info = state.get("bayesadapter_bridge_info", None)
         if bridge_info is not None:
             extra["bayesadapter_prior_bridge"] = bridge_info
+        vmfproto_meta = state.get("vmfproto_meta", None)
+        if vmfproto_meta is not None:
+            extra["vmfproto_meta"] = vmfproto_meta
         return extra
 
 
@@ -398,6 +579,9 @@ class VLMAdapterFamily(BaseFamily):
         model = state["model"]
         optimizer = state["optimizer"]
         train_logit_scale = bool(state.get("train_logit_scale", False))
+
+        if optimizer is None:
+            raise RuntimeError("train_one_epoch called for a training-free variant")
 
         model.train()
         if hasattr(model, "set_epoch"):
@@ -450,9 +634,6 @@ class VLMAdapterFamily(BaseFamily):
             row["loss_crossmodal_text"] = epoch_crossmodal_text_sum / max(epoch_count, 1)
 
         return row
-
-
-
 
 
     def evaluate_split(self, state, loader, class_names, ctx, args):
@@ -553,4 +734,7 @@ class VLMAdapterFamily(BaseFamily):
         bridge_info = state.get("bayesadapter_bridge_info", None)
         if bridge_info is not None:
             extra["bayesadapter_prior_bridge"] = bridge_info
+        vmfproto_meta = state.get("vmfproto_meta", None)
+        if vmfproto_meta is not None:
+            extra["vmfproto_meta"] = vmfproto_meta
         return extra
