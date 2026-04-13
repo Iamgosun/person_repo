@@ -6,10 +6,19 @@
   <save_dir>./output</save_dir>
   <image_feature_cache_root>./cache/image_features</image_feature_cache_root>
 
+  <!-- <optimizer>sgd</optimizer>
+  <lr>0.01</lr> -->
+
   <optimizer>sgd</optimizer>
+  <lr>0.1</lr>
+  <weight_decay>0.0</weight_decay>
+
+
   <momentum>0.9</momentum>
   <nesterov>false</nesterov>
-  <lr>0.1</lr>
+
+
+  
   <weight_decay>0.0</weight_decay>
   <epochs>300</epochs>
   <lr_scheduler>cosine</lr_scheduler>

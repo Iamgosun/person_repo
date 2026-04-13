@@ -77,6 +77,7 @@ def build_text_only_bayes_coop_model(
     csc: bool,
     class_token_position: str,
     use_full_cov: bool,
+    train_logit_scale: bool,
     device: str,
 ):
     if hasattr(image_encoder, "freeze_all_layers"):
@@ -91,7 +92,7 @@ def build_text_only_bayes_coop_model(
         for p in text_encoder.parameters():
             p.requires_grad = False
 
-    vlm.logit_scale.requires_grad = False
+    vlm.logit_scale.requires_grad = bool(train_logit_scale)
     if getattr(vlm, "logit_bias", None) is not None:
         vlm.logit_bias.requires_grad = False
 
@@ -118,6 +119,7 @@ def build_text_only_bayes_coop_model(
     ).to(device)
 
     return prompt_learner, model
+
 
 
 def compute_text_only_bayes_coop_train_losses(

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import copy
 import json
+import math
 from pathlib import Path
 from typing import Any
 
@@ -192,6 +193,8 @@ def _build_text_only_bayesadapter_prior(ctx, args) -> dict[str, Any] | None:
         n_txt=pseudo_data_count,
         lambda_txt=lambda_txt,
     )
+
+
     prompt_learner, text_only_model = build_text_only_bayes_coop_model(
         class_names=ctx.class_names,
         text_encoder=ctx.text_encoder,
@@ -203,8 +206,11 @@ def _build_text_only_bayesadapter_prior(ctx, args) -> dict[str, Any] | None:
         csc=bool(text_only_cfg.get("csc", False)),
         class_token_position=str(text_only_cfg.get("class_token_position", "end")),
         use_full_cov=bool(text_only_cfg.get("use_full_cov", False)),
+        train_logit_scale=bool(text_only_cfg.get("train_logit_scale", False)),
         device=args.device,
     )
+
+
     ckpt_path = _resolve_text_only_ckpt_path(run_dir, text_only_cfg, str(getattr(args, "bayesadapter_text_only_ckpt", "auto")))
     ckpt_obj = torch.load(ckpt_path, map_location=args.device)
     prompt_state_dict = _extract_prompt_state_dict(ckpt_obj)
@@ -282,18 +288,28 @@ class VLMAdapterFamily(BaseFamily):
     default_selection_metric = "loss"
     default_selection_mode = "auto"
 
+
     def run_path_parts(self, args) -> list[str]:
         parts = [str(args.initialization)]
+
+        train_logit_scale = bool(getattr(args, "train_logit_scale", False))
+        parts.append("logit_scale_train" if train_logit_scale else "logit_scale_frozen")
+
         if str(args.variant).upper() == "BAYESADAPTER":
             cov_mode = str(getattr(args, "bayesadapter_covariance_mode", "paper_scalar")).lower()
             if cov_mode != "paper_scalar":
                 parts.append(f"cov_{cov_mode}")
             if _has_text_only_bridge(args):
-                source_dir_name = _slugify_path_part(Path(str(getattr(args, "bayesadapter_text_only_run_dir", "")).strip() or "text_only").name)
+                source_dir_name = _slugify_path_part(
+                    Path(str(getattr(args, "bayesadapter_text_only_run_dir", "")).strip() or "text_only").name
+                )
                 ckpt_tag = _slugify_path_part(str(getattr(args, "bayesadapter_text_only_ckpt", "auto")))
                 parts.append(f"prior_text_only__{source_dir_name}__{ckpt_tag}")
+
         parts.append(f"shot_{args.shots_per_class}")
         return parts
+
+
 
     def validate_and_note(self, args) -> None:
         if getattr(args, "hessian_dir", None):
@@ -308,10 +324,14 @@ class VLMAdapterFamily(BaseFamily):
                 print(f"[note] bayesadapter_text_only_run_dir={run_dir}")
                 print(f"[note] bayesadapter_text_only_ckpt={getattr(args, 'bayesadapter_text_only_ckpt', 'auto')}")
 
+
+
+
     def build_state(self, ctx, args) -> dict[str, Any]:
         text_only_source_payload = _build_text_only_bayesadapter_prior(ctx, args)
         resolved_prior = _resolve_bayesadapter_canonical_prior(ctx=ctx, args=args, source_payload=text_only_source_payload)
         cfg = _build_model_cfg_from_args(args, resolved_prior=resolved_prior)
+
         model = build_vlm_adapter_model(
             cfg=cfg,
             class_names=ctx.class_names,
@@ -320,6 +340,7 @@ class VLMAdapterFamily(BaseFamily):
             vlm=ctx.vlm,
             device=args.device,
         )
+
         if str(args.variant).upper() == "TIPA" and hasattr(model.adapter, "init_tipadapter"):
             print("[TipA] initialize cache_keys / cache_values from cached train features")
             all_features, all_labels = [], []
@@ -329,13 +350,20 @@ class VLMAdapterFamily(BaseFamily):
                 all_features.append(feats.detach().cpu())
                 all_labels.append(labels.detach().cpu())
             model.adapter.init_tipadapter(torch.cat(all_features, dim=0), torch.cat(all_labels, dim=0))
+
         zero_shot_test = evaluate_zero_shot_vlm_adapter(
             model=model,
             loader=ctx.test_loader,
             num_classes=len(ctx.class_names),
             device=args.device,
         )
-        optimizer = build_optimizer_from_args(model.trainable_parameters(), args, default_name=self.default_optimizer_name)
+
+        optimizer = build_optimizer_from_args(
+            model.trainable_parameters(),
+            args,
+            default_name=self.default_optimizer_name,
+        )
+
         return {
             "cfg": cfg,
             "model": model,
@@ -343,7 +371,10 @@ class VLMAdapterFamily(BaseFamily):
             "zero_shot_test": zero_shot_test,
             "bayesadapter_bridge_info": resolved_prior["bridge_info"],
             "resolved_family_args": _to_jsonable(_public_namespace_dict(args)),
+            "train_logit_scale": bool(getattr(args, "train_logit_scale", False)),
         }
+
+
 
     def build_config_extra(self, state, ctx, args):
         del ctx
@@ -353,23 +384,31 @@ class VLMAdapterFamily(BaseFamily):
             "initialization": args.initialization,
             "resolved_family_args": state["resolved_family_args"],
             "zero_shot_test": state["zero_shot_test"],
+            "train_logit_scale": bool(state.get("train_logit_scale", False)),
         }
         bridge_info = state.get("bayesadapter_bridge_info", None)
         if bridge_info is not None:
             extra["bayesadapter_prior_bridge"] = bridge_info
         return extra
 
+
+
+
     def train_one_epoch(self, state, ctx, args, epoch):
         model = state["model"]
         optimizer = state["optimizer"]
+        train_logit_scale = bool(state.get("train_logit_scale", False))
+
         model.train()
         if hasattr(model, "set_epoch"):
             model.set_epoch(epoch)
+
         epoch_loss_sum = 0.0
         epoch_reg_sum = 0.0
         epoch_crossmodal_text_sum = 0.0
         epoch_count = 0
         reg_info = {}
+
         for batch in ctx.train_loader:
             labels = batch["class_id"].to(args.device)
             optimizer.zero_grad(set_to_none=True)
@@ -377,22 +416,44 @@ class VLMAdapterFamily(BaseFamily):
             ce_loss = compute_classification_loss_from_logits(logits, labels)
             reg_loss, reg_info = compute_adapter_regularization_loss(model)
             total_loss = ce_loss + reg_loss
+
             if str(args.variant).upper() == "CROSSMODAL":
-                aux_text_loss = compute_crossmodal_text_loss(model=model, batch_size=labels.size(0), device=args.device)
+                aux_text_loss = compute_crossmodal_text_loss(
+                    model=model,
+                    batch_size=labels.size(0),
+                    device=args.device,
+                )
                 total_loss = total_loss + aux_text_loss
                 epoch_crossmodal_text_sum += aux_text_loss.item() * labels.size(0)
+
             total_loss.backward()
             optimizer.step()
+
+            if train_logit_scale and hasattr(model, "logit_scale") and model.logit_scale is not None:
+                with torch.no_grad():
+                    model.logit_scale.clamp_(max=math.log(100.0))
+
             epoch_loss_sum += total_loss.item() * labels.size(0)
             epoch_reg_sum += reg_loss.item() * labels.size(0)
             epoch_count += labels.size(0)
-        row = {"train_loss_step_mean": epoch_loss_sum / max(epoch_count, 1), "loss_reg": epoch_reg_sum / max(epoch_count, 1)}
+
+        row = {
+            "train_loss_step_mean": epoch_loss_sum / max(epoch_count, 1),
+            "loss_reg": epoch_reg_sum / max(epoch_count, 1),
+        }
+
         for key in ["loss_kl_raw", "loss_kl", "kl_weight"]:
             if key in reg_info:
                 row[key] = reg_info[key]
+
         if str(args.variant).upper() == "CROSSMODAL":
             row["loss_crossmodal_text"] = epoch_crossmodal_text_sum / max(epoch_count, 1)
+
         return row
+
+
+
+
 
     def evaluate_split(self, state, loader, class_names, ctx, args):
         del ctx
@@ -452,13 +513,34 @@ class VLMAdapterFamily(BaseFamily):
             log_msg += f" loss_kl_raw={row['loss_kl_raw']:.4f}"
         return log_msg
 
+
     def build_best_state(self, state, ctx, args, epoch, val_metrics):
         del ctx, args
-        return {"adapter": copy.deepcopy(state["model"].adapter.state_dict()), "best_epoch": epoch, "best_val_metrics": val_metrics}
+        train_logit_scale = bool(state.get("train_logit_scale", False))
+        return {
+            "adapter": copy.deepcopy(state["model"].adapter.state_dict()),
+            "logit_scale": (
+                state["model"].logit_scale.detach().cpu().clone()
+                if train_logit_scale and getattr(state["model"], "logit_scale", None) is not None
+                else None
+            ),
+            "best_epoch": epoch,
+            "best_val_metrics": val_metrics,
+        }
+
 
     def load_best_state(self, state, best_state, ctx, args):
         del ctx, args
         state["model"].adapter.load_state_dict(best_state["adapter"])
+        if "logit_scale" in best_state and best_state["logit_scale"] is not None:
+            state["model"].logit_scale.data.copy_(
+                best_state["logit_scale"].to(
+                    device=state["model"].logit_scale.device,
+                    dtype=state["model"].logit_scale.dtype,
+                )
+            )
+
+
 
     def build_summary_extra(self, state, selected_state, ctx, args):
         del selected_state, ctx

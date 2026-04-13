@@ -48,9 +48,13 @@ class VLMAdapter(nn.Module):
         self.classnames = [str(x) for x in classnames]
         self.text_covariance = text_covariance
 
+
         self.adapter_name = str(self._cfg_get("adapter_name", "LP")).upper()
         self.initialization = str(self._cfg_get("initialization", "MEAN"))
         self.dataset_name = str(self._cfg_get("datasetname", self._cfg_get("dataset", "")))
+        self.train_logit_scale = bool(self._cfg_get("train_logit_scale", False))
+
+
 
         if self.adapter_name not in ADAPTER_REGISTRY:
             raise ValueError(
@@ -124,6 +128,8 @@ class VLMAdapter(nn.Module):
         )
         return image_encoder, text_encoder, vlm
 
+
+
     def _freeze_backbones(self):
         if hasattr(self.image_encoder, "freeze_all_layers"):
             self.image_encoder.freeze_all_layers()
@@ -141,13 +147,15 @@ class VLMAdapter(nn.Module):
             p.requires_grad = False
 
         if hasattr(self.vlm, "logit_scale") and self.vlm.logit_scale is not None:
-            self.vlm.logit_scale.requires_grad = False
+            self.vlm.logit_scale.requires_grad = self.train_logit_scale
         if hasattr(self.vlm, "logit_bias") and self.vlm.logit_bias is not None:
             self.vlm.logit_bias.requires_grad = False
 
         self.image_encoder.eval()
         self.text_encoder.eval()
         self.vlm.eval()
+
+
 
     def train(self, mode: bool = True):
         """
@@ -277,8 +285,19 @@ class VLMAdapter(nn.Module):
             **self._adapter_kwargs(),
         )
 
+
+
     def trainable_parameters(self):
-        return self.adapter.parameters()
+        params = list(self.adapter.parameters())
+        if (
+            self.train_logit_scale
+            and hasattr(self.vlm, "logit_scale")
+            and self.vlm.logit_scale is not None
+        ):
+            params.append(self.vlm.logit_scale)
+        return params
+
+
 
     def set_epoch(self, epoch: int) -> None:
         if hasattr(self.adapter, "set_epoch"):

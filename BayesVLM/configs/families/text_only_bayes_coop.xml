@@ -8,6 +8,8 @@
   <csc>false</csc>
   <class_token_position>end</class_token_position>
 
+  <train_logit_scale>false</train_logit_scale>
+
   <hessian_dir>./hessians/hessian_CLIP-ViT-B-32-laion2B-s34B-b79K</hessian_dir>
   <pseudo_data_count>4</pseudo_data_count>
   <lambda_txt_init>300.0</lambda_txt_init>

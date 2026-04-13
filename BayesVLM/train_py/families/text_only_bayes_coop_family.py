@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 from pathlib import Path
 from typing import Any
 
@@ -18,6 +19,8 @@ from bayesvlm.common import ProbabilisticLogits
 from train_py.families.base_family import BaseFamily
 from train_py.runtime.common_context import resolve_existing_path
 from train_py.train_runtime import build_optimizer_from_args
+
+
 
 
 def _check_txt_hessian_dir(hessian_dir: Path) -> dict:
@@ -52,8 +55,15 @@ class TextOnlyBayesCoOpFamily(BaseFamily):
     default_selection_metric = "acc"
     default_selection_mode = "auto"
 
+
     def run_path_parts(self, args) -> list[str]:
-        return [f"shot_{args.shots_per_class}"]
+        train_logit_scale = bool(getattr(args, "train_logit_scale", False))
+        logit_scale_tag = "logit_scale_train" if train_logit_scale else "logit_scale_frozen"
+        return [
+            logit_scale_tag,
+            f"shot_{args.shots_per_class}",
+        ]
+
 
     def validate_and_note(self, args) -> None:
         hessian_dir_path = resolve_existing_path(args.hessian_dir)
@@ -64,6 +74,8 @@ class TextOnlyBayesCoOpFamily(BaseFamily):
                 f"hessian_dir = {hessian_dir_path}\n"
                 f"missing = {hessian_check['missing_required']}"
             )
+
+
 
     def build_state(self, ctx, args) -> dict[str, Any]:
         hessian_dir_path = resolve_existing_path(args.hessian_dir)
@@ -87,6 +99,9 @@ class TextOnlyBayesCoOpFamily(BaseFamily):
             n_txt=args.pseudo_data_count,
             lambda_txt=lambda_txt,
         )
+
+        train_logit_scale = bool(getattr(args, "train_logit_scale", False))
+
         prompt_learner, model = build_text_only_bayes_coop_model(
             class_names=ctx.class_names,
             text_encoder=ctx.text_encoder,
@@ -98,13 +113,20 @@ class TextOnlyBayesCoOpFamily(BaseFamily):
             csc=getattr(args, "csc", False),
             class_token_position=getattr(args, "class_token_position", "end"),
             use_full_cov=args.use_full_cov,
+            train_logit_scale=train_logit_scale,
             device=args.device,
         )
+
+        trainable_params = list(prompt_learner.parameters())
+        if train_logit_scale:
+            trainable_params.append(model.logit_scale)
+
         optimizer = build_optimizer_from_args(
-            prompt_learner.parameters(),
+            trainable_params,
             args,
             default_name=self.default_optimizer_name,
         )
+
         return {
             "model": model,
             "prompt_learner": prompt_learner,
@@ -113,7 +135,10 @@ class TextOnlyBayesCoOpFamily(BaseFamily):
             "hessian_dir_path": hessian_dir_path,
             "hessian_check": hessian_check,
             "lambda_txt": lambda_txt,
+            "train_logit_scale": train_logit_scale,
         }
+
+
 
     def build_config_extra(self, state, ctx, args):
         del ctx
@@ -137,18 +162,24 @@ class TextOnlyBayesCoOpFamily(BaseFamily):
             "bayes_loss_weight": getattr(args, "bayes_loss_weight", 1.0),
             "ctx_reg_weight": getattr(args, "ctx_reg_weight", 1e-4),
             "save_prototype_history": bool(getattr(args, "save_prototype_history", False)),
+            "train_logit_scale": bool(state.get("train_logit_scale", False)),
         }
+
+
 
     def train_one_epoch(self, state, ctx, args, epoch):
         model = state["model"]
         prompt_learner = state["prompt_learner"]
         optimizer = state["optimizer"]
+        train_logit_scale = bool(state.get("train_logit_scale", False))
+
         model.train()
         epoch_total_loss = 0.0
         epoch_map_loss = 0.0
         epoch_bayes_loss = 0.0
         epoch_ctx_reg = 0.0
         epoch_count = 0
+
         for batch in ctx.train_loader:
             labels = batch["class_id"].to(args.device)
             optimizer.zero_grad()
@@ -171,18 +202,26 @@ class TextOnlyBayesCoOpFamily(BaseFamily):
             )
             loss.backward()
             optimizer.step()
+
+            if train_logit_scale:
+                with torch.no_grad():
+                    model.logit_scale.clamp_(max=math.log(100.0))
+
             n = labels.size(0)
             epoch_total_loss += loss.detach().item() * n
             epoch_map_loss += loss_dict["map_loss"].detach().item() * n
             epoch_bayes_loss += loss_dict["bayes_loss"].detach().item() * n
             epoch_ctx_reg += loss_dict["ctx_reg"].detach().item() * n
             epoch_count += n
+
         return {
             "train_loss_step_mean": epoch_total_loss / max(epoch_count, 1),
             "train_map_loss_mean": epoch_map_loss / max(epoch_count, 1),
             "train_bayes_loss_mean": epoch_bayes_loss / max(epoch_count, 1),
             "train_ctx_reg_mean": epoch_ctx_reg / max(epoch_count, 1),
         }
+
+
 
     def evaluate_split(self, state, loader, class_names, ctx, args):
         del ctx
@@ -261,8 +300,26 @@ class TextOnlyBayesCoOpFamily(BaseFamily):
 
     def build_best_state(self, state, ctx, args, epoch, val_metrics):
         del ctx, args
-        return {"prompt_learner": state["prompt_learner"].state_dict(), "best_epoch": epoch, "best_val_metrics": val_metrics}
+        train_logit_scale = bool(state.get("train_logit_scale", False))
+        return {
+            "prompt_learner": state["prompt_learner"].state_dict(),
+            "logit_scale": (
+                state["model"].logit_scale.detach().cpu().clone()
+                if train_logit_scale
+                else None
+            ),
+            "best_epoch": epoch,
+            "best_val_metrics": val_metrics,
+        }
+
 
     def load_best_state(self, state, best_state, ctx, args):
         del ctx, args
         state["prompt_learner"].load_state_dict(best_state["prompt_learner"])
+        if "logit_scale" in best_state and best_state["logit_scale"] is not None:
+            state["model"].logit_scale.data.copy_(
+                best_state["logit_scale"].to(
+                    device=state["model"].logit_scale.device,
+                    dtype=state["model"].logit_scale.dtype,
+                )
+            )

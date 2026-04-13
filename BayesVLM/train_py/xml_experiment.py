@@ -15,6 +15,7 @@ BOOL_KEYS = {
     "use_augmented_train_cache",
     "use_full_cov",
     "save_prototype_history",
+    "train_logit_scale",
 }
 
 INT_KEYS = {
