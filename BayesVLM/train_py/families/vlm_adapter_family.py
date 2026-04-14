@@ -715,7 +715,19 @@ class VLMAdapterFamily(BaseFamily):
             "loss_reg": epoch_reg_sum / max(epoch_count, 1),
         }
 
-        for key in ["loss_kl_raw", "loss_kl", "kl_weight", "lambda_u"]:
+        for key in [
+            "loss_kl_raw",
+            "loss_kl",
+            "kl_weight",
+            "lambda_u",
+            "delta_par_sq_mean",
+            "delta_perp_sq_mean",
+            "alpha_mean",
+            "wBw_mean",
+            "var_logits_mean",
+            "var_logits_max",
+            "correction_abs_mean",
+        ]:
             if key in reg_info:
                 row[key] = reg_info[key]
 
@@ -781,7 +793,14 @@ class VLMAdapterFamily(BaseFamily):
         if "loss_kl_raw" in row:
             log_msg += f" loss_kl_raw={row['loss_kl_raw']:.4f}"
         if "lambda_u" in row:
-            log_msg += f" lambda_u={row['lambda_u']:.6f}" 
+            log_msg += f" lambda_u={row['lambda_u']:.6f}"
+        if "correction_abs_mean" in row:
+            log_msg += f" corr_abs={row['correction_abs_mean']:.6f}"
+        if "delta_par_sq_mean" in row and "delta_perp_sq_mean" in row:
+            log_msg += (
+                f" dpar2={row['delta_par_sq_mean']:.6f}"
+                f" dperp2={row['delta_perp_sq_mean']:.6f}"
+            )
             
         return log_msg
 

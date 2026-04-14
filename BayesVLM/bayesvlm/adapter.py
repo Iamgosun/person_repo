@@ -929,6 +929,9 @@ class VMFPrototypeAdapter(AdapterMethod):
             )
             self._debug_printed = True
 
+
+
+
         return logits
 
     def forward(
@@ -1011,7 +1014,7 @@ class UATangentBayesAdapterMin(BayesPaperAdapter):
             prior_mu=prior_mu,
             prior_log_sigma=prior_log_sigma,
         )
-
+        self._last_forward_stats: Dict[str, float] = {}
         if A_img_inv is None or B_img_inv is None:
             raise ValueError("UATB_MIN requires A_img_inv and B_img_inv")
 
@@ -1035,8 +1038,31 @@ class UATangentBayesAdapterMin(BayesPaperAdapter):
         )
 
 
-        init_val = float(min(max(lambda_u_init, 1e-2), self.lambda_u_max))
-        raw_init = math.log(math.exp(init_val) - 1.0)
+
+
+        if lambda_u_init < 0.0:
+            raise ValueError("lambda_u_init must be >= 0")
+
+        self.lambda_u_eps = 1e-12
+        self.lambda_u_max = float(max(lambda_u_max, self.lambda_u_eps))
+
+        if lambda_u_init == 0.0:
+            raw_init = -50.0   # softplus(-50) ~ 0
+        else:
+            init_val = float(min(lambda_u_init, self.lambda_u_max))
+            raw_init = math.log(math.expm1(init_val))
+
+        raw_tensor = torch.tensor(
+            raw_init,
+            device=self.variational_mu.device,
+            dtype=self.variational_mu.dtype,
+        )
+
+        if lambda_u_learnable:
+            self.raw_lambda_u = nn.Parameter(raw_tensor)
+        else:
+            self.register_buffer("raw_lambda_u", raw_tensor)
+
 
 
         raw_tensor = torch.tensor(
@@ -1051,7 +1077,25 @@ class UATangentBayesAdapterMin(BayesPaperAdapter):
 
 
     def _lambda_u(self) -> torch.Tensor:
-        return torch.clamp(F.softplus(self.raw_lambda_u), max=self.lambda_u_max)
+        lam = F.softplus(self.raw_lambda_u)
+        lam = torch.clamp(lam, min=0.0, max=self.lambda_u_max)
+        return lam
+
+
+    def _prior_geometry_stats(self) -> Dict[str, torch.Tensor]:
+        delta = self.variational_mu - self.prior_mu
+        t = self.prior_dirs
+
+        delta_par = (delta * t).sum(dim=-1)                    # [C]
+        delta_sq = delta.pow(2).sum(dim=-1)                    # [C]
+        delta_perp_sq = (delta_sq - delta_par.pow(2)).clamp_min(0.0)
+
+        return {
+            "delta_par_sq_mean": delta_par.pow(2).mean(),
+            "delta_perp_sq_mean": delta_perp_sq.mean(),
+            "prior_dir_norm_mean": t.norm(dim=-1).mean(),
+        }
+
 
 
     def kl_divergence(self) -> torch.Tensor:
@@ -1140,16 +1184,39 @@ class UATangentBayesAdapterMin(BayesPaperAdapter):
         corrected = mean_logits / torch.sqrt(
             1.0 + (math.pi / 8.0) * var_logits.to(dtype=mean_logits.dtype)
         )
+
+
+        with torch.no_grad():
+            correction = (mean_logits - corrected).abs().mean()
+            self._last_forward_stats = {
+                "alpha_mean": float(alpha.mean().item()),
+                "wBw_mean": float(wBw.mean().item()),
+                "var_logits_mean": float(var_logits.mean().item()),
+                "var_logits_max": float(var_logits.max().item()),
+                "correction_abs_mean": float(correction.item()),
+            }
+
+
         return corrected
 
     def regularization_loss(self) -> Tuple[torch.Tensor, Dict[str, float]]:
+        stats = getattr(self, "_last_forward_stats", {})
         kl_raw = self.kl_divergence()
         loss = kl_raw * float(self.kl_weight)
+
+        geo = self._prior_geometry_stats()
         return loss, {
             "loss_kl_raw": float(kl_raw.detach().item()),
             "kl_weight": float(self.kl_weight),
             "loss_kl": float(loss.detach().item()),
             "lambda_u": float(self._lambda_u().detach().item()),
+            "delta_par_sq_mean": float(geo["delta_par_sq_mean"].detach().item()),
+            "delta_perp_sq_mean": float(geo["delta_perp_sq_mean"].detach().item()),
+            "alpha_mean": float(stats.get("alpha_mean", 0.0)),
+            "wBw_mean": float(stats.get("wBw_mean", 0.0)),
+            "var_logits_mean": float(stats.get("var_logits_mean", 0.0)),
+            "var_logits_max": float(stats.get("var_logits_max", 0.0)),
+            "correction_abs_mean": float(stats.get("correction_abs_mean", 0.0)),
         }
 
 

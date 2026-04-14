@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<config>
+  <variant>UATB_MIN</variant>
+  <initialization>BAYESADAPTER</initialization>
+
+  <train_logit_scale>false</train_logit_scale>
+
+  <bayesadapter_prior_sigma>0.01</bayesadapter_prior_sigma>
+  <bayesadapter_train_mc_samples>3</bayesadapter_train_mc_samples>
+  <bayesadapter_eval_mc_samples>10</bayesadapter_eval_mc_samples>
+  <bayesadapter_kl_scale_divisor>1000.0</bayesadapter_kl_scale_divisor>
+  <bayesadapter_covariance_mode>paper_scalar</bayesadapter_covariance_mode>
+
+  <uatb_prior_sigma_parallel>0.01</uatb_prior_sigma_parallel>
+  <uatb_prior_sigma_perp>0.01</uatb_prior_sigma_perp>
+
+  <uatb_use_feature_uncertainty>true</uatb_use_feature_uncertainty>
+  <uatb_lambda_u_init>0.0</uatb_lambda_u_init>
+  <uatb_lambda_u_max>1.0</uatb_lambda_u_max>
+  <uatb_lambda_u_learnable>true</uatb_lambda_u_learnable>
+
+  <hessian_dir>./hessians/hessian_CLIP-ViT-B-32-laion2B-s34B-b79K</hessian_dir>
+</config>
