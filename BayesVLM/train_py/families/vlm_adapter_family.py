@@ -466,6 +466,10 @@ class VLMAdapterFamily(BaseFamily):
     default_selection_metric = "loss"
     default_selection_mode = "auto"
 
+
+
+
+
     def run_path_parts(self, args) -> list[str]:
         parts = [str(args.initialization)]
 
@@ -485,6 +489,13 @@ class VLMAdapterFamily(BaseFamily):
                 ckpt_tag = _slugify_path_part(str(getattr(args, "bayesadapter_text_only_ckpt", "auto")))
                 parts.append(f"prior_text_only__{source_dir_name}__{ckpt_tag}")
 
+        if variant_key == "UATB_MIN":
+            hessian_tag = _slugify_path_part(Path(str(getattr(args, "hessian_dir", "hessian"))).name)
+            parts.append(f"hess_{hessian_tag}")
+            parts.append(f"sigpar_{float(getattr(args, 'uatb_prior_sigma_parallel', 0.005)):g}")
+            parts.append(f"sigperp_{float(getattr(args, 'uatb_prior_sigma_perp', 0.02)):g}")
+            parts.append(f"lu0_{float(getattr(args, 'uatb_lambda_u_init', 0.0)):g}")
+
         if variant_key == "VMFPROTO":
             hessian_tag = _slugify_path_part(Path(str(getattr(args, "hessian_dir", "hessian"))).name)
             parts.append(f"hess_{hessian_tag}")
@@ -493,13 +504,15 @@ class VLMAdapterFamily(BaseFamily):
         parts.append(f"shot_{args.shots_per_class}")
         return parts
 
+
+
     def validate_and_note(self, args) -> None:
-        if getattr(args, "hessian_dir", None) and str(args.variant).upper() != "VMFPROTO":
+        variant_key = str(args.variant).upper()
+
+        if getattr(args, "hessian_dir", None) and variant_key not in {"VMFPROTO", "UATB_MIN"}:
             print(f"[note] hessian_dir={args.hessian_dir} is ignored for variant={args.variant}.")
 
         print(f"[note] pseudo_data_count={getattr(args, 'pseudo_data_count', None)} retained only for explicit config parity.")
-
-        variant_key = str(args.variant).upper()
 
         if variant_key == "BAYESADAPTER":
             print(f"[note] bayesadapter_covariance_mode={getattr(args, 'bayesadapter_covariance_mode', 'paper_scalar')}")
@@ -511,6 +524,22 @@ class VLMAdapterFamily(BaseFamily):
                 print(f"[note] bayesadapter_text_only_ckpt={getattr(args, 'bayesadapter_text_only_ckpt', 'auto')}")
             else:
                 print("[note] BAYESADAPTER prior source = template text features (default path)")
+
+        if variant_key == "UATB_MIN":
+            if not str(getattr(args, "hessian_dir", "")).strip():
+                raise ValueError("UATB_MIN requires hessian_dir")
+            if str(getattr(args, "bayesadapter_covariance_mode", "paper_scalar")).lower() != "paper_scalar":
+                raise ValueError("UATB_MIN currently only supports bayesadapter_covariance_mode='paper_scalar'")
+
+            print(f"[note] UATB_MIN hessian_dir={args.hessian_dir}")
+            print(f"[note] UATB_MIN use_feature_uncertainty={getattr(args, 'uatb_use_feature_uncertainty', True)}")
+            print(
+                f"[note] UATB_MIN sigma_parallel={getattr(args, 'uatb_prior_sigma_parallel', 0.005)} "
+                f"sigma_perp={getattr(args, 'uatb_prior_sigma_perp', 0.02)} "
+                f"lambda_u_init={getattr(args, 'uatb_lambda_u_init', 0.0)} "
+                f"lambda_u_max={getattr(args, 'uatb_lambda_u_max', 1.0)} "
+                f"lambda_u_learnable={getattr(args, 'uatb_lambda_u_learnable', True)}"
+            )
 
         if variant_key == "VMFPROTO":
             if int(getattr(args, "epochs", 0)) != 0:
@@ -524,6 +553,9 @@ class VLMAdapterFamily(BaseFamily):
                 f"kappa_max={getattr(args, 'vmf_kappa_max', 500.0)} "
                 f"eps={getattr(args, 'vmf_eps', 1e-6)}"
             )
+
+
+
 
     def build_state(self, ctx, args) -> dict[str, Any]:
         text_only_source_payload = _build_text_only_bayesadapter_prior(ctx, args)
@@ -540,6 +572,28 @@ class VLMAdapterFamily(BaseFamily):
             cfg["vmfproto_posterior_eta"] = vmf_payload["vmfproto_posterior_eta"]
             cfg["vmfproto_A_img_inv"] = vmf_payload["vmfproto_A_img_inv"]
             cfg["vmfproto_B_img_inv"] = vmf_payload["vmfproto_B_img_inv"]
+
+        uatb_payload = None
+        if str(args.variant).upper() == "UATB_MIN":
+            hessian_dir = resolve_existing_path(str(args.hessian_dir))
+            if hessian_dir is None:
+                raise ValueError("UATB_MIN requires a valid hessian_dir")
+
+            cov_img, _ = load_covariances(str(hessian_dir), return_info=False)
+            cov_img = cov_img.to(args.device)
+
+            cfg["uatb_A_img_inv"] = cov_img.A_inv.detach().float().cpu()
+            cfg["uatb_B_img_inv"] = cov_img.B_inv.detach().float().cpu()
+
+            uatb_payload = {
+                "hessian_dir": str(hessian_dir),
+                "use_feature_uncertainty": bool(getattr(args, "uatb_use_feature_uncertainty", True)),
+                "sigma_parallel": float(getattr(args, "uatb_prior_sigma_parallel", 0.005)),
+                "sigma_perp": float(getattr(args, "uatb_prior_sigma_perp", 0.02)),
+                "lambda_u_init": float(getattr(args, "uatb_lambda_u_init", 0.0)),
+                "lambda_u_max": float(getattr(args, "uatb_lambda_u_max", 1.0)),
+                "lambda_u_learnable": bool(getattr(args, "uatb_lambda_u_learnable", True)),
+            }
 
         model = build_vlm_adapter_model(
             cfg=cfg,
@@ -581,9 +635,12 @@ class VLMAdapterFamily(BaseFamily):
             "zero_shot_test": zero_shot_test,
             "bayesadapter_bridge_info": resolved_prior["bridge_info"],
             "vmfproto_meta": None if vmf_payload is None else vmf_payload["vmfproto_meta"],
+            "uatb_meta": uatb_payload,
             "resolved_family_args": _to_jsonable(_public_namespace_dict(args)),
             "train_logit_scale": bool(getattr(args, "train_logit_scale", False)),
         }
+
+
 
     def build_config_extra(self, state, ctx, args):
         del ctx
@@ -601,7 +658,11 @@ class VLMAdapterFamily(BaseFamily):
         vmfproto_meta = state.get("vmfproto_meta", None)
         if vmfproto_meta is not None:
             extra["vmfproto_meta"] = vmfproto_meta
+        uatb_meta = state.get("uatb_meta", None)
+        if uatb_meta is not None:
+            extra["uatb_meta"] = uatb_meta
         return extra
+
 
     def train_one_epoch(self, state, ctx, args, epoch):
         model = state["model"]
@@ -654,7 +715,7 @@ class VLMAdapterFamily(BaseFamily):
             "loss_reg": epoch_reg_sum / max(epoch_count, 1),
         }
 
-        for key in ["loss_kl_raw", "loss_kl", "kl_weight"]:
+        for key in ["loss_kl_raw", "loss_kl", "kl_weight", "lambda_u"]:
             if key in reg_info:
                 row[key] = reg_info[key]
 
@@ -719,6 +780,9 @@ class VLMAdapterFamily(BaseFamily):
             log_msg += f" kl_weight={row['kl_weight']:.6f}"
         if "loss_kl_raw" in row:
             log_msg += f" loss_kl_raw={row['loss_kl_raw']:.4f}"
+        if "lambda_u" in row:
+            log_msg += f" lambda_u={row['lambda_u']:.6f}" 
+            
         return log_msg
 
     def build_best_state(self, state, ctx, args, epoch, val_metrics):
@@ -746,6 +810,7 @@ class VLMAdapterFamily(BaseFamily):
                 )
             )
 
+
     def build_summary_extra(self, state, selected_state, ctx, args):
         del selected_state, ctx
         extra = {
@@ -760,4 +825,7 @@ class VLMAdapterFamily(BaseFamily):
         vmfproto_meta = state.get("vmfproto_meta", None)
         if vmfproto_meta is not None:
             extra["vmfproto_meta"] = vmfproto_meta
+        uatb_meta = state.get("uatb_meta", None)
+        if uatb_meta is not None:
+            extra["uatb_meta"] = uatb_meta
         return extra

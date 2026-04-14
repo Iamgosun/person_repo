@@ -3,7 +3,7 @@
   <variant>BAYESADAPTER</variant>
   <initialization>BAYESADAPTER</initialization>
 
-  <train_logit_scale>true</train_logit_scale>
+  <train_logit_scale>false</train_logit_scale>
 
   <bayesadapter_prior_sigma>0.01</bayesadapter_prior_sigma>
   <bayesadapter_train_mc_samples>3</bayesadapter_train_mc_samples>
@@ -14,6 +14,6 @@
   <bayesadapter_text_only_ckpt>last</bayesadapter_text_only_ckpt>
   <bayesadapter_text_only_run_dir_template>{save_dir}/text_only_bayes_coop_bayes/{protocol}/{dataset}/shot_{shots_per_class}/seed_{seed}</bayesadapter_text_only_run_dir_template>
   <bayesadapter_text_only_mu_strategy>blend</bayesadapter_text_only_mu_strategy>
-  <bayesadapter_text_only_mu_blend_lambda>0.5</bayesadapter_text_only_mu_blend_lambda>
+  <bayesadapter_text_only_mu_blend_lambda>0.0</bayesadapter_text_only_mu_blend_lambda>
   <bayesadapter_text_only_sigma_strategy>ignore</bayesadapter_text_only_sigma_strategy>
 </config>

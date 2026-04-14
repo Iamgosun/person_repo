@@ -944,6 +944,215 @@ class VMFPrototypeAdapter(AdapterMethod):
         return zero, {}
 
 
+
+
+class UATangentBayesAdapterMin(BayesPaperAdapter):
+    """
+    Minimal falsifiable version of:
+        BayesAdapter
+        + tangent-anisotropic prior
+        + shared feature-uncertainty gate lambda_u
+
+    设计原则
+    --------
+    1) posterior 参数化保持与 BayesPaperAdapter(paper_scalar) 一致：
+       q(w_c) = N(mu_c, sigma_c^2 I)
+    2) prior 改为围绕 normalized prior_mu 的切空间各向异性高斯：
+       p(w_c) = N(t_c, sigma_parallel^2 t_c t_c^T + sigma_perp^2 (I - t_c t_c^T))
+    3) logits 仍然返回 [S, B, C]，保持你当前 trainer / loss 实现不变
+    4) 当
+         - sigma_parallel == sigma_perp == bayesadapter_prior_sigma
+         - lambda_u == 0
+       时，KL 与 forward 都退化回当前 BayesAdapter
+
+    当前最小版本限制
+    ----------------
+    - 只支持 covariance_mode == "paper_scalar"
+    - feature uncertainty 使用 BayesVLM image-side Hessian payload:
+        alpha_n = a_n^T A_img_inv a_n
+        var(logit_{s,n,c}) ~ scale^2 * lambda_u * alpha_n * w_{s,c}^T B_img_inv w_{s,c}
+    """
+
+    input_kind: TextStateKind = "vector"
+
+    def __init__(
+        self,
+        base_text_features: torch.Tensor,
+        initialization: str = "UATB_MIN",
+        prior_sigma: float = 0.01,
+        train_mc_samples: int = 3,
+        eval_mc_samples: int = 10,
+        total_epochs: int = 300,
+        kl_scale_divisor: float = 1000.0,
+        covariance_mode: str = "paper_scalar",
+        prior_mu: Optional[torch.Tensor] = None,
+        prior_log_sigma: Optional[torch.Tensor] = None,
+        prior_sigma_parallel: float = 0.005,
+        prior_sigma_perp: float = 0.02,
+        use_feature_uncertainty: bool = True,
+        lambda_u_init: float = 0.0,
+        lambda_u_max: float = 1.0,
+        lambda_u_learnable: bool = True,
+        A_img_inv: Optional[torch.Tensor] = None,
+        B_img_inv: Optional[torch.Tensor] = None,
+    ):
+        if str(covariance_mode).lower() != "paper_scalar":
+            raise ValueError("UATangentBayesAdapterMin only supports covariance_mode='paper_scalar'")
+
+        super().__init__(
+            base_text_features=base_text_features,
+            initialization=initialization,
+            prior_sigma=prior_sigma,
+            train_mc_samples=train_mc_samples,
+            eval_mc_samples=eval_mc_samples,
+            total_epochs=total_epochs,
+            kl_scale_divisor=kl_scale_divisor,
+            covariance_mode="paper_scalar",
+            prior_mu=prior_mu,
+            prior_log_sigma=prior_log_sigma,
+        )
+
+        if A_img_inv is None or B_img_inv is None:
+            raise ValueError("UATB_MIN requires A_img_inv and B_img_inv")
+
+        self.use_feature_uncertainty = bool(use_feature_uncertainty)
+        self.prior_sigma_parallel = float(max(prior_sigma_parallel, 1e-8))
+        self.prior_sigma_perp = float(max(prior_sigma_perp, 1e-8))
+        self.lambda_u_max = float(max(lambda_u_max, 1e-8))
+
+        # 方向化 prior center：围绕 normalized prior_mu 做切空间分解
+        prior_dirs = self._normalize_features(self.prior_mu.detach())
+        self.register_buffer("prior_dirs", prior_dirs)
+
+        # BayesVLM image-side Hessian payload
+        self.register_buffer(
+            "A_img_inv",
+            torch.as_tensor(A_img_inv, device=self.variational_mu.device, dtype=self.variational_mu.dtype).clone(),
+        )
+        self.register_buffer(
+            "B_img_inv",
+            torch.as_tensor(B_img_inv, device=self.variational_mu.device, dtype=self.variational_mu.dtype).clone(),
+        )
+
+
+        init_val = float(min(max(lambda_u_init, 1e-2), self.lambda_u_max))
+        raw_init = math.log(math.exp(init_val) - 1.0)
+
+
+        raw_tensor = torch.tensor(
+            raw_init,
+            device=self.variational_mu.device,
+            dtype=self.variational_mu.dtype,
+        )
+        if lambda_u_learnable:
+            self.raw_lambda_u = nn.Parameter(raw_tensor)
+        else:
+            self.register_buffer("raw_lambda_u", raw_tensor)
+
+
+    def _lambda_u(self) -> torch.Tensor:
+        return torch.clamp(F.softplus(self.raw_lambda_u), max=self.lambda_u_max)
+
+
+    def kl_divergence(self) -> torch.Tensor:
+        """
+        与当前 BayesPaperAdapter 的 "paper-faithful" 风格保持一致：
+        - 省略常数项，不影响优化方向
+        - 当 sigma_parallel == sigma_perp == prior_sigma 时，
+          精确退化回当前 BayesPaperAdapter.paper_scalar 的 KL 形式
+        """
+        posterior_std = torch.exp(self.variational_log_sigma) + 1e-8   # [C]
+        delta = self.variational_mu - self.prior_mu                    # [C, D]
+        t = self.prior_dirs                                            # [C, D]
+
+        delta_par = (delta * t).sum(dim=-1)                            # [C]
+        delta_sq = delta.pow(2).sum(dim=-1)                            # [C]
+        delta_perp_sq = (delta_sq - delta_par.pow(2)).clamp_min(0.0)   # [C]
+
+        _, feat_dim = self.variational_mu.shape
+        sig_par2 = self.prior_sigma_parallel ** 2
+        sig_perp2 = self.prior_sigma_perp ** 2
+        post2 = posterior_std.pow(2)
+
+        trace_term = post2 * (1.0 / sig_par2 + (float(feat_dim - 1) / sig_perp2))
+        quad_term = delta_par.pow(2) / sig_par2 + delta_perp_sq / sig_perp2
+        logdet_term = math.log(sig_par2) + float(feat_dim - 1) * math.log(sig_perp2) - feat_dim * torch.log(post2)
+
+        return (trace_term + quad_term + logdet_term).sum()
+
+    def forward_with_aux(
+        self,
+        image_features: torch.Tensor,
+        activations: torch.Tensor | None,
+        residuals: torch.Tensor | None,
+        logit_scale: torch.Tensor | None = None,
+    ) -> torch.Tensor:
+        del residuals
+
+        if logit_scale is None:
+            raise ValueError("UATB_MIN requires logit_scale")
+
+        n_samples = int(self.train_mc_samples if self.training else self.eval_mc_samples)
+
+        image_features_norm = self._normalize_features(image_features)
+        prototypes = self.sample_prototypes(n_samples=n_samples)   # [S, C, D]
+        prototypes = self._normalize_features(prototypes)
+        prototypes = prototypes.to(
+            device=image_features_norm.device,
+            dtype=image_features_norm.dtype,
+        )
+
+        scale = self._exp_scale(
+            logit_scale,
+            image_features_norm.dtype,
+            image_features_norm.device,
+        )
+
+        mean_logits = torch.einsum("bd,scd->sbc", image_features_norm, prototypes) * scale
+
+        # 允许无 activations 时退化为当前 BayesAdapter 语义，避免影响其他调用路径
+        if (not self.use_feature_uncertainty) or activations is None:
+            return mean_logits
+
+        # alpha_n = a_n^T A^{-1} a_n, shape [B]
+        alpha = torch.einsum(
+            "bi,ij,bj->b",
+            activations.float(),
+            self.A_img_inv.float(),
+            activations.float(),
+        ).clamp_min(0.0)
+
+        # w^T B^{-1} w, shape [S, C]
+        wBw = torch.einsum(
+            "scd,df,scf->sc",
+            prototypes.float(),
+            self.B_img_inv.float(),
+            prototypes.float(),
+        ).clamp_min(0.0)
+
+        lambda_u = self._lambda_u().float()
+        scale_sq = scale.float().pow(2)
+
+        var_logits = scale_sq * lambda_u * alpha[None, :, None] * wBw[:, None, :]
+        var_logits = var_logits.clamp_min(0.0)
+
+        # probit-style variance correction
+        corrected = mean_logits / torch.sqrt(
+            1.0 + (math.pi / 8.0) * var_logits.to(dtype=mean_logits.dtype)
+        )
+        return corrected
+
+    def regularization_loss(self) -> Tuple[torch.Tensor, Dict[str, float]]:
+        kl_raw = self.kl_divergence()
+        loss = kl_raw * float(self.kl_weight)
+        return loss, {
+            "loss_kl_raw": float(kl_raw.detach().item()),
+            "kl_weight": float(self.kl_weight),
+            "loss_kl": float(loss.detach().item()),
+            "lambda_u": float(self._lambda_u().detach().item()),
+        }
+
+
 ADAPTER_REGISTRY = {
     "LP": LinearProbeAdapter,
     "LINEARPROBE": LinearProbeAdapter,
@@ -957,10 +1166,11 @@ ADAPTER_REGISTRY = {
     "GAUSSIAN_PER_CLASS": GaussianPerClassAdapter,
     "BAYESADAPTER": BayesPaperAdapter,
     "BAYES_ADAPTER": BayesPaperAdapter,
+    "UATB_MIN": UATangentBayesAdapterMin,
+    "UATANGENTBAYESADAPTERMIN": UATangentBayesAdapterMin,
     "VMFPROTO": VMFPrototypeAdapter,
     "VMF_PROTO": VMFPrototypeAdapter,
 }
-
 
 def build_adapter(
     adapter_name: str,

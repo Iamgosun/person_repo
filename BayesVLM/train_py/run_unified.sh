@@ -23,7 +23,7 @@ export PYTHONPATH="${ROOT_DIR}:${PYTHONPATH:-}"
 # ONLY_INDEX="N" runs only the N-th experiment (1-based)
 # ============================================================
  # vmfproto_id sample_id
-PLAN_NAME="vmfproto_id"
+PLAN_NAME="sample_id"
 STAGE="all"
 DRY_RUN=0
 ONLY_INDEX=""

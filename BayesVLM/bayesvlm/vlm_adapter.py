@@ -200,6 +200,12 @@ class VLMAdapter(nn.Module):
 
         return torch.stack(class_features, dim=0)
 
+
+
+
+
+
+
     def _adapter_kwargs(self) -> dict:
         kwargs = {}
         name = self.adapter_name
@@ -258,6 +264,55 @@ class VLMAdapter(nn.Module):
             if prior_log_sigma is not None:
                 kwargs["prior_log_sigma"] = prior_log_sigma
 
+        elif name == "UATB_MIN":
+            kwargs["prior_sigma"] = float(
+                self._cfg_get("bayesadapter_prior_sigma", 0.01)
+            )
+            kwargs["train_mc_samples"] = int(
+                self._cfg_get("bayesadapter_train_mc_samples", 3)
+            )
+            kwargs["eval_mc_samples"] = int(
+                self._cfg_get("bayesadapter_eval_mc_samples", 10)
+            )
+            kwargs["kl_scale_divisor"] = float(
+                self._cfg_get("bayesadapter_kl_scale_divisor", 1000.0)
+            )
+            kwargs["total_epochs"] = int(
+                self._cfg_get("epochs", self._cfg_get("max_epoch", 300))
+            )
+            kwargs["covariance_mode"] = str(
+                self._cfg_get("bayesadapter_covariance_mode", "paper_scalar")
+            ).lower()
+
+            prior_mu = self._cfg_tensor("bayesadapter_prior_mu")
+            prior_log_sigma = self._cfg_tensor("bayesadapter_prior_log_sigma")
+            if prior_mu is not None:
+                kwargs["prior_mu"] = prior_mu
+            if prior_log_sigma is not None:
+                kwargs["prior_log_sigma"] = prior_log_sigma
+
+            kwargs["prior_sigma_parallel"] = float(
+                self._cfg_get("uatb_prior_sigma_parallel", 0.005)
+            )
+            kwargs["prior_sigma_perp"] = float(
+                self._cfg_get("uatb_prior_sigma_perp", 0.02)
+            )
+            kwargs["use_feature_uncertainty"] = bool(
+                self._cfg_get("uatb_use_feature_uncertainty", True)
+            )
+            kwargs["lambda_u_init"] = float(
+                self._cfg_get("uatb_lambda_u_init", 0.0)
+            )
+            kwargs["lambda_u_max"] = float(
+                self._cfg_get("uatb_lambda_u_max", 1.0)
+            )
+            kwargs["lambda_u_learnable"] = bool(
+                self._cfg_get("uatb_lambda_u_learnable", True)
+            )
+
+            kwargs["A_img_inv"] = self._cfg_tensor("uatb_A_img_inv")
+            kwargs["B_img_inv"] = self._cfg_tensor("uatb_B_img_inv")
+
         elif name == "VMFPROTO":
             posterior_eta = self._cfg_tensor("vmfproto_posterior_eta")
             A_img_inv = self._cfg_tensor("vmfproto_A_img_inv")
@@ -274,6 +329,11 @@ class VLMAdapter(nn.Module):
             kwargs["kappa_max"] = float(self._cfg_get("vmf_kappa_max", 500.0))
 
         return kwargs
+
+
+
+
+
 
     def _build_adapter(self) -> nn.Module:
         if self.adapter_input_kind != "vector":

@@ -16,6 +16,8 @@ BOOL_KEYS = {
     "use_full_cov",
     "save_prototype_history",
     "train_logit_scale",
+    "uatb_use_feature_uncertainty",
+    "uatb_lambda_u_learnable",
 }
 
 INT_KEYS = {
@@ -38,6 +40,7 @@ INT_KEYS = {
     "bayesadapter_eval_mc_samples",
 }
 
+
 FLOAT_KEYS = {
     "lr",
     "weight_decay",
@@ -58,7 +61,13 @@ FLOAT_KEYS = {
     "vmf_kappa_scale",
     "vmf_eps",
     "vmf_kappa_max",
+    "uatb_prior_sigma_parallel",
+    "uatb_prior_sigma_perp",
+    "uatb_lambda_u_init",
+    "uatb_lambda_u_max",
 }
+
+
 
 LIST_INT_KEYS = {
     "prototype_track_class_ids",
@@ -138,6 +147,10 @@ FAMILY_REQUIRED_KEYS: dict[str, set[str]] = {
     },
 }
 
+
+
+
+
 VLM_VARIANT_REQUIRED_KEYS: dict[str, set[str]] = {
     "LP": set(),
     "TR": {"taskres_alpha"},
@@ -160,12 +173,31 @@ VLM_VARIANT_REQUIRED_KEYS: dict[str, set[str]] = {
         "bayesadapter_text_only_mu_strategy",
         "bayesadapter_text_only_sigma_strategy",
     },
+    "UATB_MIN": {
+        "bayesadapter_prior_sigma",
+        "bayesadapter_train_mc_samples",
+        "bayesadapter_eval_mc_samples",
+        "bayesadapter_kl_scale_divisor",
+        "bayesadapter_covariance_mode",
+        "uatb_prior_sigma_parallel",
+        "uatb_prior_sigma_perp",
+        "uatb_use_feature_uncertainty",
+        "uatb_lambda_u_init",
+        "uatb_lambda_u_max",
+        "uatb_lambda_u_learnable",
+        "hessian_dir",
+    },
     "VMFPROTO": {
         "hessian_dir",
         "vmf_kappa_scale",
         "vmf_eps",
     },
 }
+
+
+
+
+
 
 PROTOCOL_REQUIRED_KEYS: dict[str, set[str]] = {
     "id": set(),
@@ -383,6 +415,7 @@ def _validate_value_ranges(cfg: dict[str, Any]) -> None:
         raise ValueError("lr must be > 0")
     if float(cfg["weight_decay"]) < 0:
         raise ValueError("weight_decay must be >= 0")
+
     if "bayesadapter_text_only_mu_blend_lambda" in cfg:
         lam = float(cfg["bayesadapter_text_only_mu_blend_lambda"])
         if not (0.0 <= lam <= 1.0):
@@ -391,6 +424,25 @@ def _validate_value_ranges(cfg: dict[str, Any]) -> None:
     if "vmf_kappa_max" in cfg:
         if float(cfg["vmf_kappa_max"]) <= 0:
             raise ValueError("vmf_kappa_max must be > 0")
+
+    if "uatb_prior_sigma_parallel" in cfg:
+        if float(cfg["uatb_prior_sigma_parallel"]) <= 0:
+            raise ValueError("uatb_prior_sigma_parallel must be > 0")
+
+    if "uatb_prior_sigma_perp" in cfg:
+        if float(cfg["uatb_prior_sigma_perp"]) <= 0:
+            raise ValueError("uatb_prior_sigma_perp must be > 0")
+
+    if "uatb_lambda_u_max" in cfg:
+        if float(cfg["uatb_lambda_u_max"]) <= 0:
+            raise ValueError("uatb_lambda_u_max must be > 0")
+
+    if "uatb_lambda_u_init" in cfg and "uatb_lambda_u_max" in cfg:
+        lam0 = float(cfg["uatb_lambda_u_init"])
+        lam_max = float(cfg["uatb_lambda_u_max"])
+        if not (0.0 <= lam0 <= lam_max):
+            raise ValueError("uatb_lambda_u_init must satisfy 0 <= init <= uatb_lambda_u_max")
+
 
 
 def _validate_enums(cfg: dict[str, Any]) -> None:
@@ -426,8 +478,16 @@ def _validate_enums(cfg: dict[str, Any]) -> None:
     if "bayesadapter_text_only_sigma_strategy" in cfg:
         if str(cfg["bayesadapter_text_only_sigma_strategy"]).lower() not in {"ignore", "override"}:
             raise ValueError("bayesadapter_text_only_sigma_strategy must be one of ['ignore', 'override']")
+
+    if str(cfg.get("variant", "")).upper() == "UATB_MIN":
+        if str(cfg.get("bayesadapter_covariance_mode", "paper_scalar")).lower() != "paper_scalar":
+            raise ValueError("UATB_MIN currently only supports bayesadapter_covariance_mode='paper_scalar'")
+
     if "ood_reference_split" in cfg and not str(cfg["ood_reference_split"]).strip():
         raise ValueError("ood_reference_split must not be empty when provided")
+
+
+
 
 
 def _has_text_only_bridge(cfg: dict[str, Any]) -> bool:

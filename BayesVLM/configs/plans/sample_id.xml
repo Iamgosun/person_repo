@@ -3,13 +3,13 @@
   <imports>
     <import href="../common/base.xml"/>
 
-    <import href="../families/text_only_bayes_coop.xml"/>
+    <!-- <import href="../families/text_only_bayes_coop.xml"/> -->
 
 
     <!-- <import href="../families/deterministic_coop.xml"/> -->
-
-    <!-- <import href="../families/vlm_adapter.xml"/>
-    <import href="../variants/vlm_adapter_bayesadapter.xml"/> -->
+<!-- vlm_adapter_bayesadapter   vlm_adapter_uatb_min-->
+    <import href="../families/vlm_adapter.xml"/>
+    <import href="../variants/vlm_adapter_bayesadapter.xml"/>
     <import href="../protocols/id.xml"/>
   </imports>
   <experiments>

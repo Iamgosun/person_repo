@@ -11,7 +11,7 @@
   <hessian_dir>./hessians/hessian_CLIP-ViT-B-32-laion2B-s34B-b79K</hessian_dir>
 
   <!-- kappa = alpha / (rho + eps) -->
-  <vmf_kappa_scale>0.03</vmf_kappa_scale>
+  <vmf_kappa_scale>0.05</vmf_kappa_scale>
   <vmf_eps>1e-6</vmf_eps>
 
   <!-- 中文说明：
