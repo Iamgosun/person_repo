@@ -226,14 +226,14 @@ num_classes: 101
 [cache] manifest_diff_keys=['num_samples', 'sample_keys_sha256']
 [cache]   num_samples: current=404 | expected=808
 [cache]   sample_keys_sha256: current=f4e2bf61fa33291719a4fd1f35fe0b4b41e895d41b5d805625f494793230bd9c | expected=cfa0437ce4f00a5b13aae97273d30e8bb6c6648b8c5ee81745fb3ca3fed37467
-  0%|          | 0/4 [00:00<?, ?it/s] 25%|##5       | 1/4 [00:01<00:03,  1.31s/it] 75%|#######5  | 3/4 [00:01<00:00,  2.50it/s]100%|##########| 4/4 [00:01<00:00,  2.69it/s]
+  0%|          | 0/4 [00:00<?, ?it/s] 25%|##5       | 1/4 [00:01<00:04,  1.47s/it] 75%|#######5  | 3/4 [00:01<00:00,  2.25it/s]100%|##########| 4/4 [00:01<00:00,  2.41it/s]
 [cache] 已完成重建并写入 manifest。
 [cache] dataset=ucf101 split=id_train_eval cache_dir=/root/autodl-tmp/BayesVLM/cache/image_features/ucf101/model_clip-base/weights__root_autodl-tmp_BayesVLM_models_clip-vit-b32/imgsz_224/tfm_cf4d0ebdf93a/id_train_eval
 [cache] manifest 不匹配，准备重建。
 [cache] manifest_diff_keys=['num_samples', 'sample_keys_sha256']
 [cache]   num_samples: current=404 | expected=808
 [cache]   sample_keys_sha256: current=f4e2bf61fa33291719a4fd1f35fe0b4b41e895d41b5d805625f494793230bd9c | expected=cfa0437ce4f00a5b13aae97273d30e8bb6c6648b8c5ee81745fb3ca3fed37467
-  0%|          | 0/4 [00:00<?, ?it/s] 25%|##5       | 1/4 [00:01<00:03,  1.03s/it] 75%|#######5  | 3/4 [00:01<00:00,  3.04it/s]100%|##########| 4/4 [00:01<00:00,  3.30it/s]
+  0%|          | 0/4 [00:00<?, ?it/s] 25%|##5       | 1/4 [00:01<00:03,  1.15s/it] 75%|#######5  | 3/4 [00:01<00:00,  2.74it/s]100%|##########| 4/4 [00:01<00:00,  2.96it/s]
 [cache] 已完成重建并写入 manifest。
 [cache] dataset=ucf101 split=id_val cache_dir=/root/autodl-tmp/BayesVLM/cache/image_features/ucf101/model_clip-base/weights__root_autodl-tmp_BayesVLM_models_clip-vit-b32/imgsz_224/tfm_cf4d0ebdf93a/id_val
 [cache] 命中缓存，直接加载。
@@ -1517,7 +1517,7 @@ num_classes: 101
     "class_cov_80": 1.0
   },
   "run_dir": "/root/autodl-tmp/BayesVLM/output/vlm_adapter/id/ucf101/BAYESADAPTER/BAYESADAPTER/logit_scale_frozen/prior_text_only__seed_1__last/shot_8/seed_1",
-  "elapsed_seconds": 32.67,
+  "elapsed_seconds": 31.51,
   "artifacts": {
     "log_file": "train/train.log",
     "config_file": "config/config.json",

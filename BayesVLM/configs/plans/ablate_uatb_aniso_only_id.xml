@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<experiment_plan>
+  <imports>
+    <import href="../common/base.xml"/>
+    <import href="../families/vlm_adapter.xml"/>
+    <import href="../variants/vlm_adapter_uatb_min_aniso_only.xml"/>
+    <import href="../protocols/id.xml"/>
+  </imports>
+
+  <output_name>ablate_uatb_aniso_only</output_name>
+
+  <experiments>
+    <import href="../experiments/shot_seed_run.xml"/>
+  </experiments>
+</experiment_plan>

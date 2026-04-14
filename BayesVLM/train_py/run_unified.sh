@@ -22,11 +22,11 @@ export PYTHONPATH="${ROOT_DIR}:${PYTHONPATH:-}"
 # DRY_RUN=1 prints resolved configs without running
 # ONLY_INDEX="N" runs only the N-th experiment (1-based)
 # ============================================================
- # vmfproto_id sample_id ablate_uatb_min
+ # vmfproto_id sample_id  ablate_uatb_aniso_only_id ablate_uatb_full_id ablate_uatb_unc_only_id
 #!/usr/bin/env bash
 
 
-PLAN_NAME="${PLAN_NAME:-sample_id}"
+PLAN_NAME="${PLAN_NAME:-bayesadapter_id}"
 STAGE="${STAGE:-all}"
 DRY_RUN="${DRY_RUN:-0}"
 ONLY_INDEX="${ONLY_INDEX:-}"

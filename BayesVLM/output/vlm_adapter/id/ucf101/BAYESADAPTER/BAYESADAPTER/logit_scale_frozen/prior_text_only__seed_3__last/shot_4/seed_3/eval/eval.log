@@ -210,9 +210,19 @@ num_classes: 101
 100 | Yo_Yo                     | 36
 [load_model] 使用本地模型目录：/root/autodl-tmp/BayesVLM/models/clip-vit-b32
 [cache] dataset=ucf101 split=id_train cache_dir=/root/autodl-tmp/BayesVLM/cache/image_features/ucf101/model_clip-base/weights__root_autodl-tmp_BayesVLM_models_clip-vit-b32/imgsz_224/tfm_cf4d0ebdf93a/id_train
-[cache] 命中缓存，直接加载。
+[cache] manifest 不匹配，准备重建。
+[cache] manifest_diff_keys=['num_samples', 'sample_keys_sha256']
+[cache]   num_samples: current=1616 | expected=404
+[cache]   sample_keys_sha256: current=759d4bfa6452d249f81732afdd5eb512b35939231a080f13fcb45e64aea002d2 | expected=f4e2bf61fa33291719a4fd1f35fe0b4b41e895d41b5d805625f494793230bd9c
+  0%|          | 0/2 [00:00<?, ?it/s] 50%|#####     | 1/2 [00:01<00:01,  1.06s/it]100%|##########| 2/2 [00:01<00:00,  1.81it/s]
+[cache] 已完成重建并写入 manifest。
 [cache] dataset=ucf101 split=id_train_eval cache_dir=/root/autodl-tmp/BayesVLM/cache/image_features/ucf101/model_clip-base/weights__root_autodl-tmp_BayesVLM_models_clip-vit-b32/imgsz_224/tfm_cf4d0ebdf93a/id_train_eval
-[cache] 命中缓存，直接加载。
+[cache] manifest 不匹配，准备重建。
+[cache] manifest_diff_keys=['num_samples', 'sample_keys_sha256']
+[cache]   num_samples: current=1616 | expected=404
+[cache]   sample_keys_sha256: current=759d4bfa6452d249f81732afdd5eb512b35939231a080f13fcb45e64aea002d2 | expected=f4e2bf61fa33291719a4fd1f35fe0b4b41e895d41b5d805625f494793230bd9c
+  0%|          | 0/2 [00:00<?, ?it/s] 50%|#####     | 1/2 [00:01<00:01,  1.01s/it]100%|##########| 2/2 [00:01<00:00,  1.87it/s]
+[cache] 已完成重建并写入 manifest。
 [cache] dataset=ucf101 split=id_val cache_dir=/root/autodl-tmp/BayesVLM/cache/image_features/ucf101/model_clip-base/weights__root_autodl-tmp_BayesVLM_models_clip-vit-b32/imgsz_224/tfm_cf4d0ebdf93a/id_val
 [cache] 命中缓存，直接加载。
 [cache] dataset=ucf101 split=id_test cache_dir=/root/autodl-tmp/BayesVLM/cache/image_features/ucf101/model_clip-base/weights__root_autodl-tmp_BayesVLM_models_clip-vit-b32/imgsz_224/tfm_cf4d0ebdf93a/id_test
@@ -405,7 +415,7 @@ num_classes: 101
     "targets": []
   },
   "run_dir": "/root/autodl-tmp/BayesVLM/output/vlm_adapter/id/ucf101/BAYESADAPTER/BAYESADAPTER/logit_scale_frozen/prior_text_only__seed_3__last/shot_4/seed_3",
-  "elapsed_seconds": 2.34,
+  "elapsed_seconds": 4.77,
   "initialization": "BAYESADAPTER",
   "zero_shot_test": {
     "loss": 1.3718238727711762,

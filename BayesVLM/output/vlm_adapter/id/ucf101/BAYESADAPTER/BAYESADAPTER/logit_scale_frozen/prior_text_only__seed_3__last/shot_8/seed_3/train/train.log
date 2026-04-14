@@ -225,13 +225,13 @@ num_classes: 101
 [cache] manifest 不匹配，准备重建。
 [cache] manifest_diff_keys=['sample_keys_sha256']
 [cache]   sample_keys_sha256: current=277836b0f8a39b9df6ca862f904f43d4709709f3c55c0307dec2ae18fcd0c145 | expected=d0cc341eb8fbe22037e67cbf94da659b0f23b9429b5d0d99b24f3eeab350c70d
-  0%|          | 0/4 [00:00<?, ?it/s] 25%|##5       | 1/4 [00:01<00:03,  1.14s/it] 75%|#######5  | 3/4 [00:01<00:00,  2.81it/s]100%|##########| 4/4 [00:01<00:00,  3.04it/s]
+  0%|          | 0/4 [00:00<?, ?it/s] 25%|##5       | 1/4 [00:01<00:03,  1.17s/it] 75%|#######5  | 3/4 [00:01<00:00,  2.74it/s]100%|##########| 4/4 [00:01<00:00,  2.96it/s]
 [cache] 已完成重建并写入 manifest。
 [cache] dataset=ucf101 split=id_train_eval cache_dir=/root/autodl-tmp/BayesVLM/cache/image_features/ucf101/model_clip-base/weights__root_autodl-tmp_BayesVLM_models_clip-vit-b32/imgsz_224/tfm_cf4d0ebdf93a/id_train_eval
 [cache] manifest 不匹配，准备重建。
 [cache] manifest_diff_keys=['sample_keys_sha256']
 [cache]   sample_keys_sha256: current=277836b0f8a39b9df6ca862f904f43d4709709f3c55c0307dec2ae18fcd0c145 | expected=d0cc341eb8fbe22037e67cbf94da659b0f23b9429b5d0d99b24f3eeab350c70d
-  0%|          | 0/4 [00:00<?, ?it/s] 25%|##5       | 1/4 [00:01<00:03,  1.00s/it] 75%|#######5  | 3/4 [00:01<00:00,  3.11it/s]100%|##########| 4/4 [00:01<00:00,  3.38it/s]
+  0%|          | 0/4 [00:00<?, ?it/s] 25%|##5       | 1/4 [00:01<00:03,  1.19s/it] 75%|#######5  | 3/4 [00:01<00:00,  2.70it/s]100%|##########| 4/4 [00:01<00:00,  2.91it/s]
 [cache] 已完成重建并写入 manifest。
 [cache] dataset=ucf101 split=id_val cache_dir=/root/autodl-tmp/BayesVLM/cache/image_features/ucf101/model_clip-base/weights__root_autodl-tmp_BayesVLM_models_clip-vit-b32/imgsz_224/tfm_cf4d0ebdf93a/id_val
 [cache] 命中缓存，直接加载。
@@ -1515,7 +1515,7 @@ num_classes: 101
     "class_cov_80": 1.0
   },
   "run_dir": "/root/autodl-tmp/BayesVLM/output/vlm_adapter/id/ucf101/BAYESADAPTER/BAYESADAPTER/logit_scale_frozen/prior_text_only__seed_3__last/shot_8/seed_3",
-  "elapsed_seconds": 33.18,
+  "elapsed_seconds": 31.17,
   "artifacts": {
     "log_file": "train/train.log",
     "config_file": "config/config.json",

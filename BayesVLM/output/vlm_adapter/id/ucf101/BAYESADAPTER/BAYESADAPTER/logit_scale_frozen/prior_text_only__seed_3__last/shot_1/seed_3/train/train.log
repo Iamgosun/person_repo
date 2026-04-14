@@ -225,13 +225,13 @@ num_classes: 101
 [cache] manifest 不匹配，准备重建。
 [cache] manifest_diff_keys=['sample_keys_sha256']
 [cache]   sample_keys_sha256: current=97dafc03e5fbf1caf3dd27ca7ce7e9df42357d64b7b5deed4498a303201dc623 | expected=e1b53c28fd9c803f02dde81c03c21328e225e3a751d66a37a7ca8266e2dc70c9
-  0%|          | 0/1 [00:00<?, ?it/s]100%|##########| 1/1 [00:00<00:00,  1.93it/s]100%|##########| 1/1 [00:00<00:00,  1.93it/s]
+  0%|          | 0/1 [00:00<?, ?it/s]100%|##########| 1/1 [00:00<00:00,  1.96it/s]100%|##########| 1/1 [00:00<00:00,  1.96it/s]
 [cache] 已完成重建并写入 manifest。
 [cache] dataset=ucf101 split=id_train_eval cache_dir=/root/autodl-tmp/BayesVLM/cache/image_features/ucf101/model_clip-base/weights__root_autodl-tmp_BayesVLM_models_clip-vit-b32/imgsz_224/tfm_cf4d0ebdf93a/id_train_eval
 [cache] manifest 不匹配，准备重建。
 [cache] manifest_diff_keys=['sample_keys_sha256']
 [cache]   sample_keys_sha256: current=97dafc03e5fbf1caf3dd27ca7ce7e9df42357d64b7b5deed4498a303201dc623 | expected=e1b53c28fd9c803f02dde81c03c21328e225e3a751d66a37a7ca8266e2dc70c9
-  0%|          | 0/1 [00:00<?, ?it/s]100%|##########| 1/1 [00:00<00:00,  2.10it/s]100%|##########| 1/1 [00:00<00:00,  2.10it/s]
+  0%|          | 0/1 [00:00<?, ?it/s]100%|##########| 1/1 [00:00<00:00,  2.15it/s]100%|##########| 1/1 [00:00<00:00,  2.15it/s]
 [cache] 已完成重建并写入 manifest。
 [cache] dataset=ucf101 split=id_val cache_dir=/root/autodl-tmp/BayesVLM/cache/image_features/ucf101/model_clip-base/weights__root_autodl-tmp_BayesVLM_models_clip-vit-b32/imgsz_224/tfm_cf4d0ebdf93a/id_val
 [cache] 命中缓存，直接加载。
@@ -1515,7 +1515,7 @@ num_classes: 101
     "class_cov_80": 0.9801980198019802
   },
   "run_dir": "/root/autodl-tmp/BayesVLM/output/vlm_adapter/id/ucf101/BAYESADAPTER/BAYESADAPTER/logit_scale_frozen/prior_text_only__seed_3__last/shot_1/seed_3",
-  "elapsed_seconds": 20.19,
+  "elapsed_seconds": 18.73,
   "artifacts": {
     "log_file": "train/train.log",
     "config_file": "config/config.json",

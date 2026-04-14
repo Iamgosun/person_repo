@@ -405,7 +405,7 @@ num_classes: 101
     "targets": []
   },
   "run_dir": "/root/autodl-tmp/BayesVLM/output/vlm_adapter/id/ucf101/BAYESADAPTER/BAYESADAPTER/logit_scale_frozen/prior_text_only__seed_1__last/shot_16/seed_1",
-  "elapsed_seconds": 2.55,
+  "elapsed_seconds": 2.53,
   "initialization": "BAYESADAPTER",
   "zero_shot_test": {
     "loss": 1.3718238727711762,

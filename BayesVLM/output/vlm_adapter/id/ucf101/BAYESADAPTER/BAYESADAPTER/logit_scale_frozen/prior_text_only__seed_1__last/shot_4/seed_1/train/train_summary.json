@@ -74,7 +74,7 @@
     "class_cov_80": 1.0
   },
   "run_dir": "/root/autodl-tmp/BayesVLM/output/vlm_adapter/id/ucf101/BAYESADAPTER/BAYESADAPTER/logit_scale_frozen/prior_text_only__seed_1__last/shot_4/seed_1",
-  "elapsed_seconds": 28.61,
+  "elapsed_seconds": 27.6,
   "artifacts": {
     "log_file": "train/train.log",
     "config_file": "config/config.json",

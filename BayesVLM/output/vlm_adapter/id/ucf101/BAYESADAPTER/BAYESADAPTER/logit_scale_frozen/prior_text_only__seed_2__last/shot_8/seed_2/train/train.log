@@ -223,15 +223,15 @@ num_classes: 101
 [load_model] 使用本地模型目录：/root/autodl-tmp/BayesVLM/models/clip-vit-b32
 [cache] dataset=ucf101 split=id_train cache_dir=/root/autodl-tmp/BayesVLM/cache/image_features/ucf101/model_clip-base/weights__root_autodl-tmp_BayesVLM_models_clip-vit-b32/imgsz_224/tfm_cf4d0ebdf93a/id_train
 [cache] manifest 不匹配，准备重建。
-[cache] manifest_diff_keys=['sample_keys_sha256']
-[cache]   sample_keys_sha256: current=cfa0437ce4f00a5b13aae97273d30e8bb6c6648b8c5ee81745fb3ca3fed37467 | expected=277836b0f8a39b9df6ca862f904f43d4709709f3c55c0307dec2ae18fcd0c145
-  0%|          | 0/4 [00:00<?, ?it/s] 25%|##5       | 1/4 [00:01<00:03,  1.14s/it] 75%|#######5  | 3/4 [00:01<00:00,  2.81it/s]100%|##########| 4/4 [00:01<00:00,  3.03it/s]
+[cache] manifest_diff_keys=['num_samples', 'sample_keys_sha256']
+[cache]   num_samples: current=1616 | expected=808
+[cache]   sample_keys_sha256: current=759d4bfa6452d249f81732afdd5eb512b35939231a080f13fcb45e64aea002d2 | expected=277836b0f8a39b9df6ca862f904f43d4709709f3c55c0307dec2ae18fcd0c145
+  0%|          | 0/4 [00:00<?, ?it/s] 25%|##5       | 1/4 [00:01<00:03,  1.22s/it] 75%|#######5  | 3/4 [00:01<00:00,  2.59it/s]100%|##########| 4/4 [00:01<00:00,  2.79it/s]
 [cache] 已完成重建并写入 manifest。
 [cache] dataset=ucf101 split=id_train_eval cache_dir=/root/autodl-tmp/BayesVLM/cache/image_features/ucf101/model_clip-base/weights__root_autodl-tmp_BayesVLM_models_clip-vit-b32/imgsz_224/tfm_cf4d0ebdf93a/id_train_eval
-[cache] manifest 不匹配，准备重建。
-[cache] manifest_diff_keys=['sample_keys_sha256']
-[cache]   sample_keys_sha256: current=cfa0437ce4f00a5b13aae97273d30e8bb6c6648b8c5ee81745fb3ca3fed37467 | expected=277836b0f8a39b9df6ca862f904f43d4709709f3c55c0307dec2ae18fcd0c145
-  0%|          | 0/4 [00:00<?, ?it/s] 25%|##5       | 1/4 [00:01<00:03,  1.10s/it] 75%|#######5  | 3/4 [00:01<00:00,  2.88it/s]100%|##########| 4/4 [00:01<00:00,  3.11it/s]
+[cache] 未命中缓存，缺少核心文件。
+[cache] missing_core_files=['embeddings_img.pt', 'activations_img.pt', 'residuals_img.pt', 'class_ids_img.pt', 'image_ids.pt', 'sample_keys.json', 'manifest.json']
+  0%|          | 0/4 [00:00<?, ?it/s] 25%|##5       | 1/4 [00:01<00:03,  1.04s/it] 75%|#######5  | 3/4 [00:01<00:00,  3.00it/s]100%|##########| 4/4 [00:01<00:00,  3.26it/s]
 [cache] 已完成重建并写入 manifest。
 [cache] dataset=ucf101 split=id_val cache_dir=/root/autodl-tmp/BayesVLM/cache/image_features/ucf101/model_clip-base/weights__root_autodl-tmp_BayesVLM_models_clip-vit-b32/imgsz_224/tfm_cf4d0ebdf93a/id_val
 [cache] 命中缓存，直接加载。
@@ -1515,7 +1515,7 @@ num_classes: 101
     "class_cov_80": 1.0
   },
   "run_dir": "/root/autodl-tmp/BayesVLM/output/vlm_adapter/id/ucf101/BAYESADAPTER/BAYESADAPTER/logit_scale_frozen/prior_text_only__seed_2__last/shot_8/seed_2",
-  "elapsed_seconds": 30.17,
+  "elapsed_seconds": 32.94,
   "artifacts": {
     "log_file": "train/train.log",
     "config_file": "config/config.json",

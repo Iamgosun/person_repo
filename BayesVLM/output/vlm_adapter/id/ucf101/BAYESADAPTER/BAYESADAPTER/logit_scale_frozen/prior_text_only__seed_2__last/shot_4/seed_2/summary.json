@@ -175,7 +175,7 @@
     "targets": []
   },
   "run_dir": "/root/autodl-tmp/BayesVLM/output/vlm_adapter/id/ucf101/BAYESADAPTER/BAYESADAPTER/logit_scale_frozen/prior_text_only__seed_2__last/shot_4/seed_2",
-  "elapsed_seconds": 2.31,
+  "elapsed_seconds": 2.69,
   "initialization": "BAYESADAPTER",
   "zero_shot_test": {
     "loss": 1.3718238727711762,

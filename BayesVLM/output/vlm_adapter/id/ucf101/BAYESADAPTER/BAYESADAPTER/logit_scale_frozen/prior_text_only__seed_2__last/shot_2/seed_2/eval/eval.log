@@ -210,9 +210,17 @@ num_classes: 101
 100 | Yo_Yo                     | 36
 [load_model] 使用本地模型目录：/root/autodl-tmp/BayesVLM/models/clip-vit-b32
 [cache] dataset=ucf101 split=id_train cache_dir=/root/autodl-tmp/BayesVLM/cache/image_features/ucf101/model_clip-base/weights__root_autodl-tmp_BayesVLM_models_clip-vit-b32/imgsz_224/tfm_cf4d0ebdf93a/id_train
-[cache] 命中缓存，直接加载。
+[cache] manifest 不匹配，准备重建。
+[cache] manifest_diff_keys=['num_samples', 'sample_keys_sha256']
+[cache]   num_samples: current=1616 | expected=202
+[cache]   sample_keys_sha256: current=6bc1b346baf1dd605538d33c1552f32ad718c0323d3273d9bff8644ca3949021 | expected=8c2cc093ecac2202423d095f660d0a563bc2a9339901f5e0baf4d0850324f3df
+  0%|          | 0/1 [00:00<?, ?it/s]100%|##########| 1/1 [00:00<00:00,  1.09it/s]100%|##########| 1/1 [00:00<00:00,  1.09it/s]
+[cache] 已完成重建并写入 manifest。
 [cache] dataset=ucf101 split=id_train_eval cache_dir=/root/autodl-tmp/BayesVLM/cache/image_features/ucf101/model_clip-base/weights__root_autodl-tmp_BayesVLM_models_clip-vit-b32/imgsz_224/tfm_cf4d0ebdf93a/id_train_eval
-[cache] 命中缓存，直接加载。
+[cache] 未命中缓存，缺少核心文件。
+[cache] missing_core_files=['embeddings_img.pt', 'activations_img.pt', 'residuals_img.pt', 'class_ids_img.pt', 'image_ids.pt', 'sample_keys.json', 'manifest.json']
+  0%|          | 0/1 [00:00<?, ?it/s]100%|##########| 1/1 [00:00<00:00,  1.03it/s]100%|##########| 1/1 [00:00<00:00,  1.03it/s]
+[cache] 已完成重建并写入 manifest。
 [cache] dataset=ucf101 split=id_val cache_dir=/root/autodl-tmp/BayesVLM/cache/image_features/ucf101/model_clip-base/weights__root_autodl-tmp_BayesVLM_models_clip-vit-b32/imgsz_224/tfm_cf4d0ebdf93a/id_val
 [cache] 命中缓存，直接加载。
 [cache] dataset=ucf101 split=id_test cache_dir=/root/autodl-tmp/BayesVLM/cache/image_features/ucf101/model_clip-base/weights__root_autodl-tmp_BayesVLM_models_clip-vit-b32/imgsz_224/tfm_cf4d0ebdf93a/id_test
@@ -405,7 +413,7 @@ num_classes: 101
     "targets": []
   },
   "run_dir": "/root/autodl-tmp/BayesVLM/output/vlm_adapter/id/ucf101/BAYESADAPTER/BAYESADAPTER/logit_scale_frozen/prior_text_only__seed_2__last/shot_2/seed_2",
-  "elapsed_seconds": 2.45,
+  "elapsed_seconds": 4.63,
   "initialization": "BAYESADAPTER",
   "zero_shot_test": {
     "loss": 1.3718238727711762,

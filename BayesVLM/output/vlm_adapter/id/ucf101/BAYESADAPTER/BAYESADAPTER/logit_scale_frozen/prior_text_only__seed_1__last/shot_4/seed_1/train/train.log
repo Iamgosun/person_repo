@@ -226,14 +226,14 @@ num_classes: 101
 [cache] manifest_diff_keys=['num_samples', 'sample_keys_sha256']
 [cache]   num_samples: current=202 | expected=404
 [cache]   sample_keys_sha256: current=d727b1ae1dd19f71646da6654e96fc6c262031b682d6c99a03ebd74392d713d7 | expected=053be777783d51dd0619fa62bd97a0f9a6113634f9248c23c7983f869cab723d
-  0%|          | 0/2 [00:00<?, ?it/s] 50%|#####     | 1/2 [00:01<00:01,  1.11s/it]100%|##########| 2/2 [00:01<00:00,  1.73it/s]
+  0%|          | 0/2 [00:00<?, ?it/s] 50%|#####     | 1/2 [00:01<00:01,  1.21s/it]100%|##########| 2/2 [00:01<00:00,  1.59it/s]
 [cache] 已完成重建并写入 manifest。
 [cache] dataset=ucf101 split=id_train_eval cache_dir=/root/autodl-tmp/BayesVLM/cache/image_features/ucf101/model_clip-base/weights__root_autodl-tmp_BayesVLM_models_clip-vit-b32/imgsz_224/tfm_cf4d0ebdf93a/id_train_eval
 [cache] manifest 不匹配，准备重建。
 [cache] manifest_diff_keys=['num_samples', 'sample_keys_sha256']
 [cache]   num_samples: current=202 | expected=404
 [cache]   sample_keys_sha256: current=d727b1ae1dd19f71646da6654e96fc6c262031b682d6c99a03ebd74392d713d7 | expected=053be777783d51dd0619fa62bd97a0f9a6113634f9248c23c7983f869cab723d
-  0%|          | 0/2 [00:00<?, ?it/s] 50%|#####     | 1/2 [00:01<00:01,  1.03s/it]100%|##########| 2/2 [00:01<00:00,  1.86it/s]
+  0%|          | 0/2 [00:00<?, ?it/s] 50%|#####     | 1/2 [00:01<00:01,  1.06s/it]100%|##########| 2/2 [00:01<00:00,  1.80it/s]
 [cache] 已完成重建并写入 manifest。
 [cache] dataset=ucf101 split=id_val cache_dir=/root/autodl-tmp/BayesVLM/cache/image_features/ucf101/model_clip-base/weights__root_autodl-tmp_BayesVLM_models_clip-vit-b32/imgsz_224/tfm_cf4d0ebdf93a/id_val
 [cache] 命中缓存，直接加载。
@@ -1517,7 +1517,7 @@ num_classes: 101
     "class_cov_80": 1.0
   },
   "run_dir": "/root/autodl-tmp/BayesVLM/output/vlm_adapter/id/ucf101/BAYESADAPTER/BAYESADAPTER/logit_scale_frozen/prior_text_only__seed_1__last/shot_4/seed_1",
-  "elapsed_seconds": 28.61,
+  "elapsed_seconds": 27.6,
   "artifacts": {
     "log_file": "train/train.log",
     "config_file": "config/config.json",

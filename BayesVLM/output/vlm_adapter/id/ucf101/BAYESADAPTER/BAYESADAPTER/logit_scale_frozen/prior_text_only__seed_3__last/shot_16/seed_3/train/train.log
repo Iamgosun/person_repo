@@ -225,13 +225,13 @@ num_classes: 101
 [cache] manifest 不匹配，准备重建。
 [cache] manifest_diff_keys=['sample_keys_sha256']
 [cache]   sample_keys_sha256: current=04fc3c94f803c62751dcb329d7db316682214ff1e6d55fe2a366d780230acd81 | expected=759d4bfa6452d249f81732afdd5eb512b35939231a080f13fcb45e64aea002d2
-  0%|          | 0/7 [00:00<?, ?it/s] 14%|#4        | 1/7 [00:01<00:06,  1.07s/it] 43%|####2     | 3/7 [00:01<00:01,  2.89it/s] 71%|#######1  | 5/7 [00:01<00:00,  4.76it/s]100%|##########| 7/7 [00:01<00:00,  6.92it/s]100%|##########| 7/7 [00:01<00:00,  4.58it/s]
+  0%|          | 0/7 [00:00<?, ?it/s] 14%|#4        | 1/7 [00:01<00:07,  1.32s/it] 43%|####2     | 3/7 [00:01<00:01,  2.48it/s] 71%|#######1  | 5/7 [00:01<00:00,  4.20it/s]100%|##########| 7/7 [00:01<00:00,  6.23it/s]100%|##########| 7/7 [00:01<00:00,  3.98it/s]
 [cache] 已完成重建并写入 manifest。
 [cache] dataset=ucf101 split=id_train_eval cache_dir=/root/autodl-tmp/BayesVLM/cache/image_features/ucf101/model_clip-base/weights__root_autodl-tmp_BayesVLM_models_clip-vit-b32/imgsz_224/tfm_cf4d0ebdf93a/id_train_eval
 [cache] manifest 不匹配，准备重建。
 [cache] manifest_diff_keys=['sample_keys_sha256']
 [cache]   sample_keys_sha256: current=04fc3c94f803c62751dcb329d7db316682214ff1e6d55fe2a366d780230acd81 | expected=759d4bfa6452d249f81732afdd5eb512b35939231a080f13fcb45e64aea002d2
-  0%|          | 0/7 [00:00<?, ?it/s] 14%|#4        | 1/7 [00:01<00:06,  1.14s/it] 43%|####2     | 3/7 [00:01<00:01,  2.77it/s] 71%|#######1  | 5/7 [00:01<00:00,  4.59it/s]100%|##########| 7/7 [00:01<00:00,  6.72it/s]100%|##########| 7/7 [00:01<00:00,  4.40it/s]
+  0%|          | 0/7 [00:00<?, ?it/s] 14%|#4        | 1/7 [00:01<00:06,  1.09s/it] 43%|####2     | 3/7 [00:01<00:01,  2.50it/s] 71%|#######1  | 5/7 [00:01<00:00,  4.23it/s]100%|##########| 7/7 [00:01<00:00,  6.27it/s]100%|##########| 7/7 [00:01<00:00,  4.17it/s]
 [cache] 已完成重建并写入 manifest。
 [cache] dataset=ucf101 split=id_val cache_dir=/root/autodl-tmp/BayesVLM/cache/image_features/ucf101/model_clip-base/weights__root_autodl-tmp_BayesVLM_models_clip-vit-b32/imgsz_224/tfm_cf4d0ebdf93a/id_val
 [cache] 命中缓存，直接加载。
@@ -1515,7 +1515,7 @@ num_classes: 101
     "class_cov_80": 1.0
   },
   "run_dir": "/root/autodl-tmp/BayesVLM/output/vlm_adapter/id/ucf101/BAYESADAPTER/BAYESADAPTER/logit_scale_frozen/prior_text_only__seed_3__last/shot_16/seed_3",
-  "elapsed_seconds": 37.18,
+  "elapsed_seconds": 39.07,
   "artifacts": {
     "log_file": "train/train.log",
     "config_file": "config/config.json",

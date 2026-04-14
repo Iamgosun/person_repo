@@ -1,0 +1,6 @@
+threshold,selected_count,raw_coverage,selected_accuracy,reliable,coverage,covered_classes,classwise_coverage
+0.99,175,0.43316832184791565,1.0,True,0.43316832184791565,80,0.7920792079207921
+0.95,400,0.9900990128517151,1.0,True,0.9900990128517151,101,1.0
+0.9,404,1.0,1.0,True,1.0,101,1.0
+0.85,404,1.0,1.0,True,1.0,101,1.0
+0.8,404,1.0,1.0,True,1.0,101,1.0

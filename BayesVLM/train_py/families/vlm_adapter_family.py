@@ -490,8 +490,6 @@ class VLMAdapterFamily(BaseFamily):
                 parts.append(f"prior_text_only__{source_dir_name}__{ckpt_tag}")
 
         if variant_key == "UATB_MIN":
-            hessian_tag = _slugify_path_part(Path(str(getattr(args, "hessian_dir", "hessian"))).name)
-            parts.append(f"hess_{hessian_tag}")
             parts.append(f"sigpar_{float(getattr(args, 'uatb_prior_sigma_parallel', 0.005)):g}")
             parts.append(f"sigperp_{float(getattr(args, 'uatb_prior_sigma_perp', 0.02)):g}")
             parts.append(f"lu0_{float(getattr(args, 'uatb_lambda_u_init', 0.0)):g}")
