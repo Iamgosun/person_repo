@@ -1,0 +1,583 @@
+[eval] run_dir=/root/autodl-tmp/BayesVLM/output/vlm_adapter/id/ucf101/BAYESADAPTER/BAYESADAPTER/logit_scale_frozen/prior_text_only__seed_3__last/shot_1/seed_3
+[eval] family=vlm_adapter
+[eval] variant=BAYESADAPTER
+[eval] protocol=id
+===== train =====
+num_classes: 101
+  0 | Apply_Eye_Makeup          | 1
+  1 | Apply_Lipstick            | 1
+  2 | Archery                   | 1
+  3 | Baby_Crawling             | 1
+  4 | Balance_Beam              | 1
+  5 | Band_Marching             | 1
+  6 | Baseball_Pitch            | 1
+  7 | Basketball                | 1
+  8 | Basketball_Dunk           | 1
+  9 | Bench_Press               | 1
+ 10 | Biking                    | 1
+ 11 | Billiards                 | 1
+ 12 | Blow_Dry_Hair             | 1
+ 13 | Blowing_Candles           | 1
+ 14 | Body_Weight_Squats        | 1
+ 15 | Bowling                   | 1
+ 16 | Boxing_Punching_Bag       | 1
+ 17 | Boxing_Speed_Bag          | 1
+ 18 | Breast_Stroke             | 1
+ 19 | Brushing_Teeth            | 1
+ 20 | Clean_And_Jerk            | 1
+ 21 | Cliff_Diving              | 1
+ 22 | Cricket_Bowling           | 1
+ 23 | Cricket_Shot              | 1
+ 24 | Cutting_In_Kitchen        | 1
+ 25 | Diving                    | 1
+ 26 | Drumming                  | 1
+ 27 | Fencing                   | 1
+ 28 | Field_Hockey_Penalty      | 1
+ 29 | Floor_Gymnastics          | 1
+ 30 | Frisbee_Catch             | 1
+ 31 | Front_Crawl               | 1
+ 32 | Golf_Swing                | 1
+ 33 | Haircut                   | 1
+ 34 | Hammering                 | 1
+ 35 | Hammer_Throw              | 1
+ 36 | Handstand_Pushups         | 1
+ 37 | Handstand_Walking         | 1
+ 38 | Head_Massage              | 1
+ 39 | High_Jump                 | 1
+ 40 | Horse_Race                | 1
+ 41 | Horse_Riding              | 1
+ 42 | Hula_Hoop                 | 1
+ 43 | Ice_Dancing               | 1
+ 44 | Javelin_Throw             | 1
+ 45 | Juggling_Balls            | 1
+ 46 | Jumping_Jack              | 1
+ 47 | Jump_Rope                 | 1
+ 48 | Kayaking                  | 1
+ 49 | Knitting                  | 1
+ 50 | Long_Jump                 | 1
+ 51 | Lunges                    | 1
+ 52 | Military_Parade           | 1
+ 53 | Mixing                    | 1
+ 54 | Mopping_Floor             | 1
+ 55 | Nunchucks                 | 1
+ 56 | Parallel_Bars             | 1
+ 57 | Pizza_Tossing             | 1
+ 58 | Playing_Cello             | 1
+ 59 | Playing_Daf               | 1
+ 60 | Playing_Dhol              | 1
+ 61 | Playing_Flute             | 1
+ 62 | Playing_Guitar            | 1
+ 63 | Playing_Piano             | 1
+ 64 | Playing_Sitar             | 1
+ 65 | Playing_Tabla             | 1
+ 66 | Playing_Violin            | 1
+ 67 | Pole_Vault                | 1
+ 68 | Pommel_Horse              | 1
+ 69 | Pull_Ups                  | 1
+ 70 | Punch                     | 1
+ 71 | Push_Ups                  | 1
+ 72 | Rafting                   | 1
+ 73 | Rock_Climbing_Indoor      | 1
+ 74 | Rope_Climbing             | 1
+ 75 | Rowing                    | 1
+ 76 | Salsa_Spin                | 1
+ 77 | Shaving_Beard             | 1
+ 78 | Shotput                   | 1
+ 79 | Skate_Boarding            | 1
+ 80 | Skiing                    | 1
+ 81 | Skijet                    | 1
+ 82 | Sky_Diving                | 1
+ 83 | Soccer_Juggling           | 1
+ 84 | Soccer_Penalty            | 1
+ 85 | Still_Rings               | 1
+ 86 | Sumo_Wrestling            | 1
+ 87 | Surfing                   | 1
+ 88 | Swing                     | 1
+ 89 | Table_Tennis_Shot         | 1
+ 90 | Tai_Chi                   | 1
+ 91 | Tennis_Swing              | 1
+ 92 | Throw_Discus              | 1
+ 93 | Trampoline_Jumping        | 1
+ 94 | Typing                    | 1
+ 95 | Uneven_Bars               | 1
+ 96 | Volleyball_Spiking        | 1
+ 97 | Walking_With_Dog          | 1
+ 98 | Wall_Pushups              | 1
+ 99 | Writing_On_Board          | 1
+100 | Yo_Yo                     | 1
+===== test =====
+num_classes: 101
+  0 | Apply_Eye_Makeup          | 44
+  1 | Apply_Lipstick            | 32
+  2 | Archery                   | 41
+  3 | Baby_Crawling             | 35
+  4 | Balance_Beam              | 31
+  5 | Band_Marching             | 43
+  6 | Baseball_Pitch            | 43
+  7 | Basketball                | 35
+  8 | Basketball_Dunk           | 37
+  9 | Bench_Press               | 48
+ 10 | Biking                    | 38
+ 11 | Billiards                 | 40
+ 12 | Blow_Dry_Hair             | 38
+ 13 | Blowing_Candles           | 33
+ 14 | Body_Weight_Squats        | 30
+ 15 | Bowling                   | 43
+ 16 | Boxing_Punching_Bag       | 49
+ 17 | Boxing_Speed_Bag          | 37
+ 18 | Breast_Stroke             | 28
+ 19 | Brushing_Teeth            | 36
+ 20 | Clean_And_Jerk            | 33
+ 21 | Cliff_Diving              | 39
+ 22 | Cricket_Bowling           | 36
+ 23 | Cricket_Shot              | 49
+ 24 | Cutting_In_Kitchen        | 33
+ 25 | Diving                    | 45
+ 26 | Drumming                  | 45
+ 27 | Fencing                   | 34
+ 28 | Field_Hockey_Penalty      | 40
+ 29 | Floor_Gymnastics          | 36
+ 30 | Frisbee_Catch             | 37
+ 31 | Front_Crawl               | 37
+ 32 | Golf_Swing                | 39
+ 33 | Haircut                   | 33
+ 34 | Hammering                 | 33
+ 35 | Hammer_Throw              | 45
+ 36 | Handstand_Pushups         | 28
+ 37 | Handstand_Walking         | 34
+ 38 | Head_Massage              | 41
+ 39 | High_Jump                 | 37
+ 40 | Horse_Race                | 35
+ 41 | Horse_Riding              | 49
+ 42 | Hula_Hoop                 | 34
+ 43 | Ice_Dancing               | 46
+ 44 | Javelin_Throw             | 31
+ 45 | Juggling_Balls            | 40
+ 46 | Jumping_Jack              | 37
+ 47 | Jump_Rope                 | 38
+ 48 | Kayaking                  | 36
+ 49 | Knitting                  | 34
+ 50 | Long_Jump                 | 39
+ 51 | Lunges                    | 37
+ 52 | Military_Parade           | 33
+ 53 | Mixing                    | 45
+ 54 | Mopping_Floor             | 34
+ 55 | Nunchucks                 | 35
+ 56 | Parallel_Bars             | 37
+ 57 | Pizza_Tossing             | 33
+ 58 | Playing_Cello             | 44
+ 59 | Playing_Daf               | 41
+ 60 | Playing_Dhol              | 49
+ 61 | Playing_Flute             | 48
+ 62 | Playing_Guitar            | 43
+ 63 | Playing_Piano             | 28
+ 64 | Playing_Sitar             | 44
+ 65 | Playing_Tabla             | 31
+ 66 | Playing_Violin            | 28
+ 67 | Pole_Vault                | 40
+ 68 | Pommel_Horse              | 35
+ 69 | Pull_Ups                  | 28
+ 70 | Punch                     | 39
+ 71 | Push_Ups                  | 30
+ 72 | Rafting                   | 28
+ 73 | Rock_Climbing_Indoor      | 41
+ 74 | Rope_Climbing             | 34
+ 75 | Rowing                    | 36
+ 76 | Salsa_Spin                | 43
+ 77 | Shaving_Beard             | 43
+ 78 | Shotput                   | 46
+ 79 | Skate_Boarding            | 32
+ 80 | Skiing                    | 40
+ 81 | Skijet                    | 28
+ 82 | Sky_Diving                | 31
+ 83 | Soccer_Juggling           | 39
+ 84 | Soccer_Penalty            | 41
+ 85 | Still_Rings               | 32
+ 86 | Sumo_Wrestling            | 34
+ 87 | Surfing                   | 33
+ 88 | Swing                     | 42
+ 89 | Table_Tennis_Shot         | 39
+ 90 | Tai_Chi                   | 28
+ 91 | Tennis_Swing              | 49
+ 92 | Throw_Discus              | 38
+ 93 | Trampoline_Jumping        | 32
+ 94 | Typing                    | 43
+ 95 | Uneven_Bars               | 28
+ 96 | Volleyball_Spiking        | 35
+ 97 | Walking_With_Dog          | 36
+ 98 | Wall_Pushups              | 35
+ 99 | Writing_On_Board          | 45
+100 | Yo_Yo                     | 36
+[load_model] 使用本地模型目录：/root/autodl-tmp/BayesVLM/models/clip-vit-b32
+[cache] dataset=ucf101 split=id_train cache_dir=/root/autodl-tmp/BayesVLM/cache/image_features/ucf101/model_clip-base/weights__root_autodl-tmp_BayesVLM_models_clip-vit-b32/imgsz_224/tfm_cf4d0ebdf93a/id_train
+[cache] 命中缓存，直接加载。
+[cache] dataset=ucf101 split=id_train_eval cache_dir=/root/autodl-tmp/BayesVLM/cache/image_features/ucf101/model_clip-base/weights__root_autodl-tmp_BayesVLM_models_clip-vit-b32/imgsz_224/tfm_cf4d0ebdf93a/id_train_eval
+[cache] 命中缓存，直接加载。
+[cache] dataset=ucf101 split=id_val cache_dir=/root/autodl-tmp/BayesVLM/cache/image_features/ucf101/model_clip-base/weights__root_autodl-tmp_BayesVLM_models_clip-vit-b32/imgsz_224/tfm_cf4d0ebdf93a/id_val
+[cache] 命中缓存，直接加载。
+[cache] dataset=ucf101 split=id_test cache_dir=/root/autodl-tmp/BayesVLM/cache/image_features/ucf101/model_clip-base/weights__root_autodl-tmp_BayesVLM_models_clip-vit-b32/imgsz_224/tfm_cf4d0ebdf93a/id_test
+[cache] 命中缓存，直接加载。
+[eval] loading last checkpoint: /root/autodl-tmp/BayesVLM/output/vlm_adapter/id/ucf101/BAYESADAPTER/BAYESADAPTER/logit_scale_frozen/prior_text_only__seed_3__last/shot_1/seed_3/checkpoints/last_adapter.pt
+[eval] adapter_cls=BayesPaperAdapter
+[eval] raw_logits_shape=(10, 101, 101)
+[eval] reduced_logits_shape=(101, 101)
+[eval] adapter_cls=BayesPaperAdapter
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[eval] adapter_cls=BayesPaperAdapter
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[done] evaluation complete:
+{
+  "family": "vlm_adapter",
+  "variant": "BAYESADAPTER",
+  "protocol": "id",
+  "dataset": "ucf101",
+  "seed": 3,
+  "evaluation_tasks": [
+    "classification"
+  ],
+  "model_selection": "last",
+  "selected_checkpoint": "last",
+  "selected_epoch": 300,
+  "selected_val_metrics": {
+    "loss": 1.0419919003425333,
+    "acc": 0.7276080250740051,
+    "nlpd": 1.0401568412780762,
+    "ece": 0.06765355169773102,
+    "aece": 0.0676535528439742,
+    "raw_cov_99": 0.2460484653711319,
+    "sel_acc_99": 0.9892933368682861,
+    "reliable_99": 0.0,
+    "cov_99": 0.0,
+    "class_cov_99": 0.0,
+    "raw_cov_95": 0.43572181463241577,
+    "sel_acc_95": 0.9637243151664734,
+    "reliable_95": 1.0,
+    "cov_95": 0.43572181463241577,
+    "class_cov_95": 0.8712871287128713,
+    "raw_cov_90": 0.5110642910003662,
+    "sel_acc_90": 0.9453608393669128,
+    "reliable_90": 1.0,
+    "cov_90": 0.5110642910003662,
+    "class_cov_90": 0.9603960396039604,
+    "raw_cov_85": 0.5637513399124146,
+    "sel_acc_85": 0.9280374050140381,
+    "reliable_85": 1.0,
+    "cov_85": 0.5637513399124146,
+    "class_cov_85": 0.9801980198019802,
+    "raw_cov_80": 0.6085352897644043,
+    "sel_acc_80": 0.9090909361839294,
+    "reliable_80": 1.0,
+    "cov_80": 0.6085352897644043,
+    "class_cov_80": 0.9801980198019802
+  },
+  "classification": {
+    "train": {
+      "split_name": "train",
+      "metrics": {
+        "loss": 0.005924574565142393,
+        "acc": 1.0,
+        "nlpd": 0.005849118810147047,
+        "ece": 0.005822956562042236,
+        "aece": 0.005822917022327386,
+        "raw_cov_99": 0.9009901285171509,
+        "sel_acc_99": 1.0,
+        "reliable_99": 1.0,
+        "cov_99": 0.9009901285171509,
+        "class_cov_99": 0.900990099009901,
+        "raw_cov_95": 1.0,
+        "sel_acc_95": 1.0,
+        "reliable_95": 1.0,
+        "cov_95": 1.0,
+        "class_cov_95": 1.0,
+        "raw_cov_90": 1.0,
+        "sel_acc_90": 1.0,
+        "reliable_90": 1.0,
+        "cov_90": 1.0,
+        "class_cov_90": 1.0,
+        "raw_cov_85": 1.0,
+        "sel_acc_85": 1.0,
+        "reliable_85": 1.0,
+        "cov_85": 1.0,
+        "class_cov_85": 1.0,
+        "raw_cov_80": 1.0,
+        "sel_acc_80": 1.0,
+        "reliable_80": 1.0,
+        "cov_80": 1.0,
+        "class_cov_80": 1.0
+      },
+      "output_dir": "/root/autodl-tmp/BayesVLM/output/vlm_adapter/id/ucf101/BAYESADAPTER/BAYESADAPTER/logit_scale_frozen/prior_text_only__seed_3__last/shot_1/seed_3/eval/id/train",
+      "metrics_path": "/root/autodl-tmp/BayesVLM/output/vlm_adapter/id/ucf101/BAYESADAPTER/BAYESADAPTER/logit_scale_frozen/prior_text_only__seed_3__last/shot_1/seed_3/eval/id/train/metrics.json",
+      "predictions_pt": "/root/autodl-tmp/BayesVLM/output/vlm_adapter/id/ucf101/BAYESADAPTER/BAYESADAPTER/logit_scale_frozen/prior_text_only__seed_3__last/shot_1/seed_3/eval/id/train/predictions.pt",
+      "predictions_jsonl": "/root/autodl-tmp/BayesVLM/output/vlm_adapter/id/ucf101/BAYESADAPTER/BAYESADAPTER/logit_scale_frozen/prior_text_only__seed_3__last/shot_1/seed_3/eval/id/train/predictions.jsonl",
+      "bins_path": "/root/autodl-tmp/BayesVLM/output/vlm_adapter/id/ucf101/BAYESADAPTER/BAYESADAPTER/logit_scale_frozen/prior_text_only__seed_3__last/shot_1/seed_3/eval/id/train/calibration_bins.csv",
+      "adaptive_bins_path": "/root/autodl-tmp/BayesVLM/output/vlm_adapter/id/ucf101/BAYESADAPTER/BAYESADAPTER/logit_scale_frozen/prior_text_only__seed_3__last/shot_1/seed_3/eval/id/train/adaptive_calibration_bins.csv",
+      "selective_metrics_path": "/root/autodl-tmp/BayesVLM/output/vlm_adapter/id/ucf101/BAYESADAPTER/BAYESADAPTER/logit_scale_frozen/prior_text_only__seed_3__last/shot_1/seed_3/eval/id/train/selective_metrics.csv"
+    },
+    "val": {
+      "split_name": "val",
+      "metrics": {
+        "loss": 1.042522204060449,
+        "acc": 0.7255005240440369,
+        "nlpd": 1.040720820426941,
+        "ece": 0.06981027126312256,
+        "aece": 0.06981031755250423,
+        "raw_cov_99": 0.24552160501480103,
+        "sel_acc_99": 0.991416335105896,
+        "reliable_99": 1.0,
+        "cov_99": 0.24552160501480103,
+        "class_cov_99": 0.7029702970297029,
+        "raw_cov_95": 0.43572181463241577,
+        "sel_acc_95": 0.9613059163093567,
+        "reliable_95": 1.0,
+        "cov_95": 0.43572181463241577,
+        "class_cov_95": 0.8811881188118812,
+        "raw_cov_90": 0.5094836950302124,
+        "sel_acc_90": 0.9451913237571716,
+        "reliable_90": 1.0,
+        "cov_90": 0.5094836950302124,
+        "class_cov_90": 0.9603960396039604,
+        "raw_cov_85": 0.5632244348526001,
+        "sel_acc_85": 0.9270346164703369,
+        "reliable_85": 1.0,
+        "cov_85": 0.5632244348526001,
+        "class_cov_85": 0.9801980198019802,
+        "raw_cov_80": 0.6074815392494202,
+        "sel_acc_80": 0.9089332222938538,
+        "reliable_80": 1.0,
+        "cov_80": 0.6074815392494202,
+        "class_cov_80": 0.9801980198019802
+      },
+      "output_dir": "/root/autodl-tmp/BayesVLM/output/vlm_adapter/id/ucf101/BAYESADAPTER/BAYESADAPTER/logit_scale_frozen/prior_text_only__seed_3__last/shot_1/seed_3/eval/id/val",
+      "metrics_path": "/root/autodl-tmp/BayesVLM/output/vlm_adapter/id/ucf101/BAYESADAPTER/BAYESADAPTER/logit_scale_frozen/prior_text_only__seed_3__last/shot_1/seed_3/eval/id/val/metrics.json",
+      "predictions_pt": "/root/autodl-tmp/BayesVLM/output/vlm_adapter/id/ucf101/BAYESADAPTER/BAYESADAPTER/logit_scale_frozen/prior_text_only__seed_3__last/shot_1/seed_3/eval/id/val/predictions.pt",
+      "predictions_jsonl": "/root/autodl-tmp/BayesVLM/output/vlm_adapter/id/ucf101/BAYESADAPTER/BAYESADAPTER/logit_scale_frozen/prior_text_only__seed_3__last/shot_1/seed_3/eval/id/val/predictions.jsonl",
+      "bins_path": "/root/autodl-tmp/BayesVLM/output/vlm_adapter/id/ucf101/BAYESADAPTER/BAYESADAPTER/logit_scale_frozen/prior_text_only__seed_3__last/shot_1/seed_3/eval/id/val/calibration_bins.csv",
+      "adaptive_bins_path": "/root/autodl-tmp/BayesVLM/output/vlm_adapter/id/ucf101/BAYESADAPTER/BAYESADAPTER/logit_scale_frozen/prior_text_only__seed_3__last/shot_1/seed_3/eval/id/val/adaptive_calibration_bins.csv",
+      "selective_metrics_path": "/root/autodl-tmp/BayesVLM/output/vlm_adapter/id/ucf101/BAYESADAPTER/BAYESADAPTER/logit_scale_frozen/prior_text_only__seed_3__last/shot_1/seed_3/eval/id/val/selective_metrics.csv"
+    },
+    "test": {
+      "split_name": "test",
+      "metrics": {
+        "loss": 1.1126688373426012,
+        "acc": 0.7057890295982361,
+        "nlpd": 1.1108077764511108,
+        "ece": 0.0803234800696373,
+        "aece": 0.08038222138651016,
+        "raw_cov_99": 0.24768702685832977,
+        "sel_acc_99": 0.9914621114730835,
+        "reliable_99": 1.0,
+        "cov_99": 0.24768702685832977,
+        "class_cov_99": 0.7128712871287128,
+        "raw_cov_95": 0.4068199694156647,
+        "sel_acc_95": 0.9603638648986816,
+        "reliable_95": 1.0,
+        "cov_95": 0.4068199694156647,
+        "class_cov_95": 0.900990099009901,
+        "raw_cov_90": 0.4929949641227722,
+        "sel_acc_90": 0.9356568455696106,
+        "reliable_90": 1.0,
+        "cov_90": 0.4929949641227722,
+        "class_cov_90": 0.9702970297029703,
+        "raw_cov_85": 0.5487708449363708,
+        "sel_acc_85": 0.9176300764083862,
+        "reliable_85": 1.0,
+        "cov_85": 0.5487708449363708,
+        "class_cov_85": 0.9900990099009901,
+        "raw_cov_80": 0.5955590605735779,
+        "sel_acc_80": 0.901020884513855,
+        "reliable_80": 1.0,
+        "cov_80": 0.5955590605735779,
+        "class_cov_80": 1.0
+      },
+      "output_dir": "/root/autodl-tmp/BayesVLM/output/vlm_adapter/id/ucf101/BAYESADAPTER/BAYESADAPTER/logit_scale_frozen/prior_text_only__seed_3__last/shot_1/seed_3/eval/id/test",
+      "metrics_path": "/root/autodl-tmp/BayesVLM/output/vlm_adapter/id/ucf101/BAYESADAPTER/BAYESADAPTER/logit_scale_frozen/prior_text_only__seed_3__last/shot_1/seed_3/eval/id/test/metrics.json",
+      "predictions_pt": "/root/autodl-tmp/BayesVLM/output/vlm_adapter/id/ucf101/BAYESADAPTER/BAYESADAPTER/logit_scale_frozen/prior_text_only__seed_3__last/shot_1/seed_3/eval/id/test/predictions.pt",
+      "predictions_jsonl": "/root/autodl-tmp/BayesVLM/output/vlm_adapter/id/ucf101/BAYESADAPTER/BAYESADAPTER/logit_scale_frozen/prior_text_only__seed_3__last/shot_1/seed_3/eval/id/test/predictions.jsonl",
+      "bins_path": "/root/autodl-tmp/BayesVLM/output/vlm_adapter/id/ucf101/BAYESADAPTER/BAYESADAPTER/logit_scale_frozen/prior_text_only__seed_3__last/shot_1/seed_3/eval/id/test/calibration_bins.csv",
+      "adaptive_bins_path": "/root/autodl-tmp/BayesVLM/output/vlm_adapter/id/ucf101/BAYESADAPTER/BAYESADAPTER/logit_scale_frozen/prior_text_only__seed_3__last/shot_1/seed_3/eval/id/test/adaptive_calibration_bins.csv",
+      "selective_metrics_path": "/root/autodl-tmp/BayesVLM/output/vlm_adapter/id/ucf101/BAYESADAPTER/BAYESADAPTER/logit_scale_frozen/prior_text_only__seed_3__last/shot_1/seed_3/eval/id/test/selective_metrics.csv"
+    }
+  },
+  "ood_detection": {
+    "enabled": false,
+    "targets": []
+  },
+  "run_dir": "/root/autodl-tmp/BayesVLM/output/vlm_adapter/id/ucf101/BAYESADAPTER/BAYESADAPTER/logit_scale_frozen/prior_text_only__seed_3__last/shot_1/seed_3",
+  "elapsed_seconds": 2.15,
+  "initialization": "BAYESADAPTER",
+  "zero_shot_test": {
+    "loss": 1.3718238727711762,
+    "acc": 0.6341527700424194,
+    "nlpd": 1.3718132972717285,
+    "ece": 0.11404092609882355,
+    "aece": 0.11419022308592125,
+    "raw_cov_99": 0.1953476071357727,
+    "sel_acc_99": 0.9918808937072754,
+    "reliable_99": 1.0,
+    "cov_99": 0.1953476071357727,
+    "class_cov_99": 0.594059405940594,
+    "raw_cov_95": 0.335183709859848,
+    "sel_acc_95": 0.9582018852233887,
+    "reliable_95": 1.0,
+    "cov_95": 0.335183709859848,
+    "class_cov_95": 0.8217821782178217,
+    "raw_cov_90": 0.4118424654006958,
+    "sel_acc_90": 0.9229781627655029,
+    "reliable_90": 1.0,
+    "cov_90": 0.4118424654006958,
+    "class_cov_90": 0.9504950495049505,
+    "raw_cov_85": 0.46708962321281433,
+    "sel_acc_85": 0.8907753229141235,
+    "reliable_85": 1.0,
+    "cov_85": 0.46708962321281433,
+    "class_cov_85": 0.9900990099009901,
+    "raw_cov_80": 0.517578661441803,
+    "sel_acc_80": 0.8661900162696838,
+    "reliable_80": 1.0,
+    "cov_80": 0.517578661441803,
+    "class_cov_80": 0.9900990099009901
+  },
+  "resolved_family_args": {
+    "model": "clip-base",
+    "local_model_path": "./models/clip-vit-b32",
+    "data_root": "./datasets",
+    "save_dir": "./output",
+    "image_feature_cache_root": "/root/autodl-tmp/BayesVLM/cache/image_features",
+    "optimizer": "sgd",
+    "lr": 0.1,
+    "weight_decay": 0.0,
+    "momentum": 0.9,
+    "nesterov": false,
+    "epochs": 300,
+    "lr_scheduler": "cosine",
+    "warmup_epoch": 0,
+    "warmup_cons_lr": 1e-05,
+    "model_selection": "last",
+    "selection_metric": "acc",
+    "selection_mode": "max",
+    "device": "cuda",
+    "batch_size": 256,
+    "num_workers": 8,
+    "prediction_topk": 5,
+    "rebuild_image_feature_cache": false,
+    "disable_cache_image_features": false,
+    "use_data_augmentation": false,
+    "use_augmented_train_cache": false,
+    "train_aug_repeats": 20,
+    "family": "vlm_adapter",
+    "output_name": "vlm_adapter",
+    "initialization": "BAYESADAPTER",
+    "variant": "BAYESADAPTER",
+    "train_logit_scale": false,
+    "bayesadapter_prior_sigma": 0.01,
+    "bayesadapter_train_mc_samples": 3,
+    "bayesadapter_eval_mc_samples": 10,
+    "bayesadapter_kl_scale_divisor": 1000.0,
+    "bayesadapter_covariance_mode": "paper_scalar",
+    "bayesadapter_text_only_ckpt": "last",
+    "bayesadapter_text_only_run_dir_template": "{save_dir}/text_only_bayes_coop_bayes/{protocol}/{dataset}/logit_scale_frozen/shot_{shots_per_class}/seed_{seed}",
+    "bayesadapter_text_only_mu_strategy": "blend",
+    "bayesadapter_text_only_mu_blend_lambda": 0.0,
+    "bayesadapter_text_only_sigma_strategy": "ignore",
+    "protocol": "id",
+    "evaluation_tasks": [
+      "classification"
+    ],
+    "dataset": "ucf101",
+    "shots_per_class": 1,
+    "seed": 3,
+    "cache_image_features": true,
+    "bayesadapter_text_only_run_dir": "./output/text_only_bayes_coop_bayes/id/ucf101/logit_scale_frozen/shot_1/seed_3",
+    "model_type": "clip",
+    "image_size": 224,
+    "transform_name": "default_transform(image_size=224)",
+    "num_classes": 101,
+    "run_dir": "/root/autodl-tmp/BayesVLM/output/vlm_adapter/id/ucf101/BAYESADAPTER/BAYESADAPTER/logit_scale_frozen/prior_text_only__seed_3__last/shot_1/seed_3",
+    "resolved_family_args": {
+      "model": "clip-base",
+      "local_model_path": "./models/clip-vit-b32",
+      "data_root": "./datasets",
+      "save_dir": "./output",
+      "image_feature_cache_root": "./cache/image_features",
+      "optimizer": "sgd",
+      "lr": 0.1,
+      "weight_decay": 0.0,
+      "momentum": 0.9,
+      "nesterov": false,
+      "epochs": 300,
+      "lr_scheduler": "cosine",
+      "warmup_epoch": 0,
+      "warmup_cons_lr": 1e-05,
+      "model_selection": "last",
+      "selection_metric": "acc",
+      "selection_mode": "max",
+      "device": "cuda",
+      "batch_size": 256,
+      "num_workers": 8,
+      "prediction_topk": 5,
+      "rebuild_image_feature_cache": false,
+      "disable_cache_image_features": false,
+      "use_data_augmentation": false,
+      "use_augmented_train_cache": false,
+      "train_aug_repeats": 20,
+      "family": "vlm_adapter",
+      "output_name": "vlm_adapter",
+      "initialization": "BAYESADAPTER",
+      "variant": "BAYESADAPTER",
+      "train_logit_scale": false,
+      "bayesadapter_prior_sigma": 0.01,
+      "bayesadapter_train_mc_samples": 3,
+      "bayesadapter_eval_mc_samples": 10,
+      "bayesadapter_kl_scale_divisor": 1000.0,
+      "bayesadapter_covariance_mode": "paper_scalar",
+      "bayesadapter_text_only_ckpt": "last",
+      "bayesadapter_text_only_run_dir_template": "{save_dir}/text_only_bayes_coop_bayes/{protocol}/{dataset}/logit_scale_frozen/shot_{shots_per_class}/seed_{seed}",
+      "bayesadapter_text_only_mu_strategy": "blend",
+      "bayesadapter_text_only_mu_blend_lambda": 0.0,
+      "bayesadapter_text_only_sigma_strategy": "ignore",
+      "protocol": "id",
+      "evaluation_tasks": [
+        "classification"
+      ],
+      "dataset": "ucf101",
+      "shots_per_class": 1,
+      "seed": 3,
+      "cache_image_features": true,
+      "bayesadapter_text_only_run_dir": "./output/text_only_bayes_coop_bayes/id/ucf101/logit_scale_frozen/shot_1/seed_3"
+    },
+    "zero_shot_test": {
+      "loss": 1.3718238727711762,
+      "acc": 0.6341527700424194,
+      "nlpd": 1.3718132972717285,
+      "ece": 0.11404092609882355,
+      "aece": 0.11419022308592125,
+      "raw_cov_99": 0.1953476071357727,
+      "sel_acc_99": 0.9918808937072754,
+      "reliable_99": 1.0,
+      "cov_99": 0.1953476071357727,
+      "class_cov_99": 0.594059405940594,
+      "raw_cov_95": 0.335183709859848,
+      "sel_acc_95": 0.9582018852233887,
+      "reliable_95": 1.0,
+      "cov_95": 0.335183709859848,
+      "class_cov_95": 0.8217821782178217,
+      "raw_cov_90": 0.4118424654006958,
+      "sel_acc_90": 0.9229781627655029,
+      "reliable_90": 1.0,
+      "cov_90": 0.4118424654006958,
+      "class_cov_90": 0.9504950495049505,
+      "raw_cov_85": 0.46708962321281433,
+      "sel_acc_85": 0.8907753229141235,
+      "reliable_85": 1.0,
+      "cov_85": 0.46708962321281433,
+      "class_cov_85": 0.9900990099009901,
+      "raw_cov_80": 0.517578661441803,
+      "sel_acc_80": 0.8661900162696838,
+      "reliable_80": 1.0,
+      "cov_80": 0.517578661441803,
+      "class_cov_80": 0.9900990099009901
+    }
+  }
+}

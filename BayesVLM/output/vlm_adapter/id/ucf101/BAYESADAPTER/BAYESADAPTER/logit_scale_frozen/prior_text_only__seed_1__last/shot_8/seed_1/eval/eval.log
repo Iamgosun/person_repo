@@ -217,28 +217,16 @@ num_classes: 101
 [cache] 命中缓存，直接加载。
 [cache] dataset=ucf101 split=id_test cache_dir=/root/autodl-tmp/BayesVLM/cache/image_features/ucf101/model_clip-base/weights__root_autodl-tmp_BayesVLM_models_clip-vit-b32/imgsz_224/tfm_cf4d0ebdf93a/id_test
 [cache] 命中缓存，直接加载。
-Initializing a generic context
-Initial context: "X X X X X X X X X X X X X X X X"
-Number of context words (tokens): 16
 [eval] loading last checkpoint: /root/autodl-tmp/BayesVLM/output/vlm_adapter/id/ucf101/BAYESADAPTER/BAYESADAPTER/logit_scale_frozen/prior_text_only__seed_1__last/shot_8/seed_1/checkpoints/last_adapter.pt
 [eval] adapter_cls=BayesPaperAdapter
 [eval] raw_logits_shape=(10, 256, 101)
 [eval] reduced_logits_shape=(256, 101)
-[eval] first_batch_ce=0.016486
-[eval] first_batch_nlpd=0.016319
-[eval] ce_nlpd_gap=0.000167
 [eval] adapter_cls=BayesPaperAdapter
 [eval] raw_logits_shape=(10, 256, 101)
 [eval] reduced_logits_shape=(256, 101)
-[eval] first_batch_ce=0.312003
-[eval] first_batch_nlpd=0.311325
-[eval] ce_nlpd_gap=0.000678
 [eval] adapter_cls=BayesPaperAdapter
 [eval] raw_logits_shape=(10, 256, 101)
 [eval] reduced_logits_shape=(256, 101)
-[eval] first_batch_ce=0.662049
-[eval] first_batch_nlpd=0.661120
-[eval] ce_nlpd_gap=0.000929
 [done] evaluation complete:
 {
   "family": "vlm_adapter",
@@ -253,53 +241,163 @@ Number of context words (tokens): 16
   "selected_checkpoint": "last",
   "selected_epoch": 300,
   "selected_val_metrics": {
-    "loss": 0.5391416006394759,
-    "acc": 0.8493150472640991,
-    "nlpd": 0.5379164814949036,
-    "ece": 0.025392068549990654
+    "loss": 0.5371854735501072,
+    "acc": 0.8524762988090515,
+    "nlpd": 0.5359563231468201,
+    "ece": 0.02408844791352749,
+    "aece": 0.02320508638473406,
+    "raw_cov_99": 0.39251843094825745,
+    "sel_acc_99": 0.9946308732032776,
+    "reliable_99": 1.0,
+    "cov_99": 0.39251843094825745,
+    "class_cov_99": 0.8910891089108911,
+    "raw_cov_95": 0.5648050308227539,
+    "sel_acc_95": 0.9813432693481445,
+    "reliable_95": 1.0,
+    "cov_95": 0.5648050308227539,
+    "class_cov_95": 0.9801980198019802,
+    "raw_cov_90": 0.6464699506759644,
+    "sel_acc_90": 0.9731051325798035,
+    "reliable_90": 1.0,
+    "cov_90": 0.6464699506759644,
+    "class_cov_90": 1.0,
+    "raw_cov_85": 0.694942057132721,
+    "sel_acc_85": 0.9598180651664734,
+    "reliable_85": 1.0,
+    "cov_85": 0.694942057132721,
+    "class_cov_85": 1.0,
+    "raw_cov_80": 0.7449947595596313,
+    "sel_acc_80": 0.9469589591026306,
+    "reliable_80": 1.0,
+    "cov_80": 0.7449947595596313,
+    "class_cov_80": 1.0
   },
   "classification": {
     "train": {
       "split_name": "train",
       "metrics": {
-        "loss": 0.016999783556871484,
+        "loss": 0.017024359758021218,
         "acc": 1.0,
-        "nlpd": 0.016787923872470856,
-        "ece": 0.01649041287600994
+        "nlpd": 0.016820969060063362,
+        "ece": 0.016522513702511787,
+        "aece": 0.01652253728986967,
+        "raw_cov_99": 0.48514851927757263,
+        "sel_acc_99": 1.0,
+        "reliable_99": 1.0,
+        "cov_99": 0.48514851927757263,
+        "class_cov_99": 0.8910891089108911,
+        "raw_cov_95": 0.9356435537338257,
+        "sel_acc_95": 1.0,
+        "reliable_95": 1.0,
+        "cov_95": 0.9356435537338257,
+        "class_cov_95": 1.0,
+        "raw_cov_90": 0.9987623691558838,
+        "sel_acc_90": 1.0,
+        "reliable_90": 1.0,
+        "cov_90": 0.9987623691558838,
+        "class_cov_90": 1.0,
+        "raw_cov_85": 1.0,
+        "sel_acc_85": 1.0,
+        "reliable_85": 1.0,
+        "cov_85": 1.0,
+        "class_cov_85": 1.0,
+        "raw_cov_80": 1.0,
+        "sel_acc_80": 1.0,
+        "reliable_80": 1.0,
+        "cov_80": 1.0,
+        "class_cov_80": 1.0
       },
       "output_dir": "/root/autodl-tmp/BayesVLM/output/vlm_adapter/id/ucf101/BAYESADAPTER/BAYESADAPTER/logit_scale_frozen/prior_text_only__seed_1__last/shot_8/seed_1/eval/id/train",
       "metrics_path": "/root/autodl-tmp/BayesVLM/output/vlm_adapter/id/ucf101/BAYESADAPTER/BAYESADAPTER/logit_scale_frozen/prior_text_only__seed_1__last/shot_8/seed_1/eval/id/train/metrics.json",
       "predictions_pt": "/root/autodl-tmp/BayesVLM/output/vlm_adapter/id/ucf101/BAYESADAPTER/BAYESADAPTER/logit_scale_frozen/prior_text_only__seed_1__last/shot_8/seed_1/eval/id/train/predictions.pt",
       "predictions_jsonl": "/root/autodl-tmp/BayesVLM/output/vlm_adapter/id/ucf101/BAYESADAPTER/BAYESADAPTER/logit_scale_frozen/prior_text_only__seed_1__last/shot_8/seed_1/eval/id/train/predictions.jsonl",
-      "bins_path": "/root/autodl-tmp/BayesVLM/output/vlm_adapter/id/ucf101/BAYESADAPTER/BAYESADAPTER/logit_scale_frozen/prior_text_only__seed_1__last/shot_8/seed_1/eval/id/train/calibration_bins.csv"
+      "bins_path": "/root/autodl-tmp/BayesVLM/output/vlm_adapter/id/ucf101/BAYESADAPTER/BAYESADAPTER/logit_scale_frozen/prior_text_only__seed_1__last/shot_8/seed_1/eval/id/train/calibration_bins.csv",
+      "adaptive_bins_path": "/root/autodl-tmp/BayesVLM/output/vlm_adapter/id/ucf101/BAYESADAPTER/BAYESADAPTER/logit_scale_frozen/prior_text_only__seed_1__last/shot_8/seed_1/eval/id/train/adaptive_calibration_bins.csv",
+      "selective_metrics_path": "/root/autodl-tmp/BayesVLM/output/vlm_adapter/id/ucf101/BAYESADAPTER/BAYESADAPTER/logit_scale_frozen/prior_text_only__seed_1__last/shot_8/seed_1/eval/id/train/selective_metrics.csv"
     },
     "val": {
       "split_name": "val",
       "metrics": {
-        "loss": 0.5371210456396933,
-        "acc": 0.8524762988090515,
-        "nlpd": 0.5358862280845642,
-        "ece": 0.019327567890286446
+        "loss": 0.5385972736884218,
+        "acc": 0.8508957028388977,
+        "nlpd": 0.5373523235321045,
+        "ece": 0.027542252093553543,
+        "aece": 0.022762381113492526,
+        "raw_cov_99": 0.3946259319782257,
+        "sel_acc_99": 0.9946595430374146,
+        "reliable_99": 1.0,
+        "cov_99": 0.3946259319782257,
+        "class_cov_99": 0.8910891089108911,
+        "raw_cov_95": 0.5605900883674622,
+        "sel_acc_95": 0.9830827116966248,
+        "reliable_95": 1.0,
+        "cov_95": 0.5605900883674622,
+        "class_cov_95": 0.9801980198019802,
+        "raw_cov_90": 0.6443625092506409,
+        "sel_acc_90": 0.9721994996070862,
+        "reliable_90": 1.0,
+        "cov_90": 0.6443625092506409,
+        "class_cov_90": 1.0,
+        "raw_cov_85": 0.6938883066177368,
+        "sel_acc_85": 0.9589977264404297,
+        "reliable_85": 1.0,
+        "cov_85": 0.6938883066177368,
+        "class_cov_85": 1.0,
+        "raw_cov_80": 0.7413066625595093,
+        "sel_acc_80": 0.9474058151245117,
+        "reliable_80": 1.0,
+        "cov_80": 0.7413066625595093,
+        "class_cov_80": 1.0
       },
       "output_dir": "/root/autodl-tmp/BayesVLM/output/vlm_adapter/id/ucf101/BAYESADAPTER/BAYESADAPTER/logit_scale_frozen/prior_text_only__seed_1__last/shot_8/seed_1/eval/id/val",
       "metrics_path": "/root/autodl-tmp/BayesVLM/output/vlm_adapter/id/ucf101/BAYESADAPTER/BAYESADAPTER/logit_scale_frozen/prior_text_only__seed_1__last/shot_8/seed_1/eval/id/val/metrics.json",
       "predictions_pt": "/root/autodl-tmp/BayesVLM/output/vlm_adapter/id/ucf101/BAYESADAPTER/BAYESADAPTER/logit_scale_frozen/prior_text_only__seed_1__last/shot_8/seed_1/eval/id/val/predictions.pt",
       "predictions_jsonl": "/root/autodl-tmp/BayesVLM/output/vlm_adapter/id/ucf101/BAYESADAPTER/BAYESADAPTER/logit_scale_frozen/prior_text_only__seed_1__last/shot_8/seed_1/eval/id/val/predictions.jsonl",
-      "bins_path": "/root/autodl-tmp/BayesVLM/output/vlm_adapter/id/ucf101/BAYESADAPTER/BAYESADAPTER/logit_scale_frozen/prior_text_only__seed_1__last/shot_8/seed_1/eval/id/val/calibration_bins.csv"
+      "bins_path": "/root/autodl-tmp/BayesVLM/output/vlm_adapter/id/ucf101/BAYESADAPTER/BAYESADAPTER/logit_scale_frozen/prior_text_only__seed_1__last/shot_8/seed_1/eval/id/val/calibration_bins.csv",
+      "adaptive_bins_path": "/root/autodl-tmp/BayesVLM/output/vlm_adapter/id/ucf101/BAYESADAPTER/BAYESADAPTER/logit_scale_frozen/prior_text_only__seed_1__last/shot_8/seed_1/eval/id/val/adaptive_calibration_bins.csv",
+      "selective_metrics_path": "/root/autodl-tmp/BayesVLM/output/vlm_adapter/id/ucf101/BAYESADAPTER/BAYESADAPTER/logit_scale_frozen/prior_text_only__seed_1__last/shot_8/seed_1/eval/id/val/selective_metrics.csv"
     },
     "test": {
       "split_name": "test",
       "metrics": {
-        "loss": 0.7677716852778517,
-        "acc": 0.7782183289527893,
-        "nlpd": 0.7663657069206238,
-        "ece": 0.05730936676263809
+        "loss": 0.7674372832736671,
+        "acc": 0.778747022151947,
+        "nlpd": 0.7660459280014038,
+        "ece": 0.05707281082868576,
+        "aece": 0.0572996336160247,
+        "raw_cov_99": 0.35553792119026184,
+        "sel_acc_99": 0.994795560836792,
+        "reliable_99": 1.0,
+        "cov_99": 0.35553792119026184,
+        "class_cov_99": 0.8712871287128713,
+        "raw_cov_95": 0.515199601650238,
+        "sel_acc_95": 0.9733196496963501,
+        "reliable_95": 1.0,
+        "cov_95": 0.515199601650238,
+        "class_cov_95": 0.9801980198019802,
+        "raw_cov_90": 0.5860428214073181,
+        "sel_acc_90": 0.9580514430999756,
+        "reliable_90": 1.0,
+        "cov_90": 0.5860428214073181,
+        "class_cov_90": 0.9900990099009901,
+        "raw_cov_85": 0.6399682760238647,
+        "sel_acc_85": 0.939694344997406,
+        "reliable_85": 1.0,
+        "cov_85": 0.6399682760238647,
+        "class_cov_85": 1.0,
+        "raw_cov_80": 0.6838487982749939,
+        "sel_acc_80": 0.925396203994751,
+        "reliable_80": 1.0,
+        "cov_80": 0.6838487982749939,
+        "class_cov_80": 1.0
       },
       "output_dir": "/root/autodl-tmp/BayesVLM/output/vlm_adapter/id/ucf101/BAYESADAPTER/BAYESADAPTER/logit_scale_frozen/prior_text_only__seed_1__last/shot_8/seed_1/eval/id/test",
       "metrics_path": "/root/autodl-tmp/BayesVLM/output/vlm_adapter/id/ucf101/BAYESADAPTER/BAYESADAPTER/logit_scale_frozen/prior_text_only__seed_1__last/shot_8/seed_1/eval/id/test/metrics.json",
       "predictions_pt": "/root/autodl-tmp/BayesVLM/output/vlm_adapter/id/ucf101/BAYESADAPTER/BAYESADAPTER/logit_scale_frozen/prior_text_only__seed_1__last/shot_8/seed_1/eval/id/test/predictions.pt",
       "predictions_jsonl": "/root/autodl-tmp/BayesVLM/output/vlm_adapter/id/ucf101/BAYESADAPTER/BAYESADAPTER/logit_scale_frozen/prior_text_only__seed_1__last/shot_8/seed_1/eval/id/test/predictions.jsonl",
-      "bins_path": "/root/autodl-tmp/BayesVLM/output/vlm_adapter/id/ucf101/BAYESADAPTER/BAYESADAPTER/logit_scale_frozen/prior_text_only__seed_1__last/shot_8/seed_1/eval/id/test/calibration_bins.csv"
+      "bins_path": "/root/autodl-tmp/BayesVLM/output/vlm_adapter/id/ucf101/BAYESADAPTER/BAYESADAPTER/logit_scale_frozen/prior_text_only__seed_1__last/shot_8/seed_1/eval/id/test/calibration_bins.csv",
+      "adaptive_bins_path": "/root/autodl-tmp/BayesVLM/output/vlm_adapter/id/ucf101/BAYESADAPTER/BAYESADAPTER/logit_scale_frozen/prior_text_only__seed_1__last/shot_8/seed_1/eval/id/test/adaptive_calibration_bins.csv",
+      "selective_metrics_path": "/root/autodl-tmp/BayesVLM/output/vlm_adapter/id/ucf101/BAYESADAPTER/BAYESADAPTER/logit_scale_frozen/prior_text_only__seed_1__last/shot_8/seed_1/eval/id/test/selective_metrics.csv"
     }
   },
   "ood_detection": {
@@ -307,13 +405,39 @@ Number of context words (tokens): 16
     "targets": []
   },
   "run_dir": "/root/autodl-tmp/BayesVLM/output/vlm_adapter/id/ucf101/BAYESADAPTER/BAYESADAPTER/logit_scale_frozen/prior_text_only__seed_1__last/shot_8/seed_1",
-  "elapsed_seconds": 3.11,
+  "elapsed_seconds": 2.37,
   "initialization": "BAYESADAPTER",
   "zero_shot_test": {
     "loss": 1.3718238727711762,
     "acc": 0.6341527700424194,
     "nlpd": 1.3718132972717285,
-    "ece": 0.11404092609882355
+    "ece": 0.11404092609882355,
+    "aece": 0.11419022308592125,
+    "raw_cov_99": 0.1953476071357727,
+    "sel_acc_99": 0.9918808937072754,
+    "reliable_99": 1.0,
+    "cov_99": 0.1953476071357727,
+    "class_cov_99": 0.594059405940594,
+    "raw_cov_95": 0.335183709859848,
+    "sel_acc_95": 0.9582018852233887,
+    "reliable_95": 1.0,
+    "cov_95": 0.335183709859848,
+    "class_cov_95": 0.8217821782178217,
+    "raw_cov_90": 0.4118424654006958,
+    "sel_acc_90": 0.9229781627655029,
+    "reliable_90": 1.0,
+    "cov_90": 0.4118424654006958,
+    "class_cov_90": 0.9504950495049505,
+    "raw_cov_85": 0.46708962321281433,
+    "sel_acc_85": 0.8907753229141235,
+    "reliable_85": 1.0,
+    "cov_85": 0.46708962321281433,
+    "class_cov_85": 0.9900990099009901,
+    "raw_cov_80": 0.517578661441803,
+    "sel_acc_80": 0.8661900162696838,
+    "reliable_80": 1.0,
+    "cov_80": 0.517578661441803,
+    "class_cov_80": 0.9900990099009901
   },
   "resolved_family_args": {
     "model": "clip-base",
@@ -427,33 +551,33 @@ Number of context words (tokens): 16
       "loss": 1.3718238727711762,
       "acc": 0.6341527700424194,
       "nlpd": 1.3718132972717285,
-      "ece": 0.11404092609882355
-    },
-    "bayesadapter_prior_bridge": {
-      "source_run_dir": "/root/autodl-tmp/BayesVLM/output/text_only_bayes_coop_bayes/id/ucf101/logit_scale_frozen/shot_8/seed_1",
-      "source_ckpt": "/root/autodl-tmp/BayesVLM/output/text_only_bayes_coop_bayes/id/ucf101/logit_scale_frozen/shot_8/seed_1/checkpoints/last_prompt_learner.pt",
-      "mu_strategy": "blend",
-      "sigma_strategy": "ignore",
-      "covariance_mode": "paper_scalar",
-      "lambda_txt": 3846.0751953125,
-      "pseudo_data_count": 4.0,
-      "mean_trace_sigma": 2.4113659858703613,
-      "mean_scalar_prior_sigma": 0.06859895586967468,
-      "mean_diag_prior_sigma": 0.06845095753669739,
-      "mu_blend_lambda": 0.0
+      "ece": 0.11404092609882355,
+      "aece": 0.11419022308592125,
+      "raw_cov_99": 0.1953476071357727,
+      "sel_acc_99": 0.9918808937072754,
+      "reliable_99": 1.0,
+      "cov_99": 0.1953476071357727,
+      "class_cov_99": 0.594059405940594,
+      "raw_cov_95": 0.335183709859848,
+      "sel_acc_95": 0.9582018852233887,
+      "reliable_95": 1.0,
+      "cov_95": 0.335183709859848,
+      "class_cov_95": 0.8217821782178217,
+      "raw_cov_90": 0.4118424654006958,
+      "sel_acc_90": 0.9229781627655029,
+      "reliable_90": 1.0,
+      "cov_90": 0.4118424654006958,
+      "class_cov_90": 0.9504950495049505,
+      "raw_cov_85": 0.46708962321281433,
+      "sel_acc_85": 0.8907753229141235,
+      "reliable_85": 1.0,
+      "cov_85": 0.46708962321281433,
+      "class_cov_85": 0.9900990099009901,
+      "raw_cov_80": 0.517578661441803,
+      "sel_acc_80": 0.8661900162696838,
+      "reliable_80": 1.0,
+      "cov_80": 0.517578661441803,
+      "class_cov_80": 0.9900990099009901
     }
-  },
-  "bayesadapter_prior_bridge": {
-    "source_run_dir": "/root/autodl-tmp/BayesVLM/output/text_only_bayes_coop_bayes/id/ucf101/logit_scale_frozen/shot_8/seed_1",
-    "source_ckpt": "/root/autodl-tmp/BayesVLM/output/text_only_bayes_coop_bayes/id/ucf101/logit_scale_frozen/shot_8/seed_1/checkpoints/last_prompt_learner.pt",
-    "mu_strategy": "blend",
-    "sigma_strategy": "ignore",
-    "covariance_mode": "paper_scalar",
-    "lambda_txt": 3846.0751953125,
-    "pseudo_data_count": 4.0,
-    "mean_trace_sigma": 2.4113659858703613,
-    "mean_scalar_prior_sigma": 0.06859895586967468,
-    "mean_diag_prior_sigma": 0.06845095753669739,
-    "mu_blend_lambda": 0.0
   }
 }

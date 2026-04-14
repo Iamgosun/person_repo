@@ -23,10 +23,14 @@ export PYTHONPATH="${ROOT_DIR}:${PYTHONPATH:-}"
 # ONLY_INDEX="N" runs only the N-th experiment (1-based)
 # ============================================================
  # vmfproto_id sample_id ablate_uatb_min
-PLAN_NAME="ablate_uatb_min"
-STAGE="all"
-DRY_RUN=0
-ONLY_INDEX=""
+#!/usr/bin/env bash
+
+
+PLAN_NAME="${PLAN_NAME:-sample_id}"
+STAGE="${STAGE:-all}"
+DRY_RUN="${DRY_RUN:-0}"
+ONLY_INDEX="${ONLY_INDEX:-}"
+AGGREGATE_AFTER_EVAL="${AGGREGATE_AFTER_EVAL:-1}"
 
 PYTHON_BIN="python"
 RUNNER_SCRIPT="train_py/run_from_xml.py"
@@ -80,6 +84,16 @@ echo "[launcher] PLAN_PATH=${PLAN_PATH}"
 echo "[launcher] STAGE=${STAGE}"
 echo "[launcher] DRY_RUN=${DRY_RUN}"
 echo "[launcher] ONLY_INDEX=${ONLY_INDEX:-<all>}"
+echo "[launcher] AGGREGATE_AFTER_EVAL=${AGGREGATE_AFTER_EVAL}"
 echo "============================================================"
 
 "${CMD[@]}"
+
+if [[ "${AGGREGATE_AFTER_EVAL}" -eq 1 && ( "${STAGE}" == "eval" || "${STAGE}" == "all" ) ]]; then
+  echo "============================================================"
+  echo "[launcher] aggregating seed results..."
+  echo "============================================================"
+  "${PYTHON_BIN}" -u train_py/tools/aggregate_seed_results.py \
+    --root "${ROOT_DIR}/output" \
+    --out_dir "${ROOT_DIR}/output/_aggregated"
+fi

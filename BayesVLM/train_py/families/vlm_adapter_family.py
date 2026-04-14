@@ -558,7 +558,16 @@ class VLMAdapterFamily(BaseFamily):
 
 
     def build_state(self, ctx, args) -> dict[str, Any]:
-        text_only_source_payload = _build_text_only_bayesadapter_prior(ctx, args)
+        text_only_source_payload = None
+
+        need_text_only_prior = (
+            getattr(args, "variant", None) in {"UATB_MIN", "VMFPROTO", "VMFPROTO_FULL"}
+            or getattr(args, "use_text_only_bayesadapter_prior", False)
+        )
+
+        if need_text_only_prior:
+            text_only_source_payload = _build_text_only_bayesadapter_prior(ctx, args)
+
         resolved_prior = _resolve_bayesadapter_canonical_prior(
             ctx=ctx,
             args=args,

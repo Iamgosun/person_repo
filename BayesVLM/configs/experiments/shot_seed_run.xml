@@ -1,38 +1,22 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <experiments>
-<!-- imagenet  ucf101 food101 -->
-  <!-- <experiment>
-    <dataset>imagenet</dataset>
-    <shots_per_class>16</shots_per_class>
-    <seed>1</seed>
-  </experiment> -->
-  <experiment>
-    <dataset>ucf101</dataset>
-    <shots_per_class>1</shots_per_class>
-    <seed>1</seed>
-  </experiment>
-  <experiment>
-    <dataset>ucf101</dataset>
-    <shots_per_class>2</shots_per_class>
-    <seed>1</seed>
-  </experiment>
+  <experiment><dataset>ucf101</dataset><shots_per_class>1</shots_per_class><seed>1</seed></experiment>
+  <experiment><dataset>ucf101</dataset><shots_per_class>1</shots_per_class><seed>2</seed></experiment>
+  <experiment><dataset>ucf101</dataset><shots_per_class>1</shots_per_class><seed>3</seed></experiment>
 
-  <experiment>
-    <dataset>ucf101</dataset>
-    <shots_per_class>4</shots_per_class>
-    <seed>1</seed>
-  </experiment>
+  <experiment><dataset>ucf101</dataset><shots_per_class>2</shots_per_class><seed>1</seed></experiment>
+  <experiment><dataset>ucf101</dataset><shots_per_class>2</shots_per_class><seed>2</seed></experiment>
+  <experiment><dataset>ucf101</dataset><shots_per_class>2</shots_per_class><seed>3</seed></experiment>
 
-  <experiment>
-    <dataset>ucf101</dataset>
-    <shots_per_class>8</shots_per_class>
-    <seed>1</seed>
-  </experiment>
+  <experiment><dataset>ucf101</dataset><shots_per_class>4</shots_per_class><seed>1</seed></experiment>
+  <experiment><dataset>ucf101</dataset><shots_per_class>4</shots_per_class><seed>2</seed></experiment>
+  <experiment><dataset>ucf101</dataset><shots_per_class>4</shots_per_class><seed>3</seed></experiment>
 
-  <experiment>
-    <dataset>ucf101</dataset>
-    <shots_per_class>16</shots_per_class>
-    <seed>1</seed>
-  </experiment>
+  <experiment><dataset>ucf101</dataset><shots_per_class>8</shots_per_class><seed>1</seed></experiment>
+  <experiment><dataset>ucf101</dataset><shots_per_class>8</shots_per_class><seed>2</seed></experiment>
+  <experiment><dataset>ucf101</dataset><shots_per_class>8</shots_per_class><seed>3</seed></experiment>
 
+  <experiment><dataset>ucf101</dataset><shots_per_class>16</shots_per_class><seed>1</seed></experiment>
+  <experiment><dataset>ucf101</dataset><shots_per_class>16</shots_per_class><seed>2</seed></experiment>
+  <experiment><dataset>ucf101</dataset><shots_per_class>16</shots_per_class><seed>3</seed></experiment>
 </experiments>

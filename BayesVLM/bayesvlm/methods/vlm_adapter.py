@@ -183,17 +183,6 @@ def evaluate_vlm_adapter(
             print(f"[eval] adapter_cls={type(model.adapter).__name__}")
             print(f"[eval] raw_logits_shape={tuple(raw_logits.shape)}")
             print(f"[eval] reduced_logits_shape={tuple(logits.shape)}")
-
-            first_ce = compute_classification_loss_from_logits(raw_logits, labels).item()
-            first_nlpd = (
-                -torch.log(
-                    probs[torch.arange(labels.size(0), device=labels.device), labels] + 1e-12
-                )
-            ).mean().item()
-
-            print(f"[eval] first_batch_ce={first_ce:.6f}")
-            print(f"[eval] first_batch_nlpd={first_nlpd:.6f}")
-            print(f"[eval] ce_nlpd_gap={abs(first_ce - first_nlpd):.6f}")
             debug_printed = True
 
         all_probs.append(probs.detach().cpu())
@@ -205,13 +194,10 @@ def evaluate_vlm_adapter(
     all_probs = torch.cat(all_probs, dim=0)
     all_labels = torch.cat(all_labels, dim=0)
 
-    acc, nlpd, ece = evaluate_prediction(all_probs, all_labels, num_classes=num_classes)
-
+    metric_dict = evaluate_prediction(all_probs, all_labels, num_classes=num_classes)
     return {
         "loss": float(total_loss / len(loader.dataset)),
-        "acc": float(acc),
-        "nlpd": float(nlpd),
-        "ece": float(ece),
+        **metric_dict,
     }
 
 
@@ -240,13 +226,10 @@ def evaluate_zero_shot_vlm_adapter(
     all_probs = torch.cat(all_probs, dim=0)
     all_labels = torch.cat(all_labels, dim=0)
 
-    acc, nlpd, ece = evaluate_prediction(all_probs, all_labels, num_classes=num_classes)
-
+    metric_dict = evaluate_prediction(all_probs, all_labels, num_classes=num_classes)
     return {
         "loss": float(total_loss / len(loader.dataset)),
-        "acc": float(acc),
-        "nlpd": float(nlpd),
-        "ece": float(ece),
+        **metric_dict,
     }
 
 
