@@ -1,0 +1,34 @@
+{
+  "family": "text_only_bayes_coop",
+  "variant": "default",
+  "protocol": "id",
+  "dataset": "ucf101",
+  "seed": 1,
+  "model_selection": "last",
+  "selection_metric": "acc",
+  "selection_mode": "max",
+  "best_epoch": 226,
+  "best_val_metrics_saved": {
+    "loss": 0.6181862522603588,
+    "acc": 0.8187565803527832,
+    "nlpd": 0.6181862950325012,
+    "ece": 0.018472377210855484
+  },
+  "last_epoch": 300,
+  "last_val_metrics_saved": {
+    "loss": 0.619564740750762,
+    "acc": 0.8177028298377991,
+    "nlpd": 0.6195647120475769,
+    "ece": 0.02050677314400673
+  },
+  "run_dir": "/root/autodl-tmp/BayesVLM/output/text_only_bayes_coop_bayes/id/ucf101/logit_scale_frozen/shot_8/seed_1",
+  "elapsed_seconds": 316.83,
+  "artifacts": {
+    "log_file": "train/train.log",
+    "config_file": "config/config.json",
+    "class_names_file": "config/class_names.json",
+    "metrics_csv_file": "train/metrics_history.csv",
+    "best_ckpt_file": "checkpoints/best_prompt_learner.pt",
+    "last_ckpt_file": "checkpoints/last_prompt_learner.pt"
+  }
+}

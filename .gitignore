@@ -6,7 +6,7 @@ __pycache__/
 **/datasets/
 **/cache/
 **/output_adapter/
-**/output/
+
 **/models/
 **/saved_models/
 *.safetensors

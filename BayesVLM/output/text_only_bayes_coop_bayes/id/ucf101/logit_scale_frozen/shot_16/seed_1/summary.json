@@ -1,0 +1,69 @@
+{
+  "family": "text_only_bayes_coop",
+  "variant": "default",
+  "protocol": "id",
+  "dataset": "ucf101",
+  "seed": 1,
+  "evaluation_tasks": [
+    "classification"
+  ],
+  "model_selection": "last",
+  "selected_checkpoint": "last",
+  "selected_epoch": 300,
+  "selected_val_metrics": {
+    "loss": 0.46123150176318606,
+    "acc": 0.8630136847496033,
+    "nlpd": 0.4612314701080322,
+    "ece": 0.0168368611484766
+  },
+  "classification": {
+    "train": {
+      "split_name": "train",
+      "metrics": {
+        "loss": 0.06273838578917013,
+        "acc": 1.0,
+        "nlpd": 0.06273838877677917,
+        "ece": 0.05733121559023857
+      },
+      "output_dir": "/root/autodl-tmp/BayesVLM/output/text_only_bayes_coop_bayes/id/ucf101/logit_scale_frozen/shot_16/seed_1/eval/id/train",
+      "metrics_path": "/root/autodl-tmp/BayesVLM/output/text_only_bayes_coop_bayes/id/ucf101/logit_scale_frozen/shot_16/seed_1/eval/id/train/metrics.json",
+      "predictions_pt": "/root/autodl-tmp/BayesVLM/output/text_only_bayes_coop_bayes/id/ucf101/logit_scale_frozen/shot_16/seed_1/eval/id/train/predictions.pt",
+      "predictions_jsonl": "/root/autodl-tmp/BayesVLM/output/text_only_bayes_coop_bayes/id/ucf101/logit_scale_frozen/shot_16/seed_1/eval/id/train/predictions.jsonl",
+      "bins_path": "/root/autodl-tmp/BayesVLM/output/text_only_bayes_coop_bayes/id/ucf101/logit_scale_frozen/shot_16/seed_1/eval/id/train/calibration_bins.csv"
+    },
+    "val": {
+      "split_name": "val",
+      "metrics": {
+        "loss": 0.46123150176318606,
+        "acc": 0.8630136847496033,
+        "nlpd": 0.4612314701080322,
+        "ece": 0.0168368611484766
+      },
+      "output_dir": "/root/autodl-tmp/BayesVLM/output/text_only_bayes_coop_bayes/id/ucf101/logit_scale_frozen/shot_16/seed_1/eval/id/val",
+      "metrics_path": "/root/autodl-tmp/BayesVLM/output/text_only_bayes_coop_bayes/id/ucf101/logit_scale_frozen/shot_16/seed_1/eval/id/val/metrics.json",
+      "predictions_pt": "/root/autodl-tmp/BayesVLM/output/text_only_bayes_coop_bayes/id/ucf101/logit_scale_frozen/shot_16/seed_1/eval/id/val/predictions.pt",
+      "predictions_jsonl": "/root/autodl-tmp/BayesVLM/output/text_only_bayes_coop_bayes/id/ucf101/logit_scale_frozen/shot_16/seed_1/eval/id/val/predictions.jsonl",
+      "bins_path": "/root/autodl-tmp/BayesVLM/output/text_only_bayes_coop_bayes/id/ucf101/logit_scale_frozen/shot_16/seed_1/eval/id/val/calibration_bins.csv"
+    },
+    "test": {
+      "split_name": "test",
+      "metrics": {
+        "loss": 0.7429589257806248,
+        "acc": 0.7874702215194702,
+        "nlpd": 0.7429589033126831,
+        "ece": 0.043929923325777054
+      },
+      "output_dir": "/root/autodl-tmp/BayesVLM/output/text_only_bayes_coop_bayes/id/ucf101/logit_scale_frozen/shot_16/seed_1/eval/id/test",
+      "metrics_path": "/root/autodl-tmp/BayesVLM/output/text_only_bayes_coop_bayes/id/ucf101/logit_scale_frozen/shot_16/seed_1/eval/id/test/metrics.json",
+      "predictions_pt": "/root/autodl-tmp/BayesVLM/output/text_only_bayes_coop_bayes/id/ucf101/logit_scale_frozen/shot_16/seed_1/eval/id/test/predictions.pt",
+      "predictions_jsonl": "/root/autodl-tmp/BayesVLM/output/text_only_bayes_coop_bayes/id/ucf101/logit_scale_frozen/shot_16/seed_1/eval/id/test/predictions.jsonl",
+      "bins_path": "/root/autodl-tmp/BayesVLM/output/text_only_bayes_coop_bayes/id/ucf101/logit_scale_frozen/shot_16/seed_1/eval/id/test/calibration_bins.csv"
+    }
+  },
+  "ood_detection": {
+    "enabled": false,
+    "targets": []
+  },
+  "run_dir": "/root/autodl-tmp/BayesVLM/output/text_only_bayes_coop_bayes/id/ucf101/logit_scale_frozen/shot_16/seed_1",
+  "elapsed_seconds": 5.14
+}

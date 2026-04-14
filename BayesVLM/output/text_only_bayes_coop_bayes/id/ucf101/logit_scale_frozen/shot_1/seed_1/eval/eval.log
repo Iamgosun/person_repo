@@ -1,0 +1,295 @@
+[eval] run_dir=/root/autodl-tmp/BayesVLM/output/text_only_bayes_coop_bayes/id/ucf101/logit_scale_frozen/shot_1/seed_1
+[eval] family=text_only_bayes_coop
+[eval] variant=default
+[eval] protocol=id
+===== train =====
+num_classes: 101
+  0 | Apply_Eye_Makeup          | 1
+  1 | Apply_Lipstick            | 1
+  2 | Archery                   | 1
+  3 | Baby_Crawling             | 1
+  4 | Balance_Beam              | 1
+  5 | Band_Marching             | 1
+  6 | Baseball_Pitch            | 1
+  7 | Basketball                | 1
+  8 | Basketball_Dunk           | 1
+  9 | Bench_Press               | 1
+ 10 | Biking                    | 1
+ 11 | Billiards                 | 1
+ 12 | Blow_Dry_Hair             | 1
+ 13 | Blowing_Candles           | 1
+ 14 | Body_Weight_Squats        | 1
+ 15 | Bowling                   | 1
+ 16 | Boxing_Punching_Bag       | 1
+ 17 | Boxing_Speed_Bag          | 1
+ 18 | Breast_Stroke             | 1
+ 19 | Brushing_Teeth            | 1
+ 20 | Clean_And_Jerk            | 1
+ 21 | Cliff_Diving              | 1
+ 22 | Cricket_Bowling           | 1
+ 23 | Cricket_Shot              | 1
+ 24 | Cutting_In_Kitchen        | 1
+ 25 | Diving                    | 1
+ 26 | Drumming                  | 1
+ 27 | Fencing                   | 1
+ 28 | Field_Hockey_Penalty      | 1
+ 29 | Floor_Gymnastics          | 1
+ 30 | Frisbee_Catch             | 1
+ 31 | Front_Crawl               | 1
+ 32 | Golf_Swing                | 1
+ 33 | Haircut                   | 1
+ 34 | Hammering                 | 1
+ 35 | Hammer_Throw              | 1
+ 36 | Handstand_Pushups         | 1
+ 37 | Handstand_Walking         | 1
+ 38 | Head_Massage              | 1
+ 39 | High_Jump                 | 1
+ 40 | Horse_Race                | 1
+ 41 | Horse_Riding              | 1
+ 42 | Hula_Hoop                 | 1
+ 43 | Ice_Dancing               | 1
+ 44 | Javelin_Throw             | 1
+ 45 | Juggling_Balls            | 1
+ 46 | Jumping_Jack              | 1
+ 47 | Jump_Rope                 | 1
+ 48 | Kayaking                  | 1
+ 49 | Knitting                  | 1
+ 50 | Long_Jump                 | 1
+ 51 | Lunges                    | 1
+ 52 | Military_Parade           | 1
+ 53 | Mixing                    | 1
+ 54 | Mopping_Floor             | 1
+ 55 | Nunchucks                 | 1
+ 56 | Parallel_Bars             | 1
+ 57 | Pizza_Tossing             | 1
+ 58 | Playing_Cello             | 1
+ 59 | Playing_Daf               | 1
+ 60 | Playing_Dhol              | 1
+ 61 | Playing_Flute             | 1
+ 62 | Playing_Guitar            | 1
+ 63 | Playing_Piano             | 1
+ 64 | Playing_Sitar             | 1
+ 65 | Playing_Tabla             | 1
+ 66 | Playing_Violin            | 1
+ 67 | Pole_Vault                | 1
+ 68 | Pommel_Horse              | 1
+ 69 | Pull_Ups                  | 1
+ 70 | Punch                     | 1
+ 71 | Push_Ups                  | 1
+ 72 | Rafting                   | 1
+ 73 | Rock_Climbing_Indoor      | 1
+ 74 | Rope_Climbing             | 1
+ 75 | Rowing                    | 1
+ 76 | Salsa_Spin                | 1
+ 77 | Shaving_Beard             | 1
+ 78 | Shotput                   | 1
+ 79 | Skate_Boarding            | 1
+ 80 | Skiing                    | 1
+ 81 | Skijet                    | 1
+ 82 | Sky_Diving                | 1
+ 83 | Soccer_Juggling           | 1
+ 84 | Soccer_Penalty            | 1
+ 85 | Still_Rings               | 1
+ 86 | Sumo_Wrestling            | 1
+ 87 | Surfing                   | 1
+ 88 | Swing                     | 1
+ 89 | Table_Tennis_Shot         | 1
+ 90 | Tai_Chi                   | 1
+ 91 | Tennis_Swing              | 1
+ 92 | Throw_Discus              | 1
+ 93 | Trampoline_Jumping        | 1
+ 94 | Typing                    | 1
+ 95 | Uneven_Bars               | 1
+ 96 | Volleyball_Spiking        | 1
+ 97 | Walking_With_Dog          | 1
+ 98 | Wall_Pushups              | 1
+ 99 | Writing_On_Board          | 1
+100 | Yo_Yo                     | 1
+===== test =====
+num_classes: 101
+  0 | Apply_Eye_Makeup          | 44
+  1 | Apply_Lipstick            | 32
+  2 | Archery                   | 41
+  3 | Baby_Crawling             | 35
+  4 | Balance_Beam              | 31
+  5 | Band_Marching             | 43
+  6 | Baseball_Pitch            | 43
+  7 | Basketball                | 35
+  8 | Basketball_Dunk           | 37
+  9 | Bench_Press               | 48
+ 10 | Biking                    | 38
+ 11 | Billiards                 | 40
+ 12 | Blow_Dry_Hair             | 38
+ 13 | Blowing_Candles           | 33
+ 14 | Body_Weight_Squats        | 30
+ 15 | Bowling                   | 43
+ 16 | Boxing_Punching_Bag       | 49
+ 17 | Boxing_Speed_Bag          | 37
+ 18 | Breast_Stroke             | 28
+ 19 | Brushing_Teeth            | 36
+ 20 | Clean_And_Jerk            | 33
+ 21 | Cliff_Diving              | 39
+ 22 | Cricket_Bowling           | 36
+ 23 | Cricket_Shot              | 49
+ 24 | Cutting_In_Kitchen        | 33
+ 25 | Diving                    | 45
+ 26 | Drumming                  | 45
+ 27 | Fencing                   | 34
+ 28 | Field_Hockey_Penalty      | 40
+ 29 | Floor_Gymnastics          | 36
+ 30 | Frisbee_Catch             | 37
+ 31 | Front_Crawl               | 37
+ 32 | Golf_Swing                | 39
+ 33 | Haircut                   | 33
+ 34 | Hammering                 | 33
+ 35 | Hammer_Throw              | 45
+ 36 | Handstand_Pushups         | 28
+ 37 | Handstand_Walking         | 34
+ 38 | Head_Massage              | 41
+ 39 | High_Jump                 | 37
+ 40 | Horse_Race                | 35
+ 41 | Horse_Riding              | 49
+ 42 | Hula_Hoop                 | 34
+ 43 | Ice_Dancing               | 46
+ 44 | Javelin_Throw             | 31
+ 45 | Juggling_Balls            | 40
+ 46 | Jumping_Jack              | 37
+ 47 | Jump_Rope                 | 38
+ 48 | Kayaking                  | 36
+ 49 | Knitting                  | 34
+ 50 | Long_Jump                 | 39
+ 51 | Lunges                    | 37
+ 52 | Military_Parade           | 33
+ 53 | Mixing                    | 45
+ 54 | Mopping_Floor             | 34
+ 55 | Nunchucks                 | 35
+ 56 | Parallel_Bars             | 37
+ 57 | Pizza_Tossing             | 33
+ 58 | Playing_Cello             | 44
+ 59 | Playing_Daf               | 41
+ 60 | Playing_Dhol              | 49
+ 61 | Playing_Flute             | 48
+ 62 | Playing_Guitar            | 43
+ 63 | Playing_Piano             | 28
+ 64 | Playing_Sitar             | 44
+ 65 | Playing_Tabla             | 31
+ 66 | Playing_Violin            | 28
+ 67 | Pole_Vault                | 40
+ 68 | Pommel_Horse              | 35
+ 69 | Pull_Ups                  | 28
+ 70 | Punch                     | 39
+ 71 | Push_Ups                  | 30
+ 72 | Rafting                   | 28
+ 73 | Rock_Climbing_Indoor      | 41
+ 74 | Rope_Climbing             | 34
+ 75 | Rowing                    | 36
+ 76 | Salsa_Spin                | 43
+ 77 | Shaving_Beard             | 43
+ 78 | Shotput                   | 46
+ 79 | Skate_Boarding            | 32
+ 80 | Skiing                    | 40
+ 81 | Skijet                    | 28
+ 82 | Sky_Diving                | 31
+ 83 | Soccer_Juggling           | 39
+ 84 | Soccer_Penalty            | 41
+ 85 | Still_Rings               | 32
+ 86 | Sumo_Wrestling            | 34
+ 87 | Surfing                   | 33
+ 88 | Swing                     | 42
+ 89 | Table_Tennis_Shot         | 39
+ 90 | Tai_Chi                   | 28
+ 91 | Tennis_Swing              | 49
+ 92 | Throw_Discus              | 38
+ 93 | Trampoline_Jumping        | 32
+ 94 | Typing                    | 43
+ 95 | Uneven_Bars               | 28
+ 96 | Volleyball_Spiking        | 35
+ 97 | Walking_With_Dog          | 36
+ 98 | Wall_Pushups              | 35
+ 99 | Writing_On_Board          | 45
+100 | Yo_Yo                     | 36
+[load_model] 使用本地模型目录：/root/autodl-tmp/BayesVLM/models/clip-vit-b32
+[cache] dataset=ucf101 split=id_train cache_dir=/root/autodl-tmp/BayesVLM/cache/image_features/ucf101/model_clip-base/weights__root_autodl-tmp_BayesVLM_models_clip-vit-b32/imgsz_224/tfm_cf4d0ebdf93a/id_train
+[cache] 命中缓存，直接加载。
+[cache] dataset=ucf101 split=id_train_eval cache_dir=/root/autodl-tmp/BayesVLM/cache/image_features/ucf101/model_clip-base/weights__root_autodl-tmp_BayesVLM_models_clip-vit-b32/imgsz_224/tfm_cf4d0ebdf93a/id_train_eval
+[cache] 命中缓存，直接加载。
+[cache] dataset=ucf101 split=id_val cache_dir=/root/autodl-tmp/BayesVLM/cache/image_features/ucf101/model_clip-base/weights__root_autodl-tmp_BayesVLM_models_clip-vit-b32/imgsz_224/tfm_cf4d0ebdf93a/id_val
+[cache] 命中缓存，直接加载。
+[cache] dataset=ucf101 split=id_test cache_dir=/root/autodl-tmp/BayesVLM/cache/image_features/ucf101/model_clip-base/weights__root_autodl-tmp_BayesVLM_models_clip-vit-b32/imgsz_224/tfm_cf4d0ebdf93a/id_test
+[cache] 命中缓存，直接加载。
+[family] loading txt Hessian and optimizing text prior precision ...
+  0%|          | 0/1000 [00:00<?, ?it/s]  5%|5         | 50/1000 [00:00<00:01, 491.90it/s] 10%|#         | 100/1000 [00:00<00:02, 449.87it/s] 15%|#4        | 146/1000 [00:00<00:02, 417.41it/s] 19%|#8        | 189/1000 [00:00<00:02, 396.97it/s] 23%|##2       | 229/1000 [00:00<00:02, 382.89it/s] 27%|##6       | 268/1000 [00:00<00:01, 371.82it/s] 31%|###       | 306/1000 [00:00<00:01, 365.69it/s] 34%|###4      | 343/1000 [00:00<00:01, 363.20it/s] 38%|###8      | 380/1000 [00:00<00:01, 361.99it/s] 42%|####1     | 417/1000 [00:01<00:01, 361.47it/s] 45%|####5     | 454/1000 [00:01<00:01, 359.86it/s] 49%|####9     | 490/1000 [00:01<00:01, 359.80it/s] 53%|#####2    | 527/1000 [00:01<00:01, 360.24it/s] 56%|#####6    | 564/1000 [00:01<00:01, 360.58it/s] 60%|######    | 601/1000 [00:01<00:01, 360.44it/s] 64%|######3   | 638/1000 [00:01<00:01, 355.74it/s] 67%|######7   | 674/1000 [00:01<00:00, 356.36it/s] 71%|#######1  | 711/1000 [00:01<00:00, 357.99it/s] 75%|#######4  | 748/1000 [00:02<00:00, 359.11it/s] 78%|#######8  | 785/1000 [00:02<00:00, 359.89it/s] 82%|########2 | 821/1000 [00:02<00:00, 359.48it/s] 86%|########5 | 857/1000 [00:02<00:00, 359.48it/s] 90%|########9 | 898/1000 [00:02<00:00, 373.63it/s] 95%|#########4| 946/1000 [00:02<00:00, 405.02it/s] 99%|#########8| 987/1000 [00:02<00:00, 403.00it/s]100%|##########| 1000/1000 [00:02<00:00, 375.57it/s]
+Initializing a generic context
+Initial context: "X X X X X X X X X X X X X X X X"
+Number of context words (tokens): 16
+[eval] loading last checkpoint: /root/autodl-tmp/BayesVLM/output/text_only_bayes_coop_bayes/id/ucf101/logit_scale_frozen/shot_1/seed_1/checkpoints/last_prompt_learner.pt
+[done] evaluation complete:
+{
+  "family": "text_only_bayes_coop",
+  "variant": "default",
+  "protocol": "id",
+  "dataset": "ucf101",
+  "seed": 1,
+  "evaluation_tasks": [
+    "classification"
+  ],
+  "model_selection": "last",
+  "selected_checkpoint": "last",
+  "selected_epoch": 300,
+  "selected_val_metrics": {
+    "loss": 1.1185467461765881,
+    "acc": 0.6886195540428162,
+    "nlpd": 1.118546724319458,
+    "ece": 0.02642996422946453
+  },
+  "classification": {
+    "train": {
+      "split_name": "train",
+      "metrics": {
+        "loss": 0.1748677621973623,
+        "acc": 1.0,
+        "nlpd": 0.17486771941184998,
+        "ece": 0.15151558816432953
+      },
+      "output_dir": "/root/autodl-tmp/BayesVLM/output/text_only_bayes_coop_bayes/id/ucf101/logit_scale_frozen/shot_1/seed_1/eval/id/train",
+      "metrics_path": "/root/autodl-tmp/BayesVLM/output/text_only_bayes_coop_bayes/id/ucf101/logit_scale_frozen/shot_1/seed_1/eval/id/train/metrics.json",
+      "predictions_pt": "/root/autodl-tmp/BayesVLM/output/text_only_bayes_coop_bayes/id/ucf101/logit_scale_frozen/shot_1/seed_1/eval/id/train/predictions.pt",
+      "predictions_jsonl": "/root/autodl-tmp/BayesVLM/output/text_only_bayes_coop_bayes/id/ucf101/logit_scale_frozen/shot_1/seed_1/eval/id/train/predictions.jsonl",
+      "bins_path": "/root/autodl-tmp/BayesVLM/output/text_only_bayes_coop_bayes/id/ucf101/logit_scale_frozen/shot_1/seed_1/eval/id/train/calibration_bins.csv"
+    },
+    "val": {
+      "split_name": "val",
+      "metrics": {
+        "loss": 1.1185467461765881,
+        "acc": 0.6886195540428162,
+        "nlpd": 1.118546724319458,
+        "ece": 0.02642996422946453
+      },
+      "output_dir": "/root/autodl-tmp/BayesVLM/output/text_only_bayes_coop_bayes/id/ucf101/logit_scale_frozen/shot_1/seed_1/eval/id/val",
+      "metrics_path": "/root/autodl-tmp/BayesVLM/output/text_only_bayes_coop_bayes/id/ucf101/logit_scale_frozen/shot_1/seed_1/eval/id/val/metrics.json",
+      "predictions_pt": "/root/autodl-tmp/BayesVLM/output/text_only_bayes_coop_bayes/id/ucf101/logit_scale_frozen/shot_1/seed_1/eval/id/val/predictions.pt",
+      "predictions_jsonl": "/root/autodl-tmp/BayesVLM/output/text_only_bayes_coop_bayes/id/ucf101/logit_scale_frozen/shot_1/seed_1/eval/id/val/predictions.jsonl",
+      "bins_path": "/root/autodl-tmp/BayesVLM/output/text_only_bayes_coop_bayes/id/ucf101/logit_scale_frozen/shot_1/seed_1/eval/id/val/calibration_bins.csv"
+    },
+    "test": {
+      "split_name": "test",
+      "metrics": {
+        "loss": 1.234630940674538,
+        "acc": 0.655035674571991,
+        "nlpd": 1.234630823135376,
+        "ece": 0.058512091636657715
+      },
+      "output_dir": "/root/autodl-tmp/BayesVLM/output/text_only_bayes_coop_bayes/id/ucf101/logit_scale_frozen/shot_1/seed_1/eval/id/test",
+      "metrics_path": "/root/autodl-tmp/BayesVLM/output/text_only_bayes_coop_bayes/id/ucf101/logit_scale_frozen/shot_1/seed_1/eval/id/test/metrics.json",
+      "predictions_pt": "/root/autodl-tmp/BayesVLM/output/text_only_bayes_coop_bayes/id/ucf101/logit_scale_frozen/shot_1/seed_1/eval/id/test/predictions.pt",
+      "predictions_jsonl": "/root/autodl-tmp/BayesVLM/output/text_only_bayes_coop_bayes/id/ucf101/logit_scale_frozen/shot_1/seed_1/eval/id/test/predictions.jsonl",
+      "bins_path": "/root/autodl-tmp/BayesVLM/output/text_only_bayes_coop_bayes/id/ucf101/logit_scale_frozen/shot_1/seed_1/eval/id/test/calibration_bins.csv"
+    }
+  },
+  "ood_detection": {
+    "enabled": false,
+    "targets": []
+  },
+  "run_dir": "/root/autodl-tmp/BayesVLM/output/text_only_bayes_coop_bayes/id/ucf101/logit_scale_frozen/shot_1/seed_1",
+  "elapsed_seconds": 4.94
+}

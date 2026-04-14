@@ -1,0 +1,578 @@
+[run] family=text_only_bayes_coop
+[run] variant=default
+[run] protocol=id
+[run] dataset=ucf101
+[run] model=clip-base
+[run] shots_per_class=16
+[run] seed=1
+[run] device=cuda
+[run] run_dir=/root/autodl-tmp/BayesVLM/output/text_only_bayes_coop_bayes/id/ucf101/logit_scale_frozen/shot_16/seed_1
+[run] optimizer=sgd
+[run] lr_scheduler=cosine
+[run] model_selection=last
+===== train =====
+num_classes: 101
+  0 | Apply_Eye_Makeup          | 16
+  1 | Apply_Lipstick            | 16
+  2 | Archery                   | 16
+  3 | Baby_Crawling             | 16
+  4 | Balance_Beam              | 16
+  5 | Band_Marching             | 16
+  6 | Baseball_Pitch            | 16
+  7 | Basketball                | 16
+  8 | Basketball_Dunk           | 16
+  9 | Bench_Press               | 16
+ 10 | Biking                    | 16
+ 11 | Billiards                 | 16
+ 12 | Blow_Dry_Hair             | 16
+ 13 | Blowing_Candles           | 16
+ 14 | Body_Weight_Squats        | 16
+ 15 | Bowling                   | 16
+ 16 | Boxing_Punching_Bag       | 16
+ 17 | Boxing_Speed_Bag          | 16
+ 18 | Breast_Stroke             | 16
+ 19 | Brushing_Teeth            | 16
+ 20 | Clean_And_Jerk            | 16
+ 21 | Cliff_Diving              | 16
+ 22 | Cricket_Bowling           | 16
+ 23 | Cricket_Shot              | 16
+ 24 | Cutting_In_Kitchen        | 16
+ 25 | Diving                    | 16
+ 26 | Drumming                  | 16
+ 27 | Fencing                   | 16
+ 28 | Field_Hockey_Penalty      | 16
+ 29 | Floor_Gymnastics          | 16
+ 30 | Frisbee_Catch             | 16
+ 31 | Front_Crawl               | 16
+ 32 | Golf_Swing                | 16
+ 33 | Haircut                   | 16
+ 34 | Hammering                 | 16
+ 35 | Hammer_Throw              | 16
+ 36 | Handstand_Pushups         | 16
+ 37 | Handstand_Walking         | 16
+ 38 | Head_Massage              | 16
+ 39 | High_Jump                 | 16
+ 40 | Horse_Race                | 16
+ 41 | Horse_Riding              | 16
+ 42 | Hula_Hoop                 | 16
+ 43 | Ice_Dancing               | 16
+ 44 | Javelin_Throw             | 16
+ 45 | Juggling_Balls            | 16
+ 46 | Jumping_Jack              | 16
+ 47 | Jump_Rope                 | 16
+ 48 | Kayaking                  | 16
+ 49 | Knitting                  | 16
+ 50 | Long_Jump                 | 16
+ 51 | Lunges                    | 16
+ 52 | Military_Parade           | 16
+ 53 | Mixing                    | 16
+ 54 | Mopping_Floor             | 16
+ 55 | Nunchucks                 | 16
+ 56 | Parallel_Bars             | 16
+ 57 | Pizza_Tossing             | 16
+ 58 | Playing_Cello             | 16
+ 59 | Playing_Daf               | 16
+ 60 | Playing_Dhol              | 16
+ 61 | Playing_Flute             | 16
+ 62 | Playing_Guitar            | 16
+ 63 | Playing_Piano             | 16
+ 64 | Playing_Sitar             | 16
+ 65 | Playing_Tabla             | 16
+ 66 | Playing_Violin            | 16
+ 67 | Pole_Vault                | 16
+ 68 | Pommel_Horse              | 16
+ 69 | Pull_Ups                  | 16
+ 70 | Punch                     | 16
+ 71 | Push_Ups                  | 16
+ 72 | Rafting                   | 16
+ 73 | Rock_Climbing_Indoor      | 16
+ 74 | Rope_Climbing             | 16
+ 75 | Rowing                    | 16
+ 76 | Salsa_Spin                | 16
+ 77 | Shaving_Beard             | 16
+ 78 | Shotput                   | 16
+ 79 | Skate_Boarding            | 16
+ 80 | Skiing                    | 16
+ 81 | Skijet                    | 16
+ 82 | Sky_Diving                | 16
+ 83 | Soccer_Juggling           | 16
+ 84 | Soccer_Penalty            | 16
+ 85 | Still_Rings               | 16
+ 86 | Sumo_Wrestling            | 16
+ 87 | Surfing                   | 16
+ 88 | Swing                     | 16
+ 89 | Table_Tennis_Shot         | 16
+ 90 | Tai_Chi                   | 16
+ 91 | Tennis_Swing              | 16
+ 92 | Throw_Discus              | 16
+ 93 | Trampoline_Jumping        | 16
+ 94 | Typing                    | 16
+ 95 | Uneven_Bars               | 16
+ 96 | Volleyball_Spiking        | 16
+ 97 | Walking_With_Dog          | 16
+ 98 | Wall_Pushups              | 16
+ 99 | Writing_On_Board          | 16
+100 | Yo_Yo                     | 16
+===== test =====
+num_classes: 101
+  0 | Apply_Eye_Makeup          | 44
+  1 | Apply_Lipstick            | 32
+  2 | Archery                   | 41
+  3 | Baby_Crawling             | 35
+  4 | Balance_Beam              | 31
+  5 | Band_Marching             | 43
+  6 | Baseball_Pitch            | 43
+  7 | Basketball                | 35
+  8 | Basketball_Dunk           | 37
+  9 | Bench_Press               | 48
+ 10 | Biking                    | 38
+ 11 | Billiards                 | 40
+ 12 | Blow_Dry_Hair             | 38
+ 13 | Blowing_Candles           | 33
+ 14 | Body_Weight_Squats        | 30
+ 15 | Bowling                   | 43
+ 16 | Boxing_Punching_Bag       | 49
+ 17 | Boxing_Speed_Bag          | 37
+ 18 | Breast_Stroke             | 28
+ 19 | Brushing_Teeth            | 36
+ 20 | Clean_And_Jerk            | 33
+ 21 | Cliff_Diving              | 39
+ 22 | Cricket_Bowling           | 36
+ 23 | Cricket_Shot              | 49
+ 24 | Cutting_In_Kitchen        | 33
+ 25 | Diving                    | 45
+ 26 | Drumming                  | 45
+ 27 | Fencing                   | 34
+ 28 | Field_Hockey_Penalty      | 40
+ 29 | Floor_Gymnastics          | 36
+ 30 | Frisbee_Catch             | 37
+ 31 | Front_Crawl               | 37
+ 32 | Golf_Swing                | 39
+ 33 | Haircut                   | 33
+ 34 | Hammering                 | 33
+ 35 | Hammer_Throw              | 45
+ 36 | Handstand_Pushups         | 28
+ 37 | Handstand_Walking         | 34
+ 38 | Head_Massage              | 41
+ 39 | High_Jump                 | 37
+ 40 | Horse_Race                | 35
+ 41 | Horse_Riding              | 49
+ 42 | Hula_Hoop                 | 34
+ 43 | Ice_Dancing               | 46
+ 44 | Javelin_Throw             | 31
+ 45 | Juggling_Balls            | 40
+ 46 | Jumping_Jack              | 37
+ 47 | Jump_Rope                 | 38
+ 48 | Kayaking                  | 36
+ 49 | Knitting                  | 34
+ 50 | Long_Jump                 | 39
+ 51 | Lunges                    | 37
+ 52 | Military_Parade           | 33
+ 53 | Mixing                    | 45
+ 54 | Mopping_Floor             | 34
+ 55 | Nunchucks                 | 35
+ 56 | Parallel_Bars             | 37
+ 57 | Pizza_Tossing             | 33
+ 58 | Playing_Cello             | 44
+ 59 | Playing_Daf               | 41
+ 60 | Playing_Dhol              | 49
+ 61 | Playing_Flute             | 48
+ 62 | Playing_Guitar            | 43
+ 63 | Playing_Piano             | 28
+ 64 | Playing_Sitar             | 44
+ 65 | Playing_Tabla             | 31
+ 66 | Playing_Violin            | 28
+ 67 | Pole_Vault                | 40
+ 68 | Pommel_Horse              | 35
+ 69 | Pull_Ups                  | 28
+ 70 | Punch                     | 39
+ 71 | Push_Ups                  | 30
+ 72 | Rafting                   | 28
+ 73 | Rock_Climbing_Indoor      | 41
+ 74 | Rope_Climbing             | 34
+ 75 | Rowing                    | 36
+ 76 | Salsa_Spin                | 43
+ 77 | Shaving_Beard             | 43
+ 78 | Shotput                   | 46
+ 79 | Skate_Boarding            | 32
+ 80 | Skiing                    | 40
+ 81 | Skijet                    | 28
+ 82 | Sky_Diving                | 31
+ 83 | Soccer_Juggling           | 39
+ 84 | Soccer_Penalty            | 41
+ 85 | Still_Rings               | 32
+ 86 | Sumo_Wrestling            | 34
+ 87 | Surfing                   | 33
+ 88 | Swing                     | 42
+ 89 | Table_Tennis_Shot         | 39
+ 90 | Tai_Chi                   | 28
+ 91 | Tennis_Swing              | 49
+ 92 | Throw_Discus              | 38
+ 93 | Trampoline_Jumping        | 32
+ 94 | Typing                    | 43
+ 95 | Uneven_Bars               | 28
+ 96 | Volleyball_Spiking        | 35
+ 97 | Walking_With_Dog          | 36
+ 98 | Wall_Pushups              | 35
+ 99 | Writing_On_Board          | 45
+100 | Yo_Yo                     | 36
+[load_model] 使用本地模型目录：/root/autodl-tmp/BayesVLM/models/clip-vit-b32
+[cache] dataset=ucf101 split=id_train cache_dir=/root/autodl-tmp/BayesVLM/cache/image_features/ucf101/model_clip-base/weights__root_autodl-tmp_BayesVLM_models_clip-vit-b32/imgsz_224/tfm_cf4d0ebdf93a/id_train
+[cache] manifest 不匹配，准备重建。
+[cache] manifest_diff_keys=['num_samples', 'sample_keys_sha256']
+[cache]   num_samples: current=808 | expected=1616
+[cache]   sample_keys_sha256: current=cfa0437ce4f00a5b13aae97273d30e8bb6c6648b8c5ee81745fb3ca3fed37467 | expected=6bc1b346baf1dd605538d33c1552f32ad718c0323d3273d9bff8644ca3949021
+  0%|          | 0/26 [00:00<?, ?it/s]  4%|3         | 1/26 [00:00<00:11,  2.15it/s] 19%|#9        | 5/26 [00:00<00:01, 10.86it/s] 38%|###8      | 10/26 [00:00<00:00, 20.09it/s] 58%|#####7    | 15/26 [00:00<00:00, 27.14it/s] 77%|#######6  | 20/26 [00:00<00:00, 32.46it/s] 96%|#########6| 25/26 [00:01<00:00, 36.35it/s]100%|##########| 26/26 [00:01<00:00, 25.44it/s]
+[cache] 已完成重建并写入 manifest。
+[cache] dataset=ucf101 split=id_train_eval cache_dir=/root/autodl-tmp/BayesVLM/cache/image_features/ucf101/model_clip-base/weights__root_autodl-tmp_BayesVLM_models_clip-vit-b32/imgsz_224/tfm_cf4d0ebdf93a/id_train_eval
+[cache] manifest 不匹配，准备重建。
+[cache] manifest_diff_keys=['num_samples', 'sample_keys_sha256']
+[cache]   num_samples: current=808 | expected=1616
+[cache]   sample_keys_sha256: current=cfa0437ce4f00a5b13aae97273d30e8bb6c6648b8c5ee81745fb3ca3fed37467 | expected=6bc1b346baf1dd605538d33c1552f32ad718c0323d3273d9bff8644ca3949021
+  0%|          | 0/26 [00:00<?, ?it/s]  4%|3         | 1/26 [00:00<00:09,  2.53it/s] 19%|#9        | 5/26 [00:00<00:01, 12.20it/s] 38%|###8      | 10/26 [00:00<00:00, 21.85it/s] 58%|#####7    | 15/26 [00:00<00:00, 28.84it/s] 77%|#######6  | 20/26 [00:00<00:00, 33.85it/s] 96%|#########6| 25/26 [00:00<00:00, 37.42it/s]100%|##########| 26/26 [00:00<00:00, 27.44it/s]
+[cache] 已完成重建并写入 manifest。
+[cache] dataset=ucf101 split=id_val cache_dir=/root/autodl-tmp/BayesVLM/cache/image_features/ucf101/model_clip-base/weights__root_autodl-tmp_BayesVLM_models_clip-vit-b32/imgsz_224/tfm_cf4d0ebdf93a/id_val
+[cache] 命中缓存，直接加载。
+[cache] dataset=ucf101 split=id_test cache_dir=/root/autodl-tmp/BayesVLM/cache/image_features/ucf101/model_clip-base/weights__root_autodl-tmp_BayesVLM_models_clip-vit-b32/imgsz_224/tfm_cf4d0ebdf93a/id_test
+[cache] 命中缓存，直接加载。
+[family] loading txt Hessian and optimizing text prior precision ...
+  0%|          | 0/1000 [00:00<?, ?it/s]  6%|6         | 63/1000 [00:00<00:01, 621.00it/s] 13%|#2        | 126/1000 [00:00<00:01, 578.72it/s] 18%|#8        | 185/1000 [00:00<00:01, 528.19it/s] 24%|##3       | 239/1000 [00:00<00:01, 475.51it/s] 29%|##8       | 288/1000 [00:00<00:01, 424.52it/s] 33%|###3      | 332/1000 [00:00<00:01, 404.69it/s] 37%|###7      | 373/1000 [00:00<00:01, 388.91it/s] 41%|####1     | 413/1000 [00:00<00:01, 379.16it/s] 45%|####5     | 452/1000 [00:01<00:01, 374.45it/s] 49%|####9     | 490/1000 [00:01<00:01, 369.48it/s] 53%|#####2    | 527/1000 [00:01<00:01, 368.26it/s] 56%|#####6    | 564/1000 [00:01<00:01, 363.73it/s] 60%|######    | 601/1000 [00:01<00:01, 363.06it/s] 64%|######3   | 638/1000 [00:01<00:01, 360.67it/s] 68%|######7   | 675/1000 [00:01<00:00, 358.67it/s] 71%|#######1  | 712/1000 [00:01<00:00, 360.09it/s] 75%|#######5  | 750/1000 [00:01<00:00, 364.60it/s] 79%|#######8  | 787/1000 [00:02<00:00, 361.32it/s] 82%|########2 | 824/1000 [00:02<00:00, 361.69it/s] 86%|########6 | 861/1000 [00:02<00:00, 360.13it/s] 90%|########9 | 898/1000 [00:02<00:00, 360.50it/s] 94%|#########3| 935/1000 [00:02<00:00, 357.69it/s] 97%|#########7| 971/1000 [00:02<00:00, 358.19it/s]100%|##########| 1000/1000 [00:02<00:00, 384.85it/s]
+Initializing a generic context
+Initial context: "X X X X X X X X X X X X X X X X"
+Number of context words (tokens): 16
+[train] starting training loop ...
+[Epoch 001] lr=0.099997 train_total=1.4973 train_map=1.5634 train_bayes=1.4973 train_ctx_reg=0.114416 val_acc=0.6586 val_nlpd=1.2040 val_ece=0.0537
+[Epoch 002] lr=0.099989 train_total=1.1210 train_map=1.1701 train_bayes=1.1210 train_ctx_reg=0.233693 val_acc=0.6886 val_nlpd=1.0502 val_ece=0.0236
+[Epoch 003] lr=0.099975 train_total=0.9865 train_map=1.0115 train_bayes=0.9865 train_ctx_reg=0.245030 val_acc=0.7050 val_nlpd=0.9648 val_ece=0.0231
+[Epoch 004] lr=0.099956 train_total=0.9068 train_map=0.9187 train_bayes=0.9068 train_ctx_reg=0.246178 val_acc=0.7197 val_nlpd=0.9010 val_ece=0.0192
+[Epoch 005] lr=0.099931 train_total=0.8302 train_map=0.8349 train_bayes=0.8301 train_ctx_reg=0.246635 val_acc=0.7360 val_nlpd=0.8426 val_ece=0.0261
+[Epoch 006] lr=0.099901 train_total=0.7619 train_map=0.7597 train_bayes=0.7619 train_ctx_reg=0.247017 val_acc=0.7476 val_nlpd=0.7971 val_ece=0.0250
+[Epoch 007] lr=0.099866 train_total=0.7116 train_map=0.7085 train_bayes=0.7115 train_ctx_reg=0.247308 val_acc=0.7566 val_nlpd=0.7707 val_ece=0.0306
+[Epoch 008] lr=0.099825 train_total=0.6743 train_map=0.6642 train_bayes=0.6742 train_ctx_reg=0.247576 val_acc=0.7703 val_nlpd=0.7372 val_ece=0.0286
+[Epoch 009] lr=0.099778 train_total=0.6490 train_map=0.6382 train_bayes=0.6489 train_ctx_reg=0.247925 val_acc=0.7750 val_nlpd=0.7251 val_ece=0.0202
+[Epoch 010] lr=0.099726 train_total=0.6173 train_map=0.6023 train_bayes=0.6173 train_ctx_reg=0.248272 val_acc=0.7850 val_nlpd=0.7035 val_ece=0.0283
+[Epoch 011] lr=0.099669 train_total=0.5872 train_map=0.5711 train_bayes=0.5871 train_ctx_reg=0.248581 val_acc=0.7882 val_nlpd=0.6801 val_ece=0.0295
+[Epoch 012] lr=0.099606 train_total=0.5586 train_map=0.5373 train_bayes=0.5586 train_ctx_reg=0.248855 val_acc=0.7924 val_nlpd=0.6704 val_ece=0.0202
+[Epoch 013] lr=0.099537 train_total=0.5433 train_map=0.5252 train_bayes=0.5433 train_ctx_reg=0.249177 val_acc=0.7993 val_nlpd=0.6533 val_ece=0.0287
+[Epoch 014] lr=0.099464 train_total=0.5167 train_map=0.4937 train_bayes=0.5166 train_ctx_reg=0.249482 val_acc=0.8003 val_nlpd=0.6412 val_ece=0.0263
+[Epoch 015] lr=0.099384 train_total=0.4932 train_map=0.4673 train_bayes=0.4932 train_ctx_reg=0.249812 val_acc=0.8045 val_nlpd=0.6413 val_ece=0.0274
+[Epoch 016] lr=0.099300 train_total=0.4808 train_map=0.4543 train_bayes=0.4807 train_ctx_reg=0.250201 val_acc=0.8051 val_nlpd=0.6333 val_ece=0.0250
+[Epoch 017] lr=0.099210 train_total=0.4619 train_map=0.4342 train_bayes=0.4619 train_ctx_reg=0.250590 val_acc=0.8246 val_nlpd=0.6105 val_ece=0.0389
+[Epoch 018] lr=0.099114 train_total=0.4523 train_map=0.4243 train_bayes=0.4522 train_ctx_reg=0.250970 val_acc=0.8124 val_nlpd=0.6021 val_ece=0.0351
+[Epoch 019] lr=0.099014 train_total=0.4303 train_map=0.4000 train_bayes=0.4303 train_ctx_reg=0.251440 val_acc=0.8214 val_nlpd=0.5963 val_ece=0.0283
+[Epoch 020] lr=0.098907 train_total=0.4127 train_map=0.3816 train_bayes=0.4127 train_ctx_reg=0.251858 val_acc=0.8309 val_nlpd=0.5856 val_ece=0.0396
+[Epoch 021] lr=0.098796 train_total=0.4026 train_map=0.3683 train_bayes=0.4026 train_ctx_reg=0.252268 val_acc=0.8272 val_nlpd=0.5847 val_ece=0.0302
+[Epoch 022] lr=0.098679 train_total=0.3926 train_map=0.3583 train_bayes=0.3926 train_ctx_reg=0.252700 val_acc=0.8309 val_nlpd=0.5758 val_ece=0.0282
+[Epoch 023] lr=0.098557 train_total=0.3784 train_map=0.3444 train_bayes=0.3784 train_ctx_reg=0.253205 val_acc=0.8214 val_nlpd=0.5781 val_ece=0.0247
+[Epoch 024] lr=0.098429 train_total=0.3700 train_map=0.3344 train_bayes=0.3700 train_ctx_reg=0.253709 val_acc=0.8246 val_nlpd=0.5732 val_ece=0.0285
+[Epoch 025] lr=0.098296 train_total=0.3526 train_map=0.3161 train_bayes=0.3526 train_ctx_reg=0.254187 val_acc=0.8356 val_nlpd=0.5658 val_ece=0.0272
+[Epoch 026] lr=0.098158 train_total=0.3494 train_map=0.3131 train_bayes=0.3494 train_ctx_reg=0.254597 val_acc=0.8335 val_nlpd=0.5577 val_ece=0.0260
+[Epoch 027] lr=0.098015 train_total=0.3289 train_map=0.2876 train_bayes=0.3289 train_ctx_reg=0.255040 val_acc=0.8361 val_nlpd=0.5633 val_ece=0.0253
+[Epoch 028] lr=0.097866 train_total=0.3200 train_map=0.2808 train_bayes=0.3200 train_ctx_reg=0.255445 val_acc=0.8372 val_nlpd=0.5613 val_ece=0.0262
+[Epoch 029] lr=0.097712 train_total=0.3152 train_map=0.2750 train_bayes=0.3152 train_ctx_reg=0.255851 val_acc=0.8398 val_nlpd=0.5471 val_ece=0.0276
+[Epoch 030] lr=0.097553 train_total=0.3087 train_map=0.2702 train_bayes=0.3087 train_ctx_reg=0.256267 val_acc=0.8377 val_nlpd=0.5472 val_ece=0.0240
+[Epoch 031] lr=0.097388 train_total=0.3009 train_map=0.2596 train_bayes=0.3009 train_ctx_reg=0.256744 val_acc=0.8361 val_nlpd=0.5522 val_ece=0.0252
+[Epoch 032] lr=0.097219 train_total=0.2961 train_map=0.2552 train_bayes=0.2961 train_ctx_reg=0.257176 val_acc=0.8356 val_nlpd=0.5518 val_ece=0.0230
+[Epoch 033] lr=0.097044 train_total=0.2896 train_map=0.2467 train_bayes=0.2896 train_ctx_reg=0.257672 val_acc=0.8377 val_nlpd=0.5448 val_ece=0.0180
+[Epoch 034] lr=0.096864 train_total=0.2784 train_map=0.2355 train_bayes=0.2784 train_ctx_reg=0.258157 val_acc=0.8456 val_nlpd=0.5337 val_ece=0.0257
+[Epoch 035] lr=0.096679 train_total=0.2637 train_map=0.2218 train_bayes=0.2637 train_ctx_reg=0.258549 val_acc=0.8372 val_nlpd=0.5474 val_ece=0.0178
+[Epoch 036] lr=0.096489 train_total=0.2600 train_map=0.2175 train_bayes=0.2600 train_ctx_reg=0.258910 val_acc=0.8493 val_nlpd=0.5234 val_ece=0.0294
+[Epoch 037] lr=0.096294 train_total=0.2563 train_map=0.2135 train_bayes=0.2563 train_ctx_reg=0.259293 val_acc=0.8477 val_nlpd=0.5349 val_ece=0.0273
+[Epoch 038] lr=0.096093 train_total=0.2531 train_map=0.2109 train_bayes=0.2531 train_ctx_reg=0.259642 val_acc=0.8451 val_nlpd=0.5352 val_ece=0.0224
+[Epoch 039] lr=0.095888 train_total=0.2652 train_map=0.2219 train_bayes=0.2652 train_ctx_reg=0.260066 val_acc=0.8356 val_nlpd=0.5398 val_ece=0.0154
+[Epoch 040] lr=0.095677 train_total=0.2414 train_map=0.1966 train_bayes=0.2413 train_ctx_reg=0.260576 val_acc=0.8462 val_nlpd=0.5241 val_ece=0.0235
+[Epoch 041] lr=0.095462 train_total=0.2405 train_map=0.1970 train_bayes=0.2404 train_ctx_reg=0.260988 val_acc=0.8467 val_nlpd=0.5284 val_ece=0.0223
+[Epoch 042] lr=0.095241 train_total=0.2344 train_map=0.1897 train_bayes=0.2344 train_ctx_reg=0.261391 val_acc=0.8404 val_nlpd=0.5316 val_ece=0.0210
+[Epoch 043] lr=0.095016 train_total=0.2287 train_map=0.1826 train_bayes=0.2287 train_ctx_reg=0.261808 val_acc=0.8440 val_nlpd=0.5105 val_ece=0.0224
+[Epoch 044] lr=0.094786 train_total=0.2247 train_map=0.1810 train_bayes=0.2246 train_ctx_reg=0.262158 val_acc=0.8451 val_nlpd=0.5170 val_ece=0.0169
+[Epoch 045] lr=0.094550 train_total=0.2221 train_map=0.1793 train_bayes=0.2221 train_ctx_reg=0.262532 val_acc=0.8493 val_nlpd=0.5178 val_ece=0.0261
+[Epoch 046] lr=0.094310 train_total=0.2112 train_map=0.1661 train_bayes=0.2112 train_ctx_reg=0.262879 val_acc=0.8488 val_nlpd=0.5169 val_ece=0.0235
+[Epoch 047] lr=0.094065 train_total=0.2122 train_map=0.1662 train_bayes=0.2121 train_ctx_reg=0.263194 val_acc=0.8493 val_nlpd=0.5154 val_ece=0.0249
+[Epoch 048] lr=0.093815 train_total=0.2082 train_map=0.1627 train_bayes=0.2082 train_ctx_reg=0.263575 val_acc=0.8419 val_nlpd=0.5236 val_ece=0.0192
+[Epoch 049] lr=0.093561 train_total=0.1962 train_map=0.1513 train_bayes=0.1962 train_ctx_reg=0.263876 val_acc=0.8462 val_nlpd=0.5035 val_ece=0.0192
+[Epoch 050] lr=0.093301 train_total=0.1919 train_map=0.1470 train_bayes=0.1918 train_ctx_reg=0.264103 val_acc=0.8519 val_nlpd=0.5033 val_ece=0.0247
+[Epoch 051] lr=0.093037 train_total=0.1905 train_map=0.1467 train_bayes=0.1905 train_ctx_reg=0.264327 val_acc=0.8509 val_nlpd=0.5009 val_ece=0.0207
+[Epoch 052] lr=0.092768 train_total=0.1975 train_map=0.1539 train_bayes=0.1975 train_ctx_reg=0.264605 val_acc=0.8467 val_nlpd=0.5189 val_ece=0.0244
+[Epoch 053] lr=0.092495 train_total=0.1939 train_map=0.1492 train_bayes=0.1939 train_ctx_reg=0.264997 val_acc=0.8367 val_nlpd=0.5191 val_ece=0.0198
+[Epoch 054] lr=0.092216 train_total=0.1865 train_map=0.1417 train_bayes=0.1865 train_ctx_reg=0.265311 val_acc=0.8488 val_nlpd=0.5072 val_ece=0.0208
+[Epoch 055] lr=0.091934 train_total=0.1817 train_map=0.1381 train_bayes=0.1817 train_ctx_reg=0.265607 val_acc=0.8477 val_nlpd=0.5084 val_ece=0.0153
+[Epoch 056] lr=0.091646 train_total=0.1775 train_map=0.1338 train_bayes=0.1775 train_ctx_reg=0.265833 val_acc=0.8514 val_nlpd=0.5002 val_ece=0.0161
+[Epoch 057] lr=0.091354 train_total=0.1714 train_map=0.1264 train_bayes=0.1714 train_ctx_reg=0.266022 val_acc=0.8435 val_nlpd=0.5109 val_ece=0.0167
+[Epoch 058] lr=0.091057 train_total=0.1770 train_map=0.1335 train_bayes=0.1770 train_ctx_reg=0.266279 val_acc=0.8525 val_nlpd=0.4957 val_ece=0.0201
+[Epoch 059] lr=0.090756 train_total=0.1795 train_map=0.1355 train_bayes=0.1794 train_ctx_reg=0.266561 val_acc=0.8530 val_nlpd=0.5003 val_ece=0.0222
+[Epoch 060] lr=0.090451 train_total=0.1680 train_map=0.1238 train_bayes=0.1679 train_ctx_reg=0.266862 val_acc=0.8462 val_nlpd=0.4991 val_ece=0.0151
+[Epoch 061] lr=0.090141 train_total=0.1640 train_map=0.1202 train_bayes=0.1640 train_ctx_reg=0.267083 val_acc=0.8446 val_nlpd=0.5017 val_ece=0.0138
+[Epoch 062] lr=0.089826 train_total=0.1629 train_map=0.1199 train_bayes=0.1628 train_ctx_reg=0.267276 val_acc=0.8488 val_nlpd=0.5030 val_ece=0.0175
+[Epoch 063] lr=0.089508 train_total=0.1655 train_map=0.1232 train_bayes=0.1654 train_ctx_reg=0.267517 val_acc=0.8456 val_nlpd=0.5066 val_ece=0.0169
+[Epoch 064] lr=0.089185 train_total=0.1616 train_map=0.1185 train_bayes=0.1616 train_ctx_reg=0.267787 val_acc=0.8525 val_nlpd=0.5039 val_ece=0.0172
+[Epoch 065] lr=0.088857 train_total=0.1631 train_map=0.1211 train_bayes=0.1631 train_ctx_reg=0.268029 val_acc=0.8467 val_nlpd=0.5112 val_ece=0.0197
+[Epoch 066] lr=0.088526 train_total=0.1576 train_map=0.1149 train_bayes=0.1575 train_ctx_reg=0.268311 val_acc=0.8467 val_nlpd=0.5062 val_ece=0.0214
+[Epoch 067] lr=0.088190 train_total=0.1556 train_map=0.1130 train_bayes=0.1556 train_ctx_reg=0.268515 val_acc=0.8493 val_nlpd=0.4919 val_ece=0.0221
+[Epoch 068] lr=0.087850 train_total=0.1545 train_map=0.1109 train_bayes=0.1544 train_ctx_reg=0.268748 val_acc=0.8504 val_nlpd=0.4945 val_ece=0.0181
+[Epoch 069] lr=0.087506 train_total=0.1512 train_map=0.1091 train_bayes=0.1512 train_ctx_reg=0.268944 val_acc=0.8525 val_nlpd=0.5038 val_ece=0.0245
+[Epoch 070] lr=0.087157 train_total=0.1496 train_map=0.1075 train_bayes=0.1496 train_ctx_reg=0.269145 val_acc=0.8467 val_nlpd=0.5159 val_ece=0.0128
+[Epoch 071] lr=0.086805 train_total=0.1545 train_map=0.1119 train_bayes=0.1544 train_ctx_reg=0.269387 val_acc=0.8509 val_nlpd=0.5002 val_ece=0.0173
+[Epoch 072] lr=0.086448 train_total=0.1457 train_map=0.1038 train_bayes=0.1457 train_ctx_reg=0.269624 val_acc=0.8456 val_nlpd=0.5044 val_ece=0.0185
+[Epoch 073] lr=0.086088 train_total=0.1440 train_map=0.1014 train_bayes=0.1440 train_ctx_reg=0.269825 val_acc=0.8519 val_nlpd=0.4925 val_ece=0.0202
+[Epoch 074] lr=0.085724 train_total=0.1426 train_map=0.1010 train_bayes=0.1426 train_ctx_reg=0.270005 val_acc=0.8509 val_nlpd=0.4957 val_ece=0.0209
+[Epoch 075] lr=0.085355 train_total=0.1436 train_map=0.1017 train_bayes=0.1436 train_ctx_reg=0.270202 val_acc=0.8488 val_nlpd=0.5032 val_ece=0.0159
+[Epoch 076] lr=0.084983 train_total=0.1428 train_map=0.1013 train_bayes=0.1428 train_ctx_reg=0.270381 val_acc=0.8509 val_nlpd=0.4977 val_ece=0.0177
+[Epoch 077] lr=0.084607 train_total=0.1417 train_map=0.1005 train_bayes=0.1417 train_ctx_reg=0.270584 val_acc=0.8509 val_nlpd=0.4964 val_ece=0.0192
+[Epoch 078] lr=0.084227 train_total=0.1392 train_map=0.0974 train_bayes=0.1392 train_ctx_reg=0.270822 val_acc=0.8504 val_nlpd=0.4912 val_ece=0.0155
+[Epoch 079] lr=0.083844 train_total=0.1371 train_map=0.0966 train_bayes=0.1370 train_ctx_reg=0.271050 val_acc=0.8509 val_nlpd=0.5025 val_ece=0.0207
+[Epoch 080] lr=0.083457 train_total=0.1376 train_map=0.0953 train_bayes=0.1375 train_ctx_reg=0.271195 val_acc=0.8541 val_nlpd=0.4887 val_ece=0.0219
+[Epoch 081] lr=0.083066 train_total=0.1362 train_map=0.0949 train_bayes=0.1362 train_ctx_reg=0.271391 val_acc=0.8551 val_nlpd=0.4869 val_ece=0.0180
+[Epoch 082] lr=0.082671 train_total=0.1333 train_map=0.0944 train_bayes=0.1333 train_ctx_reg=0.271579 val_acc=0.8498 val_nlpd=0.4960 val_ece=0.0170
+[Epoch 083] lr=0.082273 train_total=0.1328 train_map=0.0911 train_bayes=0.1328 train_ctx_reg=0.271744 val_acc=0.8525 val_nlpd=0.4913 val_ece=0.0190
+[Epoch 084] lr=0.081871 train_total=0.1354 train_map=0.0959 train_bayes=0.1354 train_ctx_reg=0.271939 val_acc=0.8493 val_nlpd=0.4944 val_ece=0.0200
+[Epoch 085] lr=0.081466 train_total=0.1284 train_map=0.0874 train_bayes=0.1284 train_ctx_reg=0.272139 val_acc=0.8525 val_nlpd=0.4912 val_ece=0.0207
+[Epoch 086] lr=0.081057 train_total=0.1292 train_map=0.0892 train_bayes=0.1292 train_ctx_reg=0.272299 val_acc=0.8572 val_nlpd=0.4961 val_ece=0.0117
+[Epoch 087] lr=0.080645 train_total=0.1264 train_map=0.0867 train_bayes=0.1263 train_ctx_reg=0.272481 val_acc=0.8535 val_nlpd=0.4888 val_ece=0.0241
+[Epoch 088] lr=0.080230 train_total=0.1272 train_map=0.0873 train_bayes=0.1272 train_ctx_reg=0.272651 val_acc=0.8488 val_nlpd=0.4950 val_ece=0.0186
+[Epoch 089] lr=0.079811 train_total=0.1239 train_map=0.0838 train_bayes=0.1239 train_ctx_reg=0.272787 val_acc=0.8483 val_nlpd=0.4983 val_ece=0.0201
+[Epoch 090] lr=0.079389 train_total=0.1209 train_map=0.0823 train_bayes=0.1209 train_ctx_reg=0.272944 val_acc=0.8535 val_nlpd=0.4923 val_ece=0.0202
+[Epoch 091] lr=0.078964 train_total=0.1198 train_map=0.0797 train_bayes=0.1198 train_ctx_reg=0.273061 val_acc=0.8546 val_nlpd=0.4890 val_ece=0.0277
+[Epoch 092] lr=0.078536 train_total=0.1203 train_map=0.0803 train_bayes=0.1203 train_ctx_reg=0.273177 val_acc=0.8556 val_nlpd=0.4890 val_ece=0.0162
+[Epoch 093] lr=0.078104 train_total=0.1240 train_map=0.0847 train_bayes=0.1240 train_ctx_reg=0.273326 val_acc=0.8546 val_nlpd=0.4861 val_ece=0.0218
+[Epoch 094] lr=0.077670 train_total=0.1208 train_map=0.0810 train_bayes=0.1208 train_ctx_reg=0.273480 val_acc=0.8504 val_nlpd=0.4956 val_ece=0.0183
+[Epoch 095] lr=0.077232 train_total=0.1174 train_map=0.0774 train_bayes=0.1174 train_ctx_reg=0.273608 val_acc=0.8551 val_nlpd=0.4867 val_ece=0.0182
+[Epoch 096] lr=0.076791 train_total=0.1172 train_map=0.0780 train_bayes=0.1172 train_ctx_reg=0.273730 val_acc=0.8567 val_nlpd=0.4797 val_ece=0.0201
+[Epoch 097] lr=0.076348 train_total=0.1132 train_map=0.0738 train_bayes=0.1132 train_ctx_reg=0.273853 val_acc=0.8541 val_nlpd=0.4895 val_ece=0.0241
+[Epoch 098] lr=0.075901 train_total=0.1179 train_map=0.0793 train_bayes=0.1179 train_ctx_reg=0.273963 val_acc=0.8535 val_nlpd=0.4901 val_ece=0.0143
+[Epoch 099] lr=0.075452 train_total=0.1124 train_map=0.0736 train_bayes=0.1124 train_ctx_reg=0.274105 val_acc=0.8519 val_nlpd=0.4924 val_ece=0.0165
+[Epoch 100] lr=0.075000 train_total=0.1149 train_map=0.0757 train_bayes=0.1149 train_ctx_reg=0.274200 val_acc=0.8525 val_nlpd=0.4885 val_ece=0.0179
+[Epoch 101] lr=0.074545 train_total=0.1149 train_map=0.0756 train_bayes=0.1149 train_ctx_reg=0.274355 val_acc=0.8567 val_nlpd=0.4865 val_ece=0.0168
+[Epoch 102] lr=0.074088 train_total=0.1103 train_map=0.0725 train_bayes=0.1103 train_ctx_reg=0.274465 val_acc=0.8551 val_nlpd=0.4831 val_ece=0.0201
+[Epoch 103] lr=0.073628 train_total=0.1119 train_map=0.0733 train_bayes=0.1118 train_ctx_reg=0.274570 val_acc=0.8562 val_nlpd=0.4822 val_ece=0.0154
+[Epoch 104] lr=0.073165 train_total=0.1070 train_map=0.0684 train_bayes=0.1070 train_ctx_reg=0.274667 val_acc=0.8588 val_nlpd=0.4838 val_ece=0.0157
+[Epoch 105] lr=0.072700 train_total=0.1083 train_map=0.0707 train_bayes=0.1083 train_ctx_reg=0.274744 val_acc=0.8556 val_nlpd=0.4788 val_ece=0.0172
+[Epoch 106] lr=0.072232 train_total=0.1080 train_map=0.0686 train_bayes=0.1080 train_ctx_reg=0.274851 val_acc=0.8577 val_nlpd=0.4790 val_ece=0.0155
+[Epoch 107] lr=0.071762 train_total=0.1060 train_map=0.0689 train_bayes=0.1060 train_ctx_reg=0.274958 val_acc=0.8577 val_nlpd=0.4799 val_ece=0.0183
+[Epoch 108] lr=0.071289 train_total=0.1074 train_map=0.0697 train_bayes=0.1074 train_ctx_reg=0.275051 val_acc=0.8535 val_nlpd=0.4795 val_ece=0.0186
+[Epoch 109] lr=0.070814 train_total=0.1041 train_map=0.0654 train_bayes=0.1041 train_ctx_reg=0.275141 val_acc=0.8572 val_nlpd=0.4732 val_ece=0.0215
+[Epoch 110] lr=0.070337 train_total=0.1015 train_map=0.0647 train_bayes=0.1014 train_ctx_reg=0.275231 val_acc=0.8588 val_nlpd=0.4852 val_ece=0.0182
+[Epoch 111] lr=0.069857 train_total=0.1038 train_map=0.0658 train_bayes=0.1038 train_ctx_reg=0.275303 val_acc=0.8562 val_nlpd=0.4862 val_ece=0.0171
+[Epoch 112] lr=0.069376 train_total=0.1071 train_map=0.0693 train_bayes=0.1071 train_ctx_reg=0.275393 val_acc=0.8572 val_nlpd=0.4850 val_ece=0.0204
+[Epoch 113] lr=0.068892 train_total=0.1064 train_map=0.0680 train_bayes=0.1064 train_ctx_reg=0.275481 val_acc=0.8535 val_nlpd=0.4862 val_ece=0.0146
+[Epoch 114] lr=0.068406 train_total=0.1037 train_map=0.0663 train_bayes=0.1037 train_ctx_reg=0.275593 val_acc=0.8604 val_nlpd=0.4819 val_ece=0.0191
+[Epoch 115] lr=0.067918 train_total=0.1041 train_map=0.0668 train_bayes=0.1041 train_ctx_reg=0.275711 val_acc=0.8609 val_nlpd=0.4818 val_ece=0.0200
+[Epoch 116] lr=0.067429 train_total=0.1072 train_map=0.0699 train_bayes=0.1072 train_ctx_reg=0.275821 val_acc=0.8593 val_nlpd=0.4843 val_ece=0.0201
+[Epoch 117] lr=0.066937 train_total=0.1026 train_map=0.0644 train_bayes=0.1025 train_ctx_reg=0.275941 val_acc=0.8572 val_nlpd=0.4809 val_ece=0.0162
+[Epoch 118] lr=0.066443 train_total=0.0993 train_map=0.0623 train_bayes=0.0992 train_ctx_reg=0.276043 val_acc=0.8599 val_nlpd=0.4744 val_ece=0.0201
+[Epoch 119] lr=0.065948 train_total=0.0987 train_map=0.0626 train_bayes=0.0987 train_ctx_reg=0.276108 val_acc=0.8583 val_nlpd=0.4729 val_ece=0.0190
+[Epoch 120] lr=0.065451 train_total=0.0999 train_map=0.0620 train_bayes=0.0999 train_ctx_reg=0.276201 val_acc=0.8604 val_nlpd=0.4697 val_ece=0.0161
+[Epoch 121] lr=0.064952 train_total=0.0976 train_map=0.0607 train_bayes=0.0976 train_ctx_reg=0.276271 val_acc=0.8556 val_nlpd=0.4768 val_ece=0.0257
+[Epoch 122] lr=0.064452 train_total=0.0965 train_map=0.0594 train_bayes=0.0965 train_ctx_reg=0.276365 val_acc=0.8593 val_nlpd=0.4800 val_ece=0.0208
+[Epoch 123] lr=0.063950 train_total=0.0966 train_map=0.0603 train_bayes=0.0966 train_ctx_reg=0.276427 val_acc=0.8588 val_nlpd=0.4742 val_ece=0.0214
+[Epoch 124] lr=0.063446 train_total=0.0957 train_map=0.0593 train_bayes=0.0957 train_ctx_reg=0.276488 val_acc=0.8593 val_nlpd=0.4704 val_ece=0.0211
+[Epoch 125] lr=0.062941 train_total=0.0946 train_map=0.0585 train_bayes=0.0946 train_ctx_reg=0.276570 val_acc=0.8583 val_nlpd=0.4739 val_ece=0.0209
+[Epoch 126] lr=0.062434 train_total=0.0954 train_map=0.0599 train_bayes=0.0953 train_ctx_reg=0.276637 val_acc=0.8609 val_nlpd=0.4744 val_ece=0.0159
+[Epoch 127] lr=0.061927 train_total=0.0931 train_map=0.0570 train_bayes=0.0931 train_ctx_reg=0.276703 val_acc=0.8604 val_nlpd=0.4713 val_ece=0.0168
+[Epoch 128] lr=0.061418 train_total=0.0940 train_map=0.0586 train_bayes=0.0940 train_ctx_reg=0.276775 val_acc=0.8614 val_nlpd=0.4719 val_ece=0.0229
+[Epoch 129] lr=0.060907 train_total=0.0931 train_map=0.0567 train_bayes=0.0931 train_ctx_reg=0.276831 val_acc=0.8604 val_nlpd=0.4713 val_ece=0.0195
+[Epoch 130] lr=0.060396 train_total=0.0960 train_map=0.0600 train_bayes=0.0960 train_ctx_reg=0.276891 val_acc=0.8567 val_nlpd=0.4676 val_ece=0.0229
+[Epoch 131] lr=0.059883 train_total=0.0923 train_map=0.0560 train_bayes=0.0923 train_ctx_reg=0.276957 val_acc=0.8583 val_nlpd=0.4721 val_ece=0.0170
+[Epoch 132] lr=0.059369 train_total=0.0908 train_map=0.0554 train_bayes=0.0907 train_ctx_reg=0.277033 val_acc=0.8620 val_nlpd=0.4688 val_ece=0.0223
+[Epoch 133] lr=0.058854 train_total=0.0903 train_map=0.0553 train_bayes=0.0903 train_ctx_reg=0.277084 val_acc=0.8593 val_nlpd=0.4732 val_ece=0.0166
+[Epoch 134] lr=0.058338 train_total=0.0895 train_map=0.0537 train_bayes=0.0894 train_ctx_reg=0.277135 val_acc=0.8609 val_nlpd=0.4679 val_ece=0.0211
+[Epoch 135] lr=0.057822 train_total=0.0890 train_map=0.0547 train_bayes=0.0890 train_ctx_reg=0.277182 val_acc=0.8599 val_nlpd=0.4732 val_ece=0.0171
+[Epoch 136] lr=0.057304 train_total=0.0879 train_map=0.0519 train_bayes=0.0878 train_ctx_reg=0.277231 val_acc=0.8620 val_nlpd=0.4710 val_ece=0.0174
+[Epoch 137] lr=0.056786 train_total=0.0889 train_map=0.0529 train_bayes=0.0889 train_ctx_reg=0.277281 val_acc=0.8604 val_nlpd=0.4746 val_ece=0.0211
+[Epoch 138] lr=0.056267 train_total=0.0866 train_map=0.0521 train_bayes=0.0866 train_ctx_reg=0.277313 val_acc=0.8614 val_nlpd=0.4732 val_ece=0.0180
+[Epoch 139] lr=0.055747 train_total=0.0870 train_map=0.0526 train_bayes=0.0869 train_ctx_reg=0.277357 val_acc=0.8630 val_nlpd=0.4750 val_ece=0.0203
+[Epoch 140] lr=0.055226 train_total=0.0865 train_map=0.0513 train_bayes=0.0865 train_ctx_reg=0.277391 val_acc=0.8630 val_nlpd=0.4716 val_ece=0.0162
+[Epoch 141] lr=0.054705 train_total=0.0850 train_map=0.0509 train_bayes=0.0850 train_ctx_reg=0.277434 val_acc=0.8614 val_nlpd=0.4659 val_ece=0.0205
+[Epoch 142] lr=0.054184 train_total=0.0852 train_map=0.0502 train_bayes=0.0852 train_ctx_reg=0.277463 val_acc=0.8593 val_nlpd=0.4716 val_ece=0.0151
+[Epoch 143] lr=0.053662 train_total=0.0850 train_map=0.0501 train_bayes=0.0850 train_ctx_reg=0.277511 val_acc=0.8625 val_nlpd=0.4667 val_ece=0.0169
+[Epoch 144] lr=0.053140 train_total=0.0862 train_map=0.0523 train_bayes=0.0861 train_ctx_reg=0.277541 val_acc=0.8625 val_nlpd=0.4652 val_ece=0.0195
+[Epoch 145] lr=0.052617 train_total=0.0855 train_map=0.0502 train_bayes=0.0855 train_ctx_reg=0.277591 val_acc=0.8583 val_nlpd=0.4726 val_ece=0.0165
+[Epoch 146] lr=0.052094 train_total=0.0869 train_map=0.0526 train_bayes=0.0868 train_ctx_reg=0.277625 val_acc=0.8630 val_nlpd=0.4636 val_ece=0.0195
+[Epoch 147] lr=0.051571 train_total=0.0850 train_map=0.0503 train_bayes=0.0849 train_ctx_reg=0.277678 val_acc=0.8609 val_nlpd=0.4682 val_ece=0.0226
+[Epoch 148] lr=0.051047 train_total=0.0853 train_map=0.0511 train_bayes=0.0853 train_ctx_reg=0.277724 val_acc=0.8630 val_nlpd=0.4659 val_ece=0.0161
+[Epoch 149] lr=0.050524 train_total=0.0831 train_map=0.0485 train_bayes=0.0831 train_ctx_reg=0.277764 val_acc=0.8604 val_nlpd=0.4672 val_ece=0.0170
+[Epoch 150] lr=0.050000 train_total=0.0827 train_map=0.0490 train_bayes=0.0826 train_ctx_reg=0.277797 val_acc=0.8630 val_nlpd=0.4656 val_ece=0.0161
+[Epoch 151] lr=0.049476 train_total=0.0828 train_map=0.0488 train_bayes=0.0827 train_ctx_reg=0.277828 val_acc=0.8620 val_nlpd=0.4641 val_ece=0.0145
+[Epoch 152] lr=0.048953 train_total=0.0834 train_map=0.0493 train_bayes=0.0833 train_ctx_reg=0.277863 val_acc=0.8635 val_nlpd=0.4683 val_ece=0.0136
+[Epoch 153] lr=0.048429 train_total=0.0817 train_map=0.0485 train_bayes=0.0817 train_ctx_reg=0.277897 val_acc=0.8620 val_nlpd=0.4653 val_ece=0.0155
+[Epoch 154] lr=0.047906 train_total=0.0811 train_map=0.0469 train_bayes=0.0811 train_ctx_reg=0.277930 val_acc=0.8625 val_nlpd=0.4626 val_ece=0.0187
+[Epoch 155] lr=0.047383 train_total=0.0826 train_map=0.0486 train_bayes=0.0825 train_ctx_reg=0.277962 val_acc=0.8625 val_nlpd=0.4661 val_ece=0.0179
+[Epoch 156] lr=0.046860 train_total=0.0822 train_map=0.0491 train_bayes=0.0821 train_ctx_reg=0.277995 val_acc=0.8641 val_nlpd=0.4675 val_ece=0.0158
+[Epoch 157] lr=0.046338 train_total=0.0804 train_map=0.0466 train_bayes=0.0804 train_ctx_reg=0.278032 val_acc=0.8614 val_nlpd=0.4693 val_ece=0.0199
+[Epoch 158] lr=0.045816 train_total=0.0798 train_map=0.0467 train_bayes=0.0797 train_ctx_reg=0.278047 val_acc=0.8620 val_nlpd=0.4686 val_ece=0.0179
+[Epoch 159] lr=0.045295 train_total=0.0802 train_map=0.0468 train_bayes=0.0802 train_ctx_reg=0.278084 val_acc=0.8604 val_nlpd=0.4634 val_ece=0.0257
+[Epoch 160] lr=0.044774 train_total=0.0800 train_map=0.0468 train_bayes=0.0800 train_ctx_reg=0.278100 val_acc=0.8625 val_nlpd=0.4650 val_ece=0.0164
+[Epoch 161] lr=0.044253 train_total=0.0815 train_map=0.0462 train_bayes=0.0814 train_ctx_reg=0.278133 val_acc=0.8620 val_nlpd=0.4645 val_ece=0.0185
+[Epoch 162] lr=0.043733 train_total=0.0787 train_map=0.0461 train_bayes=0.0786 train_ctx_reg=0.278185 val_acc=0.8630 val_nlpd=0.4664 val_ece=0.0161
+[Epoch 163] lr=0.043214 train_total=0.0771 train_map=0.0441 train_bayes=0.0770 train_ctx_reg=0.278197 val_acc=0.8641 val_nlpd=0.4655 val_ece=0.0180
+[Epoch 164] lr=0.042696 train_total=0.0778 train_map=0.0442 train_bayes=0.0777 train_ctx_reg=0.278215 val_acc=0.8656 val_nlpd=0.4595 val_ece=0.0152
+[Epoch 165] lr=0.042178 train_total=0.0771 train_map=0.0445 train_bayes=0.0771 train_ctx_reg=0.278235 val_acc=0.8625 val_nlpd=0.4633 val_ece=0.0170
+[Epoch 166] lr=0.041662 train_total=0.0768 train_map=0.0442 train_bayes=0.0768 train_ctx_reg=0.278252 val_acc=0.8635 val_nlpd=0.4647 val_ece=0.0182
+[Epoch 167] lr=0.041146 train_total=0.0760 train_map=0.0441 train_bayes=0.0760 train_ctx_reg=0.278266 val_acc=0.8609 val_nlpd=0.4685 val_ece=0.0156
+[Epoch 168] lr=0.040631 train_total=0.0766 train_map=0.0432 train_bayes=0.0766 train_ctx_reg=0.278284 val_acc=0.8609 val_nlpd=0.4644 val_ece=0.0183
+[Epoch 169] lr=0.040117 train_total=0.0760 train_map=0.0439 train_bayes=0.0760 train_ctx_reg=0.278290 val_acc=0.8625 val_nlpd=0.4658 val_ece=0.0209
+[Epoch 170] lr=0.039604 train_total=0.0762 train_map=0.0430 train_bayes=0.0762 train_ctx_reg=0.278316 val_acc=0.8625 val_nlpd=0.4657 val_ece=0.0161
+[Epoch 171] lr=0.039093 train_total=0.0750 train_map=0.0427 train_bayes=0.0750 train_ctx_reg=0.278329 val_acc=0.8614 val_nlpd=0.4618 val_ece=0.0227
+[Epoch 172] lr=0.038582 train_total=0.0760 train_map=0.0436 train_bayes=0.0759 train_ctx_reg=0.278344 val_acc=0.8635 val_nlpd=0.4638 val_ece=0.0172
+[Epoch 173] lr=0.038073 train_total=0.0761 train_map=0.0428 train_bayes=0.0761 train_ctx_reg=0.278357 val_acc=0.8599 val_nlpd=0.4640 val_ece=0.0181
+[Epoch 174] lr=0.037566 train_total=0.0753 train_map=0.0429 train_bayes=0.0752 train_ctx_reg=0.278381 val_acc=0.8635 val_nlpd=0.4654 val_ece=0.0136
+[Epoch 175] lr=0.037059 train_total=0.0742 train_map=0.0417 train_bayes=0.0741 train_ctx_reg=0.278396 val_acc=0.8620 val_nlpd=0.4679 val_ece=0.0150
+[Epoch 176] lr=0.036554 train_total=0.0747 train_map=0.0424 train_bayes=0.0746 train_ctx_reg=0.278405 val_acc=0.8625 val_nlpd=0.4661 val_ece=0.0117
+[Epoch 177] lr=0.036050 train_total=0.0739 train_map=0.0412 train_bayes=0.0739 train_ctx_reg=0.278415 val_acc=0.8599 val_nlpd=0.4643 val_ece=0.0198
+[Epoch 178] lr=0.035548 train_total=0.0736 train_map=0.0419 train_bayes=0.0736 train_ctx_reg=0.278425 val_acc=0.8609 val_nlpd=0.4648 val_ece=0.0176
+[Epoch 179] lr=0.035048 train_total=0.0742 train_map=0.0416 train_bayes=0.0742 train_ctx_reg=0.278433 val_acc=0.8620 val_nlpd=0.4630 val_ece=0.0128
+[Epoch 180] lr=0.034549 train_total=0.0743 train_map=0.0423 train_bayes=0.0743 train_ctx_reg=0.278453 val_acc=0.8635 val_nlpd=0.4618 val_ece=0.0154
+[Epoch 181] lr=0.034052 train_total=0.0730 train_map=0.0409 train_bayes=0.0730 train_ctx_reg=0.278464 val_acc=0.8630 val_nlpd=0.4649 val_ece=0.0148
+[Epoch 182] lr=0.033557 train_total=0.0728 train_map=0.0405 train_bayes=0.0727 train_ctx_reg=0.278469 val_acc=0.8614 val_nlpd=0.4623 val_ece=0.0170
+[Epoch 183] lr=0.033063 train_total=0.0727 train_map=0.0406 train_bayes=0.0726 train_ctx_reg=0.278477 val_acc=0.8599 val_nlpd=0.4627 val_ece=0.0193
+[Epoch 184] lr=0.032571 train_total=0.0720 train_map=0.0404 train_bayes=0.0719 train_ctx_reg=0.278484 val_acc=0.8630 val_nlpd=0.4622 val_ece=0.0196
+[Epoch 185] lr=0.032082 train_total=0.0721 train_map=0.0402 train_bayes=0.0720 train_ctx_reg=0.278496 val_acc=0.8614 val_nlpd=0.4635 val_ece=0.0192
+[Epoch 186] lr=0.031594 train_total=0.0720 train_map=0.0405 train_bayes=0.0720 train_ctx_reg=0.278501 val_acc=0.8625 val_nlpd=0.4634 val_ece=0.0161
+[Epoch 187] lr=0.031108 train_total=0.0720 train_map=0.0399 train_bayes=0.0720 train_ctx_reg=0.278509 val_acc=0.8646 val_nlpd=0.4600 val_ece=0.0171
+[Epoch 188] lr=0.030624 train_total=0.0719 train_map=0.0404 train_bayes=0.0718 train_ctx_reg=0.278520 val_acc=0.8614 val_nlpd=0.4629 val_ece=0.0198
+[Epoch 189] lr=0.030143 train_total=0.0728 train_map=0.0408 train_bayes=0.0728 train_ctx_reg=0.278527 val_acc=0.8614 val_nlpd=0.4625 val_ece=0.0159
+[Epoch 190] lr=0.029663 train_total=0.0714 train_map=0.0399 train_bayes=0.0713 train_ctx_reg=0.278543 val_acc=0.8641 val_nlpd=0.4657 val_ece=0.0163
+[Epoch 191] lr=0.029186 train_total=0.0708 train_map=0.0393 train_bayes=0.0708 train_ctx_reg=0.278551 val_acc=0.8630 val_nlpd=0.4597 val_ece=0.0192
+[Epoch 192] lr=0.028711 train_total=0.0716 train_map=0.0394 train_bayes=0.0716 train_ctx_reg=0.278554 val_acc=0.8604 val_nlpd=0.4621 val_ece=0.0157
+[Epoch 193] lr=0.028238 train_total=0.0707 train_map=0.0400 train_bayes=0.0706 train_ctx_reg=0.278563 val_acc=0.8630 val_nlpd=0.4598 val_ece=0.0158
+[Epoch 194] lr=0.027768 train_total=0.0704 train_map=0.0391 train_bayes=0.0703 train_ctx_reg=0.278571 val_acc=0.8635 val_nlpd=0.4611 val_ece=0.0222
+[Epoch 195] lr=0.027300 train_total=0.0709 train_map=0.0388 train_bayes=0.0709 train_ctx_reg=0.278572 val_acc=0.8625 val_nlpd=0.4612 val_ece=0.0174
+[Epoch 196] lr=0.026835 train_total=0.0711 train_map=0.0399 train_bayes=0.0711 train_ctx_reg=0.278585 val_acc=0.8630 val_nlpd=0.4642 val_ece=0.0129
+[Epoch 197] lr=0.026372 train_total=0.0695 train_map=0.0378 train_bayes=0.0695 train_ctx_reg=0.278590 val_acc=0.8604 val_nlpd=0.4630 val_ece=0.0216
+[Epoch 198] lr=0.025912 train_total=0.0691 train_map=0.0381 train_bayes=0.0691 train_ctx_reg=0.278594 val_acc=0.8604 val_nlpd=0.4620 val_ece=0.0183
+[Epoch 199] lr=0.025455 train_total=0.0706 train_map=0.0385 train_bayes=0.0705 train_ctx_reg=0.278594 val_acc=0.8641 val_nlpd=0.4627 val_ece=0.0161
+[Epoch 200] lr=0.025000 train_total=0.0701 train_map=0.0394 train_bayes=0.0701 train_ctx_reg=0.278599 val_acc=0.8641 val_nlpd=0.4617 val_ece=0.0194
+[Epoch 201] lr=0.024548 train_total=0.0698 train_map=0.0391 train_bayes=0.0698 train_ctx_reg=0.278609 val_acc=0.8620 val_nlpd=0.4613 val_ece=0.0225
+[Epoch 202] lr=0.024099 train_total=0.0688 train_map=0.0373 train_bayes=0.0688 train_ctx_reg=0.278613 val_acc=0.8625 val_nlpd=0.4618 val_ece=0.0159
+[Epoch 203] lr=0.023652 train_total=0.0690 train_map=0.0383 train_bayes=0.0690 train_ctx_reg=0.278617 val_acc=0.8630 val_nlpd=0.4634 val_ece=0.0145
+[Epoch 204] lr=0.023209 train_total=0.0689 train_map=0.0375 train_bayes=0.0688 train_ctx_reg=0.278623 val_acc=0.8656 val_nlpd=0.4596 val_ece=0.0154
+[Epoch 205] lr=0.022768 train_total=0.0684 train_map=0.0375 train_bayes=0.0683 train_ctx_reg=0.278622 val_acc=0.8630 val_nlpd=0.4643 val_ece=0.0160
+[Epoch 206] lr=0.022330 train_total=0.0685 train_map=0.0378 train_bayes=0.0684 train_ctx_reg=0.278626 val_acc=0.8609 val_nlpd=0.4614 val_ece=0.0223
+[Epoch 207] lr=0.021896 train_total=0.0680 train_map=0.0376 train_bayes=0.0680 train_ctx_reg=0.278629 val_acc=0.8599 val_nlpd=0.4638 val_ece=0.0197
+[Epoch 208] lr=0.021464 train_total=0.0681 train_map=0.0369 train_bayes=0.0681 train_ctx_reg=0.278631 val_acc=0.8609 val_nlpd=0.4608 val_ece=0.0211
+[Epoch 209] lr=0.021036 train_total=0.0680 train_map=0.0370 train_bayes=0.0679 train_ctx_reg=0.278634 val_acc=0.8646 val_nlpd=0.4608 val_ece=0.0149
+[Epoch 210] lr=0.020611 train_total=0.0679 train_map=0.0374 train_bayes=0.0678 train_ctx_reg=0.278636 val_acc=0.8635 val_nlpd=0.4622 val_ece=0.0200
+[Epoch 211] lr=0.020189 train_total=0.0678 train_map=0.0368 train_bayes=0.0677 train_ctx_reg=0.278636 val_acc=0.8641 val_nlpd=0.4610 val_ece=0.0162
+[Epoch 212] lr=0.019770 train_total=0.0676 train_map=0.0367 train_bayes=0.0676 train_ctx_reg=0.278641 val_acc=0.8620 val_nlpd=0.4609 val_ece=0.0163
+[Epoch 213] lr=0.019355 train_total=0.0678 train_map=0.0373 train_bayes=0.0678 train_ctx_reg=0.278642 val_acc=0.8630 val_nlpd=0.4619 val_ece=0.0151
+[Epoch 214] lr=0.018943 train_total=0.0674 train_map=0.0367 train_bayes=0.0674 train_ctx_reg=0.278645 val_acc=0.8620 val_nlpd=0.4612 val_ece=0.0178
+[Epoch 215] lr=0.018534 train_total=0.0672 train_map=0.0369 train_bayes=0.0672 train_ctx_reg=0.278649 val_acc=0.8620 val_nlpd=0.4613 val_ece=0.0191
+[Epoch 216] lr=0.018129 train_total=0.0674 train_map=0.0365 train_bayes=0.0674 train_ctx_reg=0.278644 val_acc=0.8635 val_nlpd=0.4616 val_ece=0.0179
+[Epoch 217] lr=0.017727 train_total=0.0669 train_map=0.0361 train_bayes=0.0668 train_ctx_reg=0.278647 val_acc=0.8630 val_nlpd=0.4607 val_ece=0.0188
+[Epoch 218] lr=0.017329 train_total=0.0670 train_map=0.0364 train_bayes=0.0670 train_ctx_reg=0.278647 val_acc=0.8625 val_nlpd=0.4607 val_ece=0.0183
+[Epoch 219] lr=0.016934 train_total=0.0665 train_map=0.0357 train_bayes=0.0665 train_ctx_reg=0.278646 val_acc=0.8635 val_nlpd=0.4612 val_ece=0.0168
+[Epoch 220] lr=0.016543 train_total=0.0666 train_map=0.0360 train_bayes=0.0665 train_ctx_reg=0.278645 val_acc=0.8635 val_nlpd=0.4617 val_ece=0.0176
+[Epoch 221] lr=0.016156 train_total=0.0662 train_map=0.0360 train_bayes=0.0662 train_ctx_reg=0.278646 val_acc=0.8630 val_nlpd=0.4593 val_ece=0.0167
+[Epoch 222] lr=0.015773 train_total=0.0667 train_map=0.0361 train_bayes=0.0667 train_ctx_reg=0.278646 val_acc=0.8630 val_nlpd=0.4607 val_ece=0.0173
+[Epoch 223] lr=0.015393 train_total=0.0666 train_map=0.0362 train_bayes=0.0666 train_ctx_reg=0.278648 val_acc=0.8635 val_nlpd=0.4622 val_ece=0.0148
+[Epoch 224] lr=0.015017 train_total=0.0663 train_map=0.0358 train_bayes=0.0663 train_ctx_reg=0.278649 val_acc=0.8630 val_nlpd=0.4600 val_ece=0.0172
+[Epoch 225] lr=0.014645 train_total=0.0662 train_map=0.0356 train_bayes=0.0661 train_ctx_reg=0.278651 val_acc=0.8630 val_nlpd=0.4625 val_ece=0.0186
+[Epoch 226] lr=0.014276 train_total=0.0662 train_map=0.0363 train_bayes=0.0662 train_ctx_reg=0.278652 val_acc=0.8641 val_nlpd=0.4596 val_ece=0.0178
+[Epoch 227] lr=0.013912 train_total=0.0656 train_map=0.0355 train_bayes=0.0656 train_ctx_reg=0.278651 val_acc=0.8620 val_nlpd=0.4601 val_ece=0.0226
+[Epoch 228] lr=0.013552 train_total=0.0656 train_map=0.0349 train_bayes=0.0656 train_ctx_reg=0.278652 val_acc=0.8625 val_nlpd=0.4622 val_ece=0.0173
+[Epoch 229] lr=0.013195 train_total=0.0656 train_map=0.0355 train_bayes=0.0656 train_ctx_reg=0.278653 val_acc=0.8635 val_nlpd=0.4602 val_ece=0.0166
+[Epoch 230] lr=0.012843 train_total=0.0656 train_map=0.0354 train_bayes=0.0656 train_ctx_reg=0.278653 val_acc=0.8625 val_nlpd=0.4626 val_ece=0.0219
+[Epoch 231] lr=0.012494 train_total=0.0657 train_map=0.0355 train_bayes=0.0657 train_ctx_reg=0.278650 val_acc=0.8630 val_nlpd=0.4618 val_ece=0.0188
+[Epoch 232] lr=0.012150 train_total=0.0652 train_map=0.0353 train_bayes=0.0652 train_ctx_reg=0.278649 val_acc=0.8635 val_nlpd=0.4613 val_ece=0.0210
+[Epoch 233] lr=0.011810 train_total=0.0656 train_map=0.0352 train_bayes=0.0656 train_ctx_reg=0.278649 val_acc=0.8635 val_nlpd=0.4611 val_ece=0.0197
+[Epoch 234] lr=0.011474 train_total=0.0650 train_map=0.0348 train_bayes=0.0649 train_ctx_reg=0.278648 val_acc=0.8625 val_nlpd=0.4614 val_ece=0.0210
+[Epoch 235] lr=0.011143 train_total=0.0649 train_map=0.0346 train_bayes=0.0648 train_ctx_reg=0.278649 val_acc=0.8635 val_nlpd=0.4611 val_ece=0.0174
+[Epoch 236] lr=0.010815 train_total=0.0648 train_map=0.0347 train_bayes=0.0648 train_ctx_reg=0.278649 val_acc=0.8635 val_nlpd=0.4610 val_ece=0.0163
+[Epoch 237] lr=0.010492 train_total=0.0651 train_map=0.0349 train_bayes=0.0650 train_ctx_reg=0.278649 val_acc=0.8620 val_nlpd=0.4617 val_ece=0.0211
+[Epoch 238] lr=0.010174 train_total=0.0651 train_map=0.0351 train_bayes=0.0651 train_ctx_reg=0.278650 val_acc=0.8620 val_nlpd=0.4612 val_ece=0.0216
+[Epoch 239] lr=0.009859 train_total=0.0648 train_map=0.0344 train_bayes=0.0647 train_ctx_reg=0.278647 val_acc=0.8614 val_nlpd=0.4626 val_ece=0.0186
+[Epoch 240] lr=0.009549 train_total=0.0647 train_map=0.0346 train_bayes=0.0646 train_ctx_reg=0.278648 val_acc=0.8630 val_nlpd=0.4612 val_ece=0.0150
+[Epoch 241] lr=0.009244 train_total=0.0650 train_map=0.0350 train_bayes=0.0650 train_ctx_reg=0.278648 val_acc=0.8625 val_nlpd=0.4615 val_ece=0.0180
+[Epoch 242] lr=0.008943 train_total=0.0646 train_map=0.0344 train_bayes=0.0646 train_ctx_reg=0.278649 val_acc=0.8625 val_nlpd=0.4612 val_ece=0.0170
+[Epoch 243] lr=0.008646 train_total=0.0646 train_map=0.0346 train_bayes=0.0645 train_ctx_reg=0.278649 val_acc=0.8630 val_nlpd=0.4609 val_ece=0.0207
+[Epoch 244] lr=0.008354 train_total=0.0644 train_map=0.0343 train_bayes=0.0644 train_ctx_reg=0.278648 val_acc=0.8625 val_nlpd=0.4616 val_ece=0.0162
+[Epoch 245] lr=0.008066 train_total=0.0644 train_map=0.0343 train_bayes=0.0644 train_ctx_reg=0.278646 val_acc=0.8635 val_nlpd=0.4613 val_ece=0.0168
+[Epoch 246] lr=0.007784 train_total=0.0643 train_map=0.0344 train_bayes=0.0642 train_ctx_reg=0.278645 val_acc=0.8625 val_nlpd=0.4606 val_ece=0.0185
+[Epoch 247] lr=0.007505 train_total=0.0641 train_map=0.0344 train_bayes=0.0641 train_ctx_reg=0.278645 val_acc=0.8614 val_nlpd=0.4610 val_ece=0.0181
+[Epoch 248] lr=0.007232 train_total=0.0640 train_map=0.0342 train_bayes=0.0640 train_ctx_reg=0.278644 val_acc=0.8620 val_nlpd=0.4611 val_ece=0.0170
+[Epoch 249] lr=0.006963 train_total=0.0641 train_map=0.0343 train_bayes=0.0641 train_ctx_reg=0.278643 val_acc=0.8635 val_nlpd=0.4616 val_ece=0.0151
+[Epoch 250] lr=0.006699 train_total=0.0640 train_map=0.0342 train_bayes=0.0640 train_ctx_reg=0.278643 val_acc=0.8641 val_nlpd=0.4613 val_ece=0.0164
+[Epoch 251] lr=0.006439 train_total=0.0639 train_map=0.0340 train_bayes=0.0639 train_ctx_reg=0.278642 val_acc=0.8635 val_nlpd=0.4616 val_ece=0.0184
+[Epoch 252] lr=0.006185 train_total=0.0638 train_map=0.0339 train_bayes=0.0638 train_ctx_reg=0.278643 val_acc=0.8635 val_nlpd=0.4615 val_ece=0.0139
+[Epoch 253] lr=0.005935 train_total=0.0639 train_map=0.0339 train_bayes=0.0639 train_ctx_reg=0.278644 val_acc=0.8641 val_nlpd=0.4607 val_ece=0.0158
+[Epoch 254] lr=0.005690 train_total=0.0639 train_map=0.0342 train_bayes=0.0639 train_ctx_reg=0.278643 val_acc=0.8635 val_nlpd=0.4601 val_ece=0.0175
+[Epoch 255] lr=0.005450 train_total=0.0638 train_map=0.0341 train_bayes=0.0638 train_ctx_reg=0.278643 val_acc=0.8630 val_nlpd=0.4609 val_ece=0.0187
+[Epoch 256] lr=0.005214 train_total=0.0637 train_map=0.0340 train_bayes=0.0637 train_ctx_reg=0.278642 val_acc=0.8630 val_nlpd=0.4608 val_ece=0.0186
+[Epoch 257] lr=0.004984 train_total=0.0637 train_map=0.0338 train_bayes=0.0637 train_ctx_reg=0.278642 val_acc=0.8635 val_nlpd=0.4610 val_ece=0.0185
+[Epoch 258] lr=0.004759 train_total=0.0638 train_map=0.0339 train_bayes=0.0638 train_ctx_reg=0.278642 val_acc=0.8635 val_nlpd=0.4614 val_ece=0.0157
+[Epoch 259] lr=0.004538 train_total=0.0635 train_map=0.0337 train_bayes=0.0635 train_ctx_reg=0.278641 val_acc=0.8630 val_nlpd=0.4610 val_ece=0.0171
+[Epoch 260] lr=0.004323 train_total=0.0635 train_map=0.0337 train_bayes=0.0635 train_ctx_reg=0.278640 val_acc=0.8635 val_nlpd=0.4609 val_ece=0.0190
+[Epoch 261] lr=0.004112 train_total=0.0635 train_map=0.0336 train_bayes=0.0634 train_ctx_reg=0.278639 val_acc=0.8635 val_nlpd=0.4605 val_ece=0.0169
+[Epoch 262] lr=0.003907 train_total=0.0635 train_map=0.0338 train_bayes=0.0634 train_ctx_reg=0.278638 val_acc=0.8641 val_nlpd=0.4606 val_ece=0.0191
+[Epoch 263] lr=0.003706 train_total=0.0634 train_map=0.0336 train_bayes=0.0634 train_ctx_reg=0.278638 val_acc=0.8641 val_nlpd=0.4606 val_ece=0.0188
+[Epoch 264] lr=0.003511 train_total=0.0633 train_map=0.0336 train_bayes=0.0633 train_ctx_reg=0.278637 val_acc=0.8651 val_nlpd=0.4604 val_ece=0.0177
+[Epoch 265] lr=0.003321 train_total=0.0634 train_map=0.0337 train_bayes=0.0633 train_ctx_reg=0.278637 val_acc=0.8630 val_nlpd=0.4611 val_ece=0.0188
+[Epoch 266] lr=0.003136 train_total=0.0633 train_map=0.0336 train_bayes=0.0633 train_ctx_reg=0.278636 val_acc=0.8635 val_nlpd=0.4608 val_ece=0.0170
+[Epoch 267] lr=0.002956 train_total=0.0633 train_map=0.0336 train_bayes=0.0633 train_ctx_reg=0.278636 val_acc=0.8630 val_nlpd=0.4609 val_ece=0.0173
+[Epoch 268] lr=0.002781 train_total=0.0632 train_map=0.0336 train_bayes=0.0632 train_ctx_reg=0.278636 val_acc=0.8635 val_nlpd=0.4609 val_ece=0.0174
+[Epoch 269] lr=0.002612 train_total=0.0632 train_map=0.0335 train_bayes=0.0631 train_ctx_reg=0.278636 val_acc=0.8646 val_nlpd=0.4607 val_ece=0.0160
+[Epoch 270] lr=0.002447 train_total=0.0632 train_map=0.0334 train_bayes=0.0632 train_ctx_reg=0.278636 val_acc=0.8635 val_nlpd=0.4614 val_ece=0.0180
+[Epoch 271] lr=0.002288 train_total=0.0631 train_map=0.0333 train_bayes=0.0631 train_ctx_reg=0.278636 val_acc=0.8630 val_nlpd=0.4614 val_ece=0.0175
+[Epoch 272] lr=0.002134 train_total=0.0631 train_map=0.0334 train_bayes=0.0631 train_ctx_reg=0.278635 val_acc=0.8635 val_nlpd=0.4612 val_ece=0.0170
+[Epoch 273] lr=0.001985 train_total=0.0631 train_map=0.0334 train_bayes=0.0631 train_ctx_reg=0.278635 val_acc=0.8630 val_nlpd=0.4612 val_ece=0.0165
+[Epoch 274] lr=0.001842 train_total=0.0631 train_map=0.0334 train_bayes=0.0630 train_ctx_reg=0.278634 val_acc=0.8625 val_nlpd=0.4612 val_ece=0.0182
+[Epoch 275] lr=0.001704 train_total=0.0630 train_map=0.0334 train_bayes=0.0630 train_ctx_reg=0.278634 val_acc=0.8630 val_nlpd=0.4614 val_ece=0.0188
+[Epoch 276] lr=0.001571 train_total=0.0630 train_map=0.0334 train_bayes=0.0630 train_ctx_reg=0.278634 val_acc=0.8630 val_nlpd=0.4613 val_ece=0.0175
+[Epoch 277] lr=0.001443 train_total=0.0630 train_map=0.0333 train_bayes=0.0630 train_ctx_reg=0.278634 val_acc=0.8630 val_nlpd=0.4613 val_ece=0.0190
+[Epoch 278] lr=0.001321 train_total=0.0630 train_map=0.0333 train_bayes=0.0629 train_ctx_reg=0.278633 val_acc=0.8630 val_nlpd=0.4612 val_ece=0.0177
+[Epoch 279] lr=0.001204 train_total=0.0629 train_map=0.0332 train_bayes=0.0629 train_ctx_reg=0.278633 val_acc=0.8630 val_nlpd=0.4614 val_ece=0.0183
+[Epoch 280] lr=0.001093 train_total=0.0629 train_map=0.0332 train_bayes=0.0629 train_ctx_reg=0.278633 val_acc=0.8630 val_nlpd=0.4614 val_ece=0.0179
+[Epoch 281] lr=0.000986 train_total=0.0629 train_map=0.0333 train_bayes=0.0629 train_ctx_reg=0.278633 val_acc=0.8630 val_nlpd=0.4613 val_ece=0.0171
+[Epoch 282] lr=0.000886 train_total=0.0629 train_map=0.0333 train_bayes=0.0629 train_ctx_reg=0.278633 val_acc=0.8630 val_nlpd=0.4612 val_ece=0.0175
+[Epoch 283] lr=0.000790 train_total=0.0629 train_map=0.0332 train_bayes=0.0629 train_ctx_reg=0.278633 val_acc=0.8630 val_nlpd=0.4613 val_ece=0.0179
+[Epoch 284] lr=0.000700 train_total=0.0629 train_map=0.0332 train_bayes=0.0628 train_ctx_reg=0.278633 val_acc=0.8630 val_nlpd=0.4612 val_ece=0.0175
+[Epoch 285] lr=0.000616 train_total=0.0629 train_map=0.0332 train_bayes=0.0628 train_ctx_reg=0.278632 val_acc=0.8630 val_nlpd=0.4612 val_ece=0.0179
+[Epoch 286] lr=0.000536 train_total=0.0629 train_map=0.0332 train_bayes=0.0628 train_ctx_reg=0.278632 val_acc=0.8630 val_nlpd=0.4612 val_ece=0.0172
+[Epoch 287] lr=0.000463 train_total=0.0628 train_map=0.0332 train_bayes=0.0628 train_ctx_reg=0.278632 val_acc=0.8630 val_nlpd=0.4612 val_ece=0.0173
+[Epoch 288] lr=0.000394 train_total=0.0628 train_map=0.0332 train_bayes=0.0628 train_ctx_reg=0.278632 val_acc=0.8630 val_nlpd=0.4612 val_ece=0.0168
+[Epoch 289] lr=0.000331 train_total=0.0628 train_map=0.0332 train_bayes=0.0628 train_ctx_reg=0.278632 val_acc=0.8630 val_nlpd=0.4612 val_ece=0.0168
+[Epoch 290] lr=0.000274 train_total=0.0628 train_map=0.0332 train_bayes=0.0628 train_ctx_reg=0.278632 val_acc=0.8630 val_nlpd=0.4612 val_ece=0.0175
+[Epoch 291] lr=0.000222 train_total=0.0628 train_map=0.0332 train_bayes=0.0628 train_ctx_reg=0.278632 val_acc=0.8630 val_nlpd=0.4612 val_ece=0.0179
+[Epoch 292] lr=0.000175 train_total=0.0628 train_map=0.0332 train_bayes=0.0628 train_ctx_reg=0.278632 val_acc=0.8630 val_nlpd=0.4612 val_ece=0.0168
+[Epoch 293] lr=0.000134 train_total=0.0628 train_map=0.0332 train_bayes=0.0628 train_ctx_reg=0.278632 val_acc=0.8630 val_nlpd=0.4612 val_ece=0.0168
+[Epoch 294] lr=0.000099 train_total=0.0628 train_map=0.0332 train_bayes=0.0628 train_ctx_reg=0.278632 val_acc=0.8630 val_nlpd=0.4612 val_ece=0.0168
+[Epoch 295] lr=0.000069 train_total=0.0628 train_map=0.0331 train_bayes=0.0627 train_ctx_reg=0.278632 val_acc=0.8630 val_nlpd=0.4612 val_ece=0.0168
+[Epoch 296] lr=0.000044 train_total=0.0628 train_map=0.0332 train_bayes=0.0627 train_ctx_reg=0.278632 val_acc=0.8630 val_nlpd=0.4612 val_ece=0.0168
+[Epoch 297] lr=0.000025 train_total=0.0628 train_map=0.0331 train_bayes=0.0627 train_ctx_reg=0.278632 val_acc=0.8630 val_nlpd=0.4612 val_ece=0.0168
+[Epoch 298] lr=0.000011 train_total=0.0628 train_map=0.0331 train_bayes=0.0627 train_ctx_reg=0.278632 val_acc=0.8630 val_nlpd=0.4612 val_ece=0.0168
+[Epoch 299] lr=0.000003 train_total=0.0628 train_map=0.0331 train_bayes=0.0627 train_ctx_reg=0.278632 val_acc=0.8630 val_nlpd=0.4612 val_ece=0.0168
+[Epoch 300] lr=0.000000 train_total=0.0628 train_map=0.0331 train_bayes=0.0627 train_ctx_reg=0.278632 val_acc=0.8630 val_nlpd=0.4612 val_ece=0.0168
+[done] training complete:
+{
+  "family": "text_only_bayes_coop",
+  "variant": "default",
+  "protocol": "id",
+  "dataset": "ucf101",
+  "seed": 1,
+  "model_selection": "last",
+  "selection_metric": "acc",
+  "selection_mode": "max",
+  "best_epoch": 164,
+  "best_val_metrics_saved": {
+    "loss": 0.45948355717955447,
+    "acc": 0.8656480312347412,
+    "nlpd": 0.4594835340976715,
+    "ece": 0.015242481604218483
+  },
+  "last_epoch": 300,
+  "last_val_metrics_saved": {
+    "loss": 0.46123150176318606,
+    "acc": 0.8630136847496033,
+    "nlpd": 0.4612314701080322,
+    "ece": 0.0168368611484766
+  },
+  "run_dir": "/root/autodl-tmp/BayesVLM/output/text_only_bayes_coop_bayes/id/ucf101/logit_scale_frozen/shot_16/seed_1",
+  "elapsed_seconds": 427.49,
+  "artifacts": {
+    "log_file": "train/train.log",
+    "config_file": "config/config.json",
+    "class_names_file": "config/class_names.json",
+    "metrics_csv_file": "train/metrics_history.csv",
+    "best_ckpt_file": "checkpoints/best_prompt_learner.pt",
+    "last_ckpt_file": "checkpoints/last_prompt_learner.pt"
+  }
+}
