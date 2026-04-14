@@ -1,0 +1,1529 @@
+[run] family=vlm_adapter
+[run] variant=UATB_MIN
+[run] protocol=id
+[run] dataset=ucf101
+[run] model=clip-base
+[run] shots_per_class=2
+[run] seed=1
+[run] device=cuda
+[run] run_dir=/root/autodl-tmp/BayesVLM/output/ablate_uatb_unc_only/id/ucf101/UATB_MIN/BAYESADAPTER/logit_scale_frozen/sigpar_0.01/sigperp_0.01/lu0_0.01/shot_2/seed_1
+[run] optimizer=sgd
+[run] lr_scheduler=cosine
+[run] model_selection=last
+[note] pseudo_data_count=None retained only for explicit config parity.
+[note] UATB_MIN hessian_dir=./hessians/hessian_CLIP-ViT-B-32-laion2B-s34B-b79K
+[note] UATB_MIN use_feature_uncertainty=True
+[note] UATB_MIN sigma_parallel=0.01 sigma_perp=0.01 lambda_u_init=0.01 lambda_u_max=1.0 lambda_u_learnable=True
+===== train =====
+num_classes: 101
+  0 | Apply_Eye_Makeup          | 2
+  1 | Apply_Lipstick            | 2
+  2 | Archery                   | 2
+  3 | Baby_Crawling             | 2
+  4 | Balance_Beam              | 2
+  5 | Band_Marching             | 2
+  6 | Baseball_Pitch            | 2
+  7 | Basketball                | 2
+  8 | Basketball_Dunk           | 2
+  9 | Bench_Press               | 2
+ 10 | Biking                    | 2
+ 11 | Billiards                 | 2
+ 12 | Blow_Dry_Hair             | 2
+ 13 | Blowing_Candles           | 2
+ 14 | Body_Weight_Squats        | 2
+ 15 | Bowling                   | 2
+ 16 | Boxing_Punching_Bag       | 2
+ 17 | Boxing_Speed_Bag          | 2
+ 18 | Breast_Stroke             | 2
+ 19 | Brushing_Teeth            | 2
+ 20 | Clean_And_Jerk            | 2
+ 21 | Cliff_Diving              | 2
+ 22 | Cricket_Bowling           | 2
+ 23 | Cricket_Shot              | 2
+ 24 | Cutting_In_Kitchen        | 2
+ 25 | Diving                    | 2
+ 26 | Drumming                  | 2
+ 27 | Fencing                   | 2
+ 28 | Field_Hockey_Penalty      | 2
+ 29 | Floor_Gymnastics          | 2
+ 30 | Frisbee_Catch             | 2
+ 31 | Front_Crawl               | 2
+ 32 | Golf_Swing                | 2
+ 33 | Haircut                   | 2
+ 34 | Hammering                 | 2
+ 35 | Hammer_Throw              | 2
+ 36 | Handstand_Pushups         | 2
+ 37 | Handstand_Walking         | 2
+ 38 | Head_Massage              | 2
+ 39 | High_Jump                 | 2
+ 40 | Horse_Race                | 2
+ 41 | Horse_Riding              | 2
+ 42 | Hula_Hoop                 | 2
+ 43 | Ice_Dancing               | 2
+ 44 | Javelin_Throw             | 2
+ 45 | Juggling_Balls            | 2
+ 46 | Jumping_Jack              | 2
+ 47 | Jump_Rope                 | 2
+ 48 | Kayaking                  | 2
+ 49 | Knitting                  | 2
+ 50 | Long_Jump                 | 2
+ 51 | Lunges                    | 2
+ 52 | Military_Parade           | 2
+ 53 | Mixing                    | 2
+ 54 | Mopping_Floor             | 2
+ 55 | Nunchucks                 | 2
+ 56 | Parallel_Bars             | 2
+ 57 | Pizza_Tossing             | 2
+ 58 | Playing_Cello             | 2
+ 59 | Playing_Daf               | 2
+ 60 | Playing_Dhol              | 2
+ 61 | Playing_Flute             | 2
+ 62 | Playing_Guitar            | 2
+ 63 | Playing_Piano             | 2
+ 64 | Playing_Sitar             | 2
+ 65 | Playing_Tabla             | 2
+ 66 | Playing_Violin            | 2
+ 67 | Pole_Vault                | 2
+ 68 | Pommel_Horse              | 2
+ 69 | Pull_Ups                  | 2
+ 70 | Punch                     | 2
+ 71 | Push_Ups                  | 2
+ 72 | Rafting                   | 2
+ 73 | Rock_Climbing_Indoor      | 2
+ 74 | Rope_Climbing             | 2
+ 75 | Rowing                    | 2
+ 76 | Salsa_Spin                | 2
+ 77 | Shaving_Beard             | 2
+ 78 | Shotput                   | 2
+ 79 | Skate_Boarding            | 2
+ 80 | Skiing                    | 2
+ 81 | Skijet                    | 2
+ 82 | Sky_Diving                | 2
+ 83 | Soccer_Juggling           | 2
+ 84 | Soccer_Penalty            | 2
+ 85 | Still_Rings               | 2
+ 86 | Sumo_Wrestling            | 2
+ 87 | Surfing                   | 2
+ 88 | Swing                     | 2
+ 89 | Table_Tennis_Shot         | 2
+ 90 | Tai_Chi                   | 2
+ 91 | Tennis_Swing              | 2
+ 92 | Throw_Discus              | 2
+ 93 | Trampoline_Jumping        | 2
+ 94 | Typing                    | 2
+ 95 | Uneven_Bars               | 2
+ 96 | Volleyball_Spiking        | 2
+ 97 | Walking_With_Dog          | 2
+ 98 | Wall_Pushups              | 2
+ 99 | Writing_On_Board          | 2
+100 | Yo_Yo                     | 2
+===== test =====
+num_classes: 101
+  0 | Apply_Eye_Makeup          | 44
+  1 | Apply_Lipstick            | 32
+  2 | Archery                   | 41
+  3 | Baby_Crawling             | 35
+  4 | Balance_Beam              | 31
+  5 | Band_Marching             | 43
+  6 | Baseball_Pitch            | 43
+  7 | Basketball                | 35
+  8 | Basketball_Dunk           | 37
+  9 | Bench_Press               | 48
+ 10 | Biking                    | 38
+ 11 | Billiards                 | 40
+ 12 | Blow_Dry_Hair             | 38
+ 13 | Blowing_Candles           | 33
+ 14 | Body_Weight_Squats        | 30
+ 15 | Bowling                   | 43
+ 16 | Boxing_Punching_Bag       | 49
+ 17 | Boxing_Speed_Bag          | 37
+ 18 | Breast_Stroke             | 28
+ 19 | Brushing_Teeth            | 36
+ 20 | Clean_And_Jerk            | 33
+ 21 | Cliff_Diving              | 39
+ 22 | Cricket_Bowling           | 36
+ 23 | Cricket_Shot              | 49
+ 24 | Cutting_In_Kitchen        | 33
+ 25 | Diving                    | 45
+ 26 | Drumming                  | 45
+ 27 | Fencing                   | 34
+ 28 | Field_Hockey_Penalty      | 40
+ 29 | Floor_Gymnastics          | 36
+ 30 | Frisbee_Catch             | 37
+ 31 | Front_Crawl               | 37
+ 32 | Golf_Swing                | 39
+ 33 | Haircut                   | 33
+ 34 | Hammering                 | 33
+ 35 | Hammer_Throw              | 45
+ 36 | Handstand_Pushups         | 28
+ 37 | Handstand_Walking         | 34
+ 38 | Head_Massage              | 41
+ 39 | High_Jump                 | 37
+ 40 | Horse_Race                | 35
+ 41 | Horse_Riding              | 49
+ 42 | Hula_Hoop                 | 34
+ 43 | Ice_Dancing               | 46
+ 44 | Javelin_Throw             | 31
+ 45 | Juggling_Balls            | 40
+ 46 | Jumping_Jack              | 37
+ 47 | Jump_Rope                 | 38
+ 48 | Kayaking                  | 36
+ 49 | Knitting                  | 34
+ 50 | Long_Jump                 | 39
+ 51 | Lunges                    | 37
+ 52 | Military_Parade           | 33
+ 53 | Mixing                    | 45
+ 54 | Mopping_Floor             | 34
+ 55 | Nunchucks                 | 35
+ 56 | Parallel_Bars             | 37
+ 57 | Pizza_Tossing             | 33
+ 58 | Playing_Cello             | 44
+ 59 | Playing_Daf               | 41
+ 60 | Playing_Dhol              | 49
+ 61 | Playing_Flute             | 48
+ 62 | Playing_Guitar            | 43
+ 63 | Playing_Piano             | 28
+ 64 | Playing_Sitar             | 44
+ 65 | Playing_Tabla             | 31
+ 66 | Playing_Violin            | 28
+ 67 | Pole_Vault                | 40
+ 68 | Pommel_Horse              | 35
+ 69 | Pull_Ups                  | 28
+ 70 | Punch                     | 39
+ 71 | Push_Ups                  | 30
+ 72 | Rafting                   | 28
+ 73 | Rock_Climbing_Indoor      | 41
+ 74 | Rope_Climbing             | 34
+ 75 | Rowing                    | 36
+ 76 | Salsa_Spin                | 43
+ 77 | Shaving_Beard             | 43
+ 78 | Shotput                   | 46
+ 79 | Skate_Boarding            | 32
+ 80 | Skiing                    | 40
+ 81 | Skijet                    | 28
+ 82 | Sky_Diving                | 31
+ 83 | Soccer_Juggling           | 39
+ 84 | Soccer_Penalty            | 41
+ 85 | Still_Rings               | 32
+ 86 | Sumo_Wrestling            | 34
+ 87 | Surfing                   | 33
+ 88 | Swing                     | 42
+ 89 | Table_Tennis_Shot         | 39
+ 90 | Tai_Chi                   | 28
+ 91 | Tennis_Swing              | 49
+ 92 | Throw_Discus              | 38
+ 93 | Trampoline_Jumping        | 32
+ 94 | Typing                    | 43
+ 95 | Uneven_Bars               | 28
+ 96 | Volleyball_Spiking        | 35
+ 97 | Walking_With_Dog          | 36
+ 98 | Wall_Pushups              | 35
+ 99 | Writing_On_Board          | 45
+100 | Yo_Yo                     | 36
+[load_model] 使用本地模型目录：/root/autodl-tmp/BayesVLM/models/clip-vit-b32
+[cache] dataset=ucf101 split=id_train cache_dir=/root/autodl-tmp/BayesVLM/cache/image_features/ucf101/model_clip-base/weights__root_autodl-tmp_BayesVLM_models_clip-vit-b32/imgsz_224/tfm_cf4d0ebdf93a/id_train
+[cache] manifest 不匹配，准备重建。
+[cache] manifest_diff_keys=['num_samples', 'sample_keys_sha256']
+[cache]   num_samples: current=101 | expected=202
+[cache]   sample_keys_sha256: current=e1b53c28fd9c803f02dde81c03c21328e225e3a751d66a37a7ca8266e2dc70c9 | expected=fded26c94609396d082ca0a46a3157d8e8074792b5f1a4ab3b9b6251e4a22a5d
+  0%|          | 0/1 [00:00<?, ?it/s]100%|##########| 1/1 [00:00<00:00,  1.06it/s]100%|##########| 1/1 [00:00<00:00,  1.06it/s]
+[cache] 已完成重建并写入 manifest。
+[cache] dataset=ucf101 split=id_train_eval cache_dir=/root/autodl-tmp/BayesVLM/cache/image_features/ucf101/model_clip-base/weights__root_autodl-tmp_BayesVLM_models_clip-vit-b32/imgsz_224/tfm_cf4d0ebdf93a/id_train_eval
+[cache] manifest 不匹配，准备重建。
+[cache] manifest_diff_keys=['num_samples', 'sample_keys_sha256']
+[cache]   num_samples: current=101 | expected=202
+[cache]   sample_keys_sha256: current=e1b53c28fd9c803f02dde81c03c21328e225e3a751d66a37a7ca8266e2dc70c9 | expected=fded26c94609396d082ca0a46a3157d8e8074792b5f1a4ab3b9b6251e4a22a5d
+  0%|          | 0/1 [00:00<?, ?it/s]100%|##########| 1/1 [00:00<00:00,  1.20it/s]100%|##########| 1/1 [00:00<00:00,  1.20it/s]
+[cache] 已完成重建并写入 manifest。
+[cache] dataset=ucf101 split=id_val cache_dir=/root/autodl-tmp/BayesVLM/cache/image_features/ucf101/model_clip-base/weights__root_autodl-tmp_BayesVLM_models_clip-vit-b32/imgsz_224/tfm_cf4d0ebdf93a/id_val
+[cache] 命中缓存，直接加载。
+[cache] dataset=ucf101 split=id_test cache_dir=/root/autodl-tmp/BayesVLM/cache/image_features/ucf101/model_clip-base/weights__root_autodl-tmp_BayesVLM_models_clip-vit-b32/imgsz_224/tfm_cf4d0ebdf93a/id_test
+[cache] 命中缓存，直接加载。
+[train] starting training loop ...
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 001] lr=0.099997 train_loss=1.4123 loss_reg=0.0000 val_acc=0.6481 val_nlpd=1.2259 val_ece=0.0284 kl_weight=0.000000 loss_kl_raw=51712.0078 lambda_u=0.010000 corr_abs=2.768258 dpar2=0.000000 dperp2=0.000000
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 002] lr=0.099989 train_loss=1.3919 loss_reg=0.0000 val_acc=0.6528 val_nlpd=1.2055 val_ece=0.0239 kl_weight=0.000000 loss_kl_raw=51735.1680 lambda_u=0.010046 corr_abs=2.775927 dpar2=0.000000 dperp2=0.000023
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 003] lr=0.099975 train_loss=1.3472 loss_reg=0.0000 val_acc=0.6586 val_nlpd=1.1761 val_ece=0.0157 kl_weight=0.000000 loss_kl_raw=51903.7344 lambda_u=0.010128 corr_abs=2.791050 dpar2=0.000000 dperp2=0.000190
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 004] lr=0.099956 train_loss=1.2962 loss_reg=0.0000 val_acc=0.6670 val_nlpd=1.1465 val_ece=0.0115 kl_weight=0.000000 loss_kl_raw=52410.6875 lambda_u=0.010234 corr_abs=2.808277 dpar2=0.000000 dperp2=0.000692
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 005] lr=0.099931 train_loss=1.2325 loss_reg=0.0000 val_acc=0.6728 val_nlpd=1.1197 val_ece=0.0131 kl_weight=0.000000 loss_kl_raw=53472.4883 lambda_u=0.010348 corr_abs=2.831358 dpar2=0.000000 dperp2=0.001743
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 006] lr=0.099901 train_loss=1.1640 loss_reg=0.0000 val_acc=0.6823 val_nlpd=1.0896 val_ece=0.0232 kl_weight=0.000000 loss_kl_raw=55285.5195 lambda_u=0.010455 corr_abs=2.851992 dpar2=0.000000 dperp2=0.003538
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 007] lr=0.099866 train_loss=1.1008 loss_reg=0.0000 val_acc=0.6902 val_nlpd=1.0702 val_ece=0.0309 kl_weight=0.000000 loss_kl_raw=58000.8789 lambda_u=0.010538 corr_abs=2.866854 dpar2=0.000000 dperp2=0.006227
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 008] lr=0.099825 train_loss=1.0357 loss_reg=0.0000 val_acc=0.6965 val_nlpd=1.0494 val_ece=0.0325 kl_weight=0.000000 loss_kl_raw=61713.3555 lambda_u=0.010583 corr_abs=2.876646 dpar2=0.000000 dperp2=0.009902
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 009] lr=0.099778 train_loss=0.9804 loss_reg=0.0000 val_acc=0.6976 val_nlpd=1.0378 val_ece=0.0339 kl_weight=0.000000 loss_kl_raw=66451.2031 lambda_u=0.010580 corr_abs=2.875636 dpar2=0.000000 dperp2=0.014593
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 010] lr=0.099726 train_loss=0.9277 loss_reg=0.0000 val_acc=0.6970 val_nlpd=1.0297 val_ece=0.0319 kl_weight=0.000000 loss_kl_raw=72188.2344 lambda_u=0.010523 corr_abs=2.868304 dpar2=0.000000 dperp2=0.020273
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 011] lr=0.099669 train_loss=0.8758 loss_reg=0.0001 val_acc=0.6976 val_nlpd=1.0222 val_ece=0.0381 kl_weight=0.000000 loss_kl_raw=78852.1406 lambda_u=0.010409 corr_abs=2.847115 dpar2=0.000001 dperp2=0.026871
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 012] lr=0.099606 train_loss=0.8302 loss_reg=0.0001 val_acc=0.6981 val_nlpd=1.0145 val_ece=0.0340 kl_weight=0.000000 loss_kl_raw=86342.8750 lambda_u=0.010238 corr_abs=2.816500 dpar2=0.000001 dperp2=0.034287
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 013] lr=0.099537 train_loss=0.7875 loss_reg=0.0001 val_acc=0.7071 val_nlpd=1.0123 val_ece=0.0414 kl_weight=0.000000 loss_kl_raw=94545.3906 lambda_u=0.010015 corr_abs=2.779128 dpar2=0.000002 dperp2=0.042408
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 014] lr=0.099464 train_loss=0.7464 loss_reg=0.0001 val_acc=0.7076 val_nlpd=1.0068 val_ece=0.0372 kl_weight=0.000000 loss_kl_raw=103341.6719 lambda_u=0.009746 corr_abs=2.729796 dpar2=0.000002 dperp2=0.051116
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 015] lr=0.099384 train_loss=0.7056 loss_reg=0.0001 val_acc=0.7076 val_nlpd=1.0017 val_ece=0.0333 kl_weight=0.000000 loss_kl_raw=112633.0938 lambda_u=0.009439 corr_abs=2.671443 dpar2=0.000003 dperp2=0.060314
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 016] lr=0.099300 train_loss=0.6658 loss_reg=0.0001 val_acc=0.7118 val_nlpd=0.9980 val_ece=0.0329 kl_weight=0.000000 loss_kl_raw=122338.1875 lambda_u=0.009101 corr_abs=2.606897 dpar2=0.000005 dperp2=0.069922
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 017] lr=0.099210 train_loss=0.6218 loss_reg=0.0001 val_acc=0.7134 val_nlpd=0.9878 val_ece=0.0323 kl_weight=0.000000 loss_kl_raw=132396.5625 lambda_u=0.008741 corr_abs=2.537293 dpar2=0.000006 dperp2=0.079880
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 018] lr=0.099114 train_loss=0.5784 loss_reg=0.0002 val_acc=0.7144 val_nlpd=0.9785 val_ece=0.0355 kl_weight=0.000000 loss_kl_raw=142765.3281 lambda_u=0.008364 corr_abs=2.461640 dpar2=0.000008 dperp2=0.090144
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 019] lr=0.099014 train_loss=0.5368 loss_reg=0.0002 val_acc=0.7197 val_nlpd=0.9682 val_ece=0.0360 kl_weight=0.000000 loss_kl_raw=153431.0312 lambda_u=0.007976 corr_abs=2.381998 dpar2=0.000010 dperp2=0.100702
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 020] lr=0.098907 train_loss=0.4960 loss_reg=0.0002 val_acc=0.7218 val_nlpd=0.9588 val_ece=0.0336 kl_weight=0.000000 loss_kl_raw=164380.5469 lambda_u=0.007584 corr_abs=2.298977 dpar2=0.000012 dperp2=0.111541
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 021] lr=0.098796 train_loss=0.4574 loss_reg=0.0002 val_acc=0.7244 val_nlpd=0.9464 val_ece=0.0323 kl_weight=0.000000 loss_kl_raw=175610.8438 lambda_u=0.007192 corr_abs=2.212332 dpar2=0.000015 dperp2=0.122657
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 022] lr=0.098679 train_loss=0.4197 loss_reg=0.0003 val_acc=0.7271 val_nlpd=0.9366 val_ece=0.0369 kl_weight=0.000000 loss_kl_raw=187100.0312 lambda_u=0.006805 corr_abs=2.126058 dpar2=0.000019 dperp2=0.134029
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 023] lr=0.098557 train_loss=0.3807 loss_reg=0.0003 val_acc=0.7345 val_nlpd=0.9284 val_ece=0.0356 kl_weight=0.000000 loss_kl_raw=198834.0312 lambda_u=0.006428 corr_abs=2.038602 dpar2=0.000023 dperp2=0.145642
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 024] lr=0.098429 train_loss=0.3485 loss_reg=0.0003 val_acc=0.7366 val_nlpd=0.9182 val_ece=0.0349 kl_weight=0.000000 loss_kl_raw=210792.8125 lambda_u=0.006062 corr_abs=1.950223 dpar2=0.000028 dperp2=0.157478
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 025] lr=0.098296 train_loss=0.3181 loss_reg=0.0003 val_acc=0.7345 val_nlpd=0.9096 val_ece=0.0354 kl_weight=0.000000 loss_kl_raw=222948.0938 lambda_u=0.005711 corr_abs=1.865791 dpar2=0.000034 dperp2=0.169507
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 026] lr=0.098158 train_loss=0.2898 loss_reg=0.0004 val_acc=0.7350 val_nlpd=0.9033 val_ece=0.0353 kl_weight=0.000000 loss_kl_raw=235267.4062 lambda_u=0.005378 corr_abs=1.780929 dpar2=0.000040 dperp2=0.181698
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 027] lr=0.098015 train_loss=0.2635 loss_reg=0.0004 val_acc=0.7339 val_nlpd=0.8964 val_ece=0.0254 kl_weight=0.000000 loss_kl_raw=247711.0938 lambda_u=0.005062 corr_abs=1.698306 dpar2=0.000048 dperp2=0.194011
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 028] lr=0.097866 train_loss=0.2382 loss_reg=0.0005 val_acc=0.7366 val_nlpd=0.8908 val_ece=0.0194 kl_weight=0.000000 loss_kl_raw=260217.4375 lambda_u=0.004765 corr_abs=1.619809 dpar2=0.000056 dperp2=0.206385
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 029] lr=0.097712 train_loss=0.2187 loss_reg=0.0005 val_acc=0.7387 val_nlpd=0.8859 val_ece=0.0183 kl_weight=0.000000 loss_kl_raw=272744.8750 lambda_u=0.004488 corr_abs=1.544858 dpar2=0.000065 dperp2=0.218779
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 030] lr=0.097553 train_loss=0.1997 loss_reg=0.0005 val_acc=0.7366 val_nlpd=0.8807 val_ece=0.0200 kl_weight=0.000000 loss_kl_raw=285239.1875 lambda_u=0.004230 corr_abs=1.473187 dpar2=0.000075 dperp2=0.231140
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 031] lr=0.097388 train_loss=0.1821 loss_reg=0.0006 val_acc=0.7392 val_nlpd=0.8758 val_ece=0.0192 kl_weight=0.000000 loss_kl_raw=297645.9375 lambda_u=0.003992 corr_abs=1.405665 dpar2=0.000086 dperp2=0.243413
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 032] lr=0.097219 train_loss=0.1677 loss_reg=0.0006 val_acc=0.7376 val_nlpd=0.8739 val_ece=0.0211 kl_weight=0.000000 loss_kl_raw=309921.6875 lambda_u=0.003771 corr_abs=1.341886 dpar2=0.000097 dperp2=0.255556
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 033] lr=0.097044 train_loss=0.1543 loss_reg=0.0007 val_acc=0.7403 val_nlpd=0.8683 val_ece=0.0191 kl_weight=0.000000 loss_kl_raw=322019.0000 lambda_u=0.003568 corr_abs=1.281521 dpar2=0.000109 dperp2=0.267521
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 034] lr=0.096864 train_loss=0.1415 loss_reg=0.0007 val_acc=0.7408 val_nlpd=0.8692 val_ece=0.0218 kl_weight=0.000000 loss_kl_raw=333900.9375 lambda_u=0.003381 corr_abs=1.223211 dpar2=0.000122 dperp2=0.279273
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 035] lr=0.096679 train_loss=0.1303 loss_reg=0.0008 val_acc=0.7445 val_nlpd=0.8676 val_ece=0.0240 kl_weight=0.000000 loss_kl_raw=345520.1250 lambda_u=0.003210 corr_abs=1.171160 dpar2=0.000135 dperp2=0.290764
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 036] lr=0.096489 train_loss=0.1206 loss_reg=0.0008 val_acc=0.7424 val_nlpd=0.8669 val_ece=0.0241 kl_weight=0.000000 loss_kl_raw=356843.5000 lambda_u=0.003053 corr_abs=1.122705 dpar2=0.000149 dperp2=0.301962
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 037] lr=0.096294 train_loss=0.1116 loss_reg=0.0009 val_acc=0.7455 val_nlpd=0.8647 val_ece=0.0216 kl_weight=0.000000 loss_kl_raw=367852.3750 lambda_u=0.002909 corr_abs=1.078191 dpar2=0.000163 dperp2=0.312848
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 038] lr=0.096093 train_loss=0.1035 loss_reg=0.0009 val_acc=0.7455 val_nlpd=0.8640 val_ece=0.0219 kl_weight=0.000000 loss_kl_raw=378531.0938 lambda_u=0.002777 corr_abs=1.035157 dpar2=0.000177 dperp2=0.323406
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 039] lr=0.095888 train_loss=0.0970 loss_reg=0.0010 val_acc=0.7455 val_nlpd=0.8626 val_ece=0.0264 kl_weight=0.000000 loss_kl_raw=388851.0000 lambda_u=0.002657 corr_abs=0.996347 dpar2=0.000191 dperp2=0.333610
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 040] lr=0.095677 train_loss=0.0902 loss_reg=0.0010 val_acc=0.7471 val_nlpd=0.8608 val_ece=0.0280 kl_weight=0.000000 loss_kl_raw=398802.8438 lambda_u=0.002547 corr_abs=0.960751 dpar2=0.000206 dperp2=0.343448
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 041] lr=0.095462 train_loss=0.0844 loss_reg=0.0011 val_acc=0.7466 val_nlpd=0.8608 val_ece=0.0279 kl_weight=0.000000 loss_kl_raw=408378.5625 lambda_u=0.002447 corr_abs=0.927532 dpar2=0.000220 dperp2=0.352914
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 042] lr=0.095241 train_loss=0.0799 loss_reg=0.0011 val_acc=0.7455 val_nlpd=0.8602 val_ece=0.0281 kl_weight=0.000000 loss_kl_raw=417575.1562 lambda_u=0.002354 corr_abs=0.896001 dpar2=0.000235 dperp2=0.362005
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 043] lr=0.095016 train_loss=0.0756 loss_reg=0.0012 val_acc=0.7497 val_nlpd=0.8595 val_ece=0.0256 kl_weight=0.000000 loss_kl_raw=426399.0312 lambda_u=0.002270 corr_abs=0.868008 dpar2=0.000250 dperp2=0.370727
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 044] lr=0.094786 train_loss=0.0715 loss_reg=0.0012 val_acc=0.7466 val_nlpd=0.8577 val_ece=0.0283 kl_weight=0.000000 loss_kl_raw=434859.2812 lambda_u=0.002193 corr_abs=0.841269 dpar2=0.000264 dperp2=0.379089
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 045] lr=0.094550 train_loss=0.0686 loss_reg=0.0013 val_acc=0.7471 val_nlpd=0.8560 val_ece=0.0305 kl_weight=0.000000 loss_kl_raw=442955.5625 lambda_u=0.002122 corr_abs=0.817628 dpar2=0.000279 dperp2=0.387091
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 046] lr=0.094310 train_loss=0.0648 loss_reg=0.0013 val_acc=0.7487 val_nlpd=0.8561 val_ece=0.0294 kl_weight=0.000000 loss_kl_raw=450703.7500 lambda_u=0.002057 corr_abs=0.794866 dpar2=0.000293 dperp2=0.394748
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 047] lr=0.094065 train_loss=0.0622 loss_reg=0.0014 val_acc=0.7503 val_nlpd=0.8538 val_ece=0.0283 kl_weight=0.000000 loss_kl_raw=458103.3125 lambda_u=0.001998 corr_abs=0.774104 dpar2=0.000308 dperp2=0.402060
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 048] lr=0.093815 train_loss=0.0594 loss_reg=0.0014 val_acc=0.7513 val_nlpd=0.8553 val_ece=0.0273 kl_weight=0.000000 loss_kl_raw=465177.0938 lambda_u=0.001943 corr_abs=0.755074 dpar2=0.000322 dperp2=0.409049
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 049] lr=0.093561 train_loss=0.0573 loss_reg=0.0015 val_acc=0.7518 val_nlpd=0.8514 val_ece=0.0271 kl_weight=0.000000 loss_kl_raw=471931.8750 lambda_u=0.001892 corr_abs=0.737500 dpar2=0.000336 dperp2=0.415723
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 050] lr=0.093301 train_loss=0.0551 loss_reg=0.0015 val_acc=0.7529 val_nlpd=0.8538 val_ece=0.0270 kl_weight=0.000000 loss_kl_raw=478379.0312 lambda_u=0.001845 corr_abs=0.720629 dpar2=0.000349 dperp2=0.422093
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 051] lr=0.093037 train_loss=0.0530 loss_reg=0.0016 val_acc=0.7555 val_nlpd=0.8498 val_ece=0.0252 kl_weight=0.000000 loss_kl_raw=484533.5000 lambda_u=0.001802 corr_abs=0.705640 dpar2=0.000363 dperp2=0.428173
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 052] lr=0.092768 train_loss=0.0516 loss_reg=0.0016 val_acc=0.7545 val_nlpd=0.8485 val_ece=0.0267 kl_weight=0.000000 loss_kl_raw=490409.0312 lambda_u=0.001762 corr_abs=0.691513 dpar2=0.000376 dperp2=0.433977
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 053] lr=0.092495 train_loss=0.0499 loss_reg=0.0017 val_acc=0.7550 val_nlpd=0.8495 val_ece=0.0268 kl_weight=0.000000 loss_kl_raw=496024.3125 lambda_u=0.001725 corr_abs=0.677930 dpar2=0.000389 dperp2=0.439524
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 054] lr=0.092216 train_loss=0.0484 loss_reg=0.0017 val_acc=0.7566 val_nlpd=0.8489 val_ece=0.0267 kl_weight=0.000000 loss_kl_raw=501389.5312 lambda_u=0.001691 corr_abs=0.665088 dpar2=0.000402 dperp2=0.444823
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 055] lr=0.091934 train_loss=0.0470 loss_reg=0.0018 val_acc=0.7561 val_nlpd=0.8498 val_ece=0.0265 kl_weight=0.000000 loss_kl_raw=506514.2500 lambda_u=0.001659 corr_abs=0.654341 dpar2=0.000414 dperp2=0.449885
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 056] lr=0.091646 train_loss=0.0455 loss_reg=0.0018 val_acc=0.7576 val_nlpd=0.8458 val_ece=0.0272 kl_weight=0.000000 loss_kl_raw=511411.5625 lambda_u=0.001629 corr_abs=0.643826 dpar2=0.000426 dperp2=0.454721
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 057] lr=0.091354 train_loss=0.0445 loss_reg=0.0019 val_acc=0.7587 val_nlpd=0.8464 val_ece=0.0283 kl_weight=0.000000 loss_kl_raw=516093.2500 lambda_u=0.001601 corr_abs=0.632999 dpar2=0.000438 dperp2=0.459345
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 058] lr=0.091057 train_loss=0.0433 loss_reg=0.0019 val_acc=0.7592 val_nlpd=0.8473 val_ece=0.0251 kl_weight=0.000000 loss_kl_raw=520575.8125 lambda_u=0.001575 corr_abs=0.624065 dpar2=0.000450 dperp2=0.463771
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 059] lr=0.090756 train_loss=0.0425 loss_reg=0.0020 val_acc=0.7613 val_nlpd=0.8438 val_ece=0.0250 kl_weight=0.000000 loss_kl_raw=524867.0000 lambda_u=0.001551 corr_abs=0.615496 dpar2=0.000462 dperp2=0.468008
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 060] lr=0.090451 train_loss=0.0415 loss_reg=0.0020 val_acc=0.7613 val_nlpd=0.8415 val_ece=0.0253 kl_weight=0.000000 loss_kl_raw=528981.5625 lambda_u=0.001528 corr_abs=0.606880 dpar2=0.000473 dperp2=0.472071
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 061] lr=0.090141 train_loss=0.0410 loss_reg=0.0021 val_acc=0.7597 val_nlpd=0.8433 val_ece=0.0262 kl_weight=0.000000 loss_kl_raw=532929.5000 lambda_u=0.001507 corr_abs=0.599342 dpar2=0.000484 dperp2=0.475968
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 062] lr=0.089826 train_loss=0.0399 loss_reg=0.0021 val_acc=0.7597 val_nlpd=0.8435 val_ece=0.0270 kl_weight=0.000000 loss_kl_raw=536719.8125 lambda_u=0.001487 corr_abs=0.591969 dpar2=0.000495 dperp2=0.479710
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 063] lr=0.089508 train_loss=0.0392 loss_reg=0.0022 val_acc=0.7608 val_nlpd=0.8433 val_ece=0.0261 kl_weight=0.000000 loss_kl_raw=540364.7500 lambda_u=0.001468 corr_abs=0.584666 dpar2=0.000506 dperp2=0.483308
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 064] lr=0.089185 train_loss=0.0384 loss_reg=0.0022 val_acc=0.7576 val_nlpd=0.8401 val_ece=0.0299 kl_weight=0.000000 loss_kl_raw=543869.3750 lambda_u=0.001450 corr_abs=0.578525 dpar2=0.000516 dperp2=0.486768
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 065] lr=0.088857 train_loss=0.0378 loss_reg=0.0023 val_acc=0.7592 val_nlpd=0.8401 val_ece=0.0287 kl_weight=0.000000 loss_kl_raw=547241.0000 lambda_u=0.001433 corr_abs=0.572109 dpar2=0.000527 dperp2=0.490096
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 066] lr=0.088526 train_loss=0.0374 loss_reg=0.0023 val_acc=0.7619 val_nlpd=0.8395 val_ece=0.0265 kl_weight=0.000000 loss_kl_raw=550490.1250 lambda_u=0.001417 corr_abs=0.566036 dpar2=0.000537 dperp2=0.493302
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 067] lr=0.088190 train_loss=0.0367 loss_reg=0.0024 val_acc=0.7587 val_nlpd=0.8403 val_ece=0.0305 kl_weight=0.000000 loss_kl_raw=553622.7500 lambda_u=0.001402 corr_abs=0.560569 dpar2=0.000547 dperp2=0.496394
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 068] lr=0.087850 train_loss=0.0361 loss_reg=0.0024 val_acc=0.7613 val_nlpd=0.8363 val_ece=0.0281 kl_weight=0.000000 loss_kl_raw=556648.3125 lambda_u=0.001387 corr_abs=0.555421 dpar2=0.000557 dperp2=0.499380
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 069] lr=0.087506 train_loss=0.0357 loss_reg=0.0025 val_acc=0.7597 val_nlpd=0.8400 val_ece=0.0293 kl_weight=0.000000 loss_kl_raw=559570.8750 lambda_u=0.001374 corr_abs=0.550057 dpar2=0.000566 dperp2=0.502264
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 070] lr=0.087157 train_loss=0.0353 loss_reg=0.0025 val_acc=0.7597 val_nlpd=0.8380 val_ece=0.0295 kl_weight=0.000000 loss_kl_raw=562400.8750 lambda_u=0.001361 corr_abs=0.545453 dpar2=0.000576 dperp2=0.505056
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 071] lr=0.086805 train_loss=0.0348 loss_reg=0.0026 val_acc=0.7629 val_nlpd=0.8343 val_ece=0.0307 kl_weight=0.000000 loss_kl_raw=565139.7500 lambda_u=0.001348 corr_abs=0.540584 dpar2=0.000585 dperp2=0.507759
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 072] lr=0.086448 train_loss=0.0343 loss_reg=0.0026 val_acc=0.7597 val_nlpd=0.8384 val_ece=0.0305 kl_weight=0.000000 loss_kl_raw=567792.5625 lambda_u=0.001337 corr_abs=0.536033 dpar2=0.000595 dperp2=0.510376
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 073] lr=0.086088 train_loss=0.0338 loss_reg=0.0026 val_acc=0.7608 val_nlpd=0.8372 val_ece=0.0296 kl_weight=0.000000 loss_kl_raw=570364.5000 lambda_u=0.001325 corr_abs=0.532021 dpar2=0.000604 dperp2=0.512913
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 074] lr=0.085724 train_loss=0.0334 loss_reg=0.0027 val_acc=0.7613 val_nlpd=0.8355 val_ece=0.0294 kl_weight=0.000000 loss_kl_raw=572860.8750 lambda_u=0.001315 corr_abs=0.527732 dpar2=0.000613 dperp2=0.515376
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 075] lr=0.085355 train_loss=0.0331 loss_reg=0.0027 val_acc=0.7603 val_nlpd=0.8344 val_ece=0.0320 kl_weight=0.000000 loss_kl_raw=575286.2500 lambda_u=0.001304 corr_abs=0.524112 dpar2=0.000621 dperp2=0.517769
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 076] lr=0.084983 train_loss=0.0328 loss_reg=0.0028 val_acc=0.7608 val_nlpd=0.8325 val_ece=0.0311 kl_weight=0.000000 loss_kl_raw=577643.0625 lambda_u=0.001294 corr_abs=0.519650 dpar2=0.000630 dperp2=0.520094
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 077] lr=0.084607 train_loss=0.0326 loss_reg=0.0028 val_acc=0.7608 val_nlpd=0.8348 val_ece=0.0304 kl_weight=0.000000 loss_kl_raw=579932.6250 lambda_u=0.001285 corr_abs=0.516776 dpar2=0.000638 dperp2=0.522352
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 078] lr=0.084227 train_loss=0.0322 loss_reg=0.0029 val_acc=0.7597 val_nlpd=0.8337 val_ece=0.0321 kl_weight=0.000000 loss_kl_raw=582164.0625 lambda_u=0.001275 corr_abs=0.513916 dpar2=0.000647 dperp2=0.524553
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 079] lr=0.083844 train_loss=0.0319 loss_reg=0.0029 val_acc=0.7624 val_nlpd=0.8342 val_ece=0.0304 kl_weight=0.000000 loss_kl_raw=584337.8125 lambda_u=0.001267 corr_abs=0.510201 dpar2=0.000655 dperp2=0.526697
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 080] lr=0.083457 train_loss=0.0316 loss_reg=0.0030 val_acc=0.7634 val_nlpd=0.8337 val_ece=0.0290 kl_weight=0.000000 loss_kl_raw=586456.7500 lambda_u=0.001258 corr_abs=0.506789 dpar2=0.000663 dperp2=0.528787
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 081] lr=0.083066 train_loss=0.0313 loss_reg=0.0030 val_acc=0.7613 val_nlpd=0.8329 val_ece=0.0330 kl_weight=0.000000 loss_kl_raw=588522.2500 lambda_u=0.001250 corr_abs=0.503799 dpar2=0.000671 dperp2=0.530824
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 082] lr=0.082671 train_loss=0.0311 loss_reg=0.0031 val_acc=0.7619 val_nlpd=0.8331 val_ece=0.0358 kl_weight=0.000000 loss_kl_raw=590539.2500 lambda_u=0.001242 corr_abs=0.500568 dpar2=0.000679 dperp2=0.532813
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 083] lr=0.082273 train_loss=0.0310 loss_reg=0.0031 val_acc=0.7624 val_nlpd=0.8326 val_ece=0.0309 kl_weight=0.000000 loss_kl_raw=592509.3750 lambda_u=0.001234 corr_abs=0.497563 dpar2=0.000687 dperp2=0.534756
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 084] lr=0.081871 train_loss=0.0307 loss_reg=0.0032 val_acc=0.7619 val_nlpd=0.8330 val_ece=0.0325 kl_weight=0.000000 loss_kl_raw=594436.7500 lambda_u=0.001227 corr_abs=0.494928 dpar2=0.000695 dperp2=0.536656
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 085] lr=0.081466 train_loss=0.0303 loss_reg=0.0032 val_acc=0.7619 val_nlpd=0.8323 val_ece=0.0317 kl_weight=0.000000 loss_kl_raw=596319.0000 lambda_u=0.001219 corr_abs=0.492231 dpar2=0.000702 dperp2=0.538512
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 086] lr=0.081057 train_loss=0.0302 loss_reg=0.0033 val_acc=0.7619 val_nlpd=0.8324 val_ece=0.0349 kl_weight=0.000000 loss_kl_raw=598162.6250 lambda_u=0.001212 corr_abs=0.489301 dpar2=0.000710 dperp2=0.540330
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 087] lr=0.080645 train_loss=0.0300 loss_reg=0.0033 val_acc=0.7613 val_nlpd=0.8321 val_ece=0.0353 kl_weight=0.000000 loss_kl_raw=599966.8750 lambda_u=0.001206 corr_abs=0.487034 dpar2=0.000717 dperp2=0.542109
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 088] lr=0.080230 train_loss=0.0295 loss_reg=0.0034 val_acc=0.7597 val_nlpd=0.8324 val_ece=0.0370 kl_weight=0.000000 loss_kl_raw=601733.0625 lambda_u=0.001199 corr_abs=0.485023 dpar2=0.000725 dperp2=0.543850
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 089] lr=0.079811 train_loss=0.0295 loss_reg=0.0034 val_acc=0.7634 val_nlpd=0.8324 val_ece=0.0309 kl_weight=0.000000 loss_kl_raw=603463.3750 lambda_u=0.001193 corr_abs=0.482192 dpar2=0.000732 dperp2=0.545556
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 090] lr=0.079389 train_loss=0.0295 loss_reg=0.0035 val_acc=0.7597 val_nlpd=0.8320 val_ece=0.0373 kl_weight=0.000000 loss_kl_raw=605160.8125 lambda_u=0.001186 corr_abs=0.479516 dpar2=0.000739 dperp2=0.547230
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 091] lr=0.078964 train_loss=0.0291 loss_reg=0.0035 val_acc=0.7624 val_nlpd=0.8319 val_ece=0.0321 kl_weight=0.000000 loss_kl_raw=606824.8750 lambda_u=0.001180 corr_abs=0.477726 dpar2=0.000746 dperp2=0.548870
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 092] lr=0.078536 train_loss=0.0290 loss_reg=0.0036 val_acc=0.7624 val_nlpd=0.8311 val_ece=0.0331 kl_weight=0.000000 loss_kl_raw=608457.5000 lambda_u=0.001174 corr_abs=0.475331 dpar2=0.000753 dperp2=0.550480
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 093] lr=0.078104 train_loss=0.0287 loss_reg=0.0036 val_acc=0.7613 val_nlpd=0.8295 val_ece=0.0354 kl_weight=0.000000 loss_kl_raw=610061.3750 lambda_u=0.001169 corr_abs=0.473036 dpar2=0.000760 dperp2=0.552061
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 094] lr=0.077670 train_loss=0.0286 loss_reg=0.0037 val_acc=0.7608 val_nlpd=0.8300 val_ece=0.0381 kl_weight=0.000000 loss_kl_raw=611634.5000 lambda_u=0.001163 corr_abs=0.471322 dpar2=0.000767 dperp2=0.553612
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 095] lr=0.077232 train_loss=0.0287 loss_reg=0.0037 val_acc=0.7629 val_nlpd=0.8292 val_ece=0.0354 kl_weight=0.000000 loss_kl_raw=613179.3750 lambda_u=0.001158 corr_abs=0.468958 dpar2=0.000773 dperp2=0.555134
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 096] lr=0.076791 train_loss=0.0284 loss_reg=0.0038 val_acc=0.7608 val_nlpd=0.8300 val_ece=0.0367 kl_weight=0.000000 loss_kl_raw=614697.9375 lambda_u=0.001152 corr_abs=0.466157 dpar2=0.000780 dperp2=0.556631
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 097] lr=0.076348 train_loss=0.0281 loss_reg=0.0038 val_acc=0.7640 val_nlpd=0.8301 val_ece=0.0322 kl_weight=0.000000 loss_kl_raw=616191.7500 lambda_u=0.001147 corr_abs=0.464929 dpar2=0.000787 dperp2=0.558104
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 098] lr=0.075901 train_loss=0.0280 loss_reg=0.0039 val_acc=0.7619 val_nlpd=0.8310 val_ece=0.0388 kl_weight=0.000000 loss_kl_raw=617660.4375 lambda_u=0.001142 corr_abs=0.463067 dpar2=0.000793 dperp2=0.559551
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 099] lr=0.075452 train_loss=0.0278 loss_reg=0.0039 val_acc=0.7613 val_nlpd=0.8285 val_ece=0.0351 kl_weight=0.000000 loss_kl_raw=619104.1250 lambda_u=0.001137 corr_abs=0.461044 dpar2=0.000800 dperp2=0.560974
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 100] lr=0.075000 train_loss=0.0278 loss_reg=0.0040 val_acc=0.7634 val_nlpd=0.8277 val_ece=0.0390 kl_weight=0.000000 loss_kl_raw=620521.7500 lambda_u=0.001132 corr_abs=0.459437 dpar2=0.000806 dperp2=0.562371
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 101] lr=0.074545 train_loss=0.0277 loss_reg=0.0040 val_acc=0.7624 val_nlpd=0.8301 val_ece=0.0368 kl_weight=0.000000 loss_kl_raw=621917.1250 lambda_u=0.001128 corr_abs=0.457756 dpar2=0.000812 dperp2=0.563747
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 102] lr=0.074088 train_loss=0.0276 loss_reg=0.0041 val_acc=0.7634 val_nlpd=0.8324 val_ece=0.0366 kl_weight=0.000000 loss_kl_raw=623290.7500 lambda_u=0.001123 corr_abs=0.455463 dpar2=0.000819 dperp2=0.565100
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 103] lr=0.073628 train_loss=0.0275 loss_reg=0.0041 val_acc=0.7634 val_nlpd=0.8294 val_ece=0.0398 kl_weight=0.000000 loss_kl_raw=624641.2500 lambda_u=0.001119 corr_abs=0.453915 dpar2=0.000825 dperp2=0.566431
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 104] lr=0.073165 train_loss=0.0273 loss_reg=0.0042 val_acc=0.7619 val_nlpd=0.8299 val_ece=0.0413 kl_weight=0.000000 loss_kl_raw=625970.1250 lambda_u=0.001114 corr_abs=0.451951 dpar2=0.000831 dperp2=0.567741
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 105] lr=0.072700 train_loss=0.0273 loss_reg=0.0042 val_acc=0.7624 val_nlpd=0.8312 val_ece=0.0373 kl_weight=0.000000 loss_kl_raw=627276.5000 lambda_u=0.001110 corr_abs=0.450587 dpar2=0.000837 dperp2=0.569028
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 106] lr=0.072232 train_loss=0.0271 loss_reg=0.0043 val_acc=0.7629 val_nlpd=0.8301 val_ece=0.0383 kl_weight=0.000000 loss_kl_raw=628563.1875 lambda_u=0.001106 corr_abs=0.448905 dpar2=0.000843 dperp2=0.570296
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 107] lr=0.071762 train_loss=0.0271 loss_reg=0.0043 val_acc=0.7629 val_nlpd=0.8290 val_ece=0.0371 kl_weight=0.000000 loss_kl_raw=629828.1250 lambda_u=0.001101 corr_abs=0.447266 dpar2=0.000849 dperp2=0.571543
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 108] lr=0.071289 train_loss=0.0269 loss_reg=0.0044 val_acc=0.7629 val_nlpd=0.8285 val_ece=0.0380 kl_weight=0.000000 loss_kl_raw=631072.5000 lambda_u=0.001097 corr_abs=0.445892 dpar2=0.000855 dperp2=0.572769
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 109] lr=0.070814 train_loss=0.0267 loss_reg=0.0044 val_acc=0.7624 val_nlpd=0.8280 val_ece=0.0408 kl_weight=0.000000 loss_kl_raw=632298.0625 lambda_u=0.001093 corr_abs=0.444427 dpar2=0.000860 dperp2=0.573977
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 110] lr=0.070337 train_loss=0.0267 loss_reg=0.0045 val_acc=0.7624 val_nlpd=0.8314 val_ece=0.0388 kl_weight=0.000000 loss_kl_raw=633505.3750 lambda_u=0.001090 corr_abs=0.443072 dpar2=0.000866 dperp2=0.575166
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 111] lr=0.069857 train_loss=0.0267 loss_reg=0.0045 val_acc=0.7608 val_nlpd=0.8297 val_ece=0.0407 kl_weight=0.000000 loss_kl_raw=634695.2500 lambda_u=0.001086 corr_abs=0.441532 dpar2=0.000872 dperp2=0.576339
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 112] lr=0.069376 train_loss=0.0266 loss_reg=0.0045 val_acc=0.7613 val_nlpd=0.8276 val_ece=0.0404 kl_weight=0.000000 loss_kl_raw=635867.1875 lambda_u=0.001082 corr_abs=0.440362 dpar2=0.000877 dperp2=0.577494
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 113] lr=0.068892 train_loss=0.0264 loss_reg=0.0046 val_acc=0.7613 val_nlpd=0.8289 val_ece=0.0398 kl_weight=0.000000 loss_kl_raw=637022.5000 lambda_u=0.001078 corr_abs=0.438360 dpar2=0.000883 dperp2=0.578632
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 114] lr=0.068406 train_loss=0.0263 loss_reg=0.0046 val_acc=0.7608 val_nlpd=0.8286 val_ece=0.0409 kl_weight=0.000000 loss_kl_raw=638160.2500 lambda_u=0.001075 corr_abs=0.437179 dpar2=0.000889 dperp2=0.579753
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 115] lr=0.067918 train_loss=0.0263 loss_reg=0.0047 val_acc=0.7629 val_nlpd=0.8283 val_ece=0.0373 kl_weight=0.000000 loss_kl_raw=639282.1875 lambda_u=0.001071 corr_abs=0.436135 dpar2=0.000894 dperp2=0.580858
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 116] lr=0.067429 train_loss=0.0263 loss_reg=0.0047 val_acc=0.7608 val_nlpd=0.8281 val_ece=0.0453 kl_weight=0.000000 loss_kl_raw=640389.1250 lambda_u=0.001068 corr_abs=0.434423 dpar2=0.000899 dperp2=0.581949
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 117] lr=0.066937 train_loss=0.0262 loss_reg=0.0048 val_acc=0.7640 val_nlpd=0.8291 val_ece=0.0384 kl_weight=0.000000 loss_kl_raw=641481.3750 lambda_u=0.001065 corr_abs=0.433414 dpar2=0.000905 dperp2=0.583025
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 118] lr=0.066443 train_loss=0.0260 loss_reg=0.0048 val_acc=0.7634 val_nlpd=0.8290 val_ece=0.0417 kl_weight=0.000000 loss_kl_raw=642556.8125 lambda_u=0.001061 corr_abs=0.432110 dpar2=0.000910 dperp2=0.584084
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 119] lr=0.065948 train_loss=0.0261 loss_reg=0.0049 val_acc=0.7624 val_nlpd=0.8279 val_ece=0.0394 kl_weight=0.000000 loss_kl_raw=643616.0000 lambda_u=0.001058 corr_abs=0.430814 dpar2=0.000915 dperp2=0.585128
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 120] lr=0.065451 train_loss=0.0261 loss_reg=0.0049 val_acc=0.7624 val_nlpd=0.8283 val_ece=0.0399 kl_weight=0.000000 loss_kl_raw=644660.5000 lambda_u=0.001055 corr_abs=0.429403 dpar2=0.000920 dperp2=0.586157
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 121] lr=0.064952 train_loss=0.0259 loss_reg=0.0050 val_acc=0.7619 val_nlpd=0.8285 val_ece=0.0395 kl_weight=0.000000 loss_kl_raw=645690.3125 lambda_u=0.001052 corr_abs=0.428455 dpar2=0.000925 dperp2=0.587171
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 122] lr=0.064452 train_loss=0.0259 loss_reg=0.0050 val_acc=0.7640 val_nlpd=0.8286 val_ece=0.0428 kl_weight=0.000000 loss_kl_raw=646704.8750 lambda_u=0.001049 corr_abs=0.427307 dpar2=0.000931 dperp2=0.588171
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 123] lr=0.063950 train_loss=0.0257 loss_reg=0.0051 val_acc=0.7624 val_nlpd=0.8296 val_ece=0.0393 kl_weight=0.000000 loss_kl_raw=647703.5000 lambda_u=0.001046 corr_abs=0.426115 dpar2=0.000936 dperp2=0.589155
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 124] lr=0.063446 train_loss=0.0259 loss_reg=0.0051 val_acc=0.7634 val_nlpd=0.8288 val_ece=0.0390 kl_weight=0.000000 loss_kl_raw=648687.5000 lambda_u=0.001043 corr_abs=0.425039 dpar2=0.000941 dperp2=0.590124
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 125] lr=0.062941 train_loss=0.0257 loss_reg=0.0052 val_acc=0.7650 val_nlpd=0.8277 val_ece=0.0341 kl_weight=0.000000 loss_kl_raw=649657.8750 lambda_u=0.001040 corr_abs=0.423713 dpar2=0.000945 dperp2=0.591080
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 126] lr=0.062434 train_loss=0.0259 loss_reg=0.0052 val_acc=0.7629 val_nlpd=0.8279 val_ece=0.0389 kl_weight=0.000000 loss_kl_raw=650615.0625 lambda_u=0.001037 corr_abs=0.422442 dpar2=0.000950 dperp2=0.592023
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 127] lr=0.061927 train_loss=0.0256 loss_reg=0.0053 val_acc=0.7624 val_nlpd=0.8282 val_ece=0.0394 kl_weight=0.000000 loss_kl_raw=651558.5625 lambda_u=0.001034 corr_abs=0.421562 dpar2=0.000955 dperp2=0.592952
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 128] lr=0.061418 train_loss=0.0255 loss_reg=0.0053 val_acc=0.7619 val_nlpd=0.8293 val_ece=0.0375 kl_weight=0.000000 loss_kl_raw=652488.0000 lambda_u=0.001032 corr_abs=0.420799 dpar2=0.000960 dperp2=0.593867
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 129] lr=0.060907 train_loss=0.0256 loss_reg=0.0054 val_acc=0.7634 val_nlpd=0.8294 val_ece=0.0405 kl_weight=0.000000 loss_kl_raw=653403.8750 lambda_u=0.001029 corr_abs=0.419420 dpar2=0.000965 dperp2=0.594770
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 130] lr=0.060396 train_loss=0.0254 loss_reg=0.0054 val_acc=0.7608 val_nlpd=0.8288 val_ece=0.0461 kl_weight=0.000000 loss_kl_raw=654306.3750 lambda_u=0.001026 corr_abs=0.418220 dpar2=0.000969 dperp2=0.595658
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 131] lr=0.059883 train_loss=0.0255 loss_reg=0.0055 val_acc=0.7619 val_nlpd=0.8280 val_ece=0.0416 kl_weight=0.000000 loss_kl_raw=655195.0000 lambda_u=0.001024 corr_abs=0.417640 dpar2=0.000974 dperp2=0.596534
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 132] lr=0.059369 train_loss=0.0254 loss_reg=0.0055 val_acc=0.7645 val_nlpd=0.8291 val_ece=0.0383 kl_weight=0.000000 loss_kl_raw=656071.1875 lambda_u=0.001021 corr_abs=0.416625 dpar2=0.000978 dperp2=0.597397
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 133] lr=0.058854 train_loss=0.0255 loss_reg=0.0056 val_acc=0.7619 val_nlpd=0.8290 val_ece=0.0433 kl_weight=0.000000 loss_kl_raw=656934.8750 lambda_u=0.001018 corr_abs=0.415531 dpar2=0.000983 dperp2=0.598247
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 134] lr=0.058338 train_loss=0.0253 loss_reg=0.0056 val_acc=0.7619 val_nlpd=0.8280 val_ece=0.0419 kl_weight=0.000000 loss_kl_raw=657786.7500 lambda_u=0.001016 corr_abs=0.414666 dpar2=0.000987 dperp2=0.599086
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 135] lr=0.057822 train_loss=0.0252 loss_reg=0.0057 val_acc=0.7640 val_nlpd=0.8279 val_ece=0.0385 kl_weight=0.000000 loss_kl_raw=658626.0000 lambda_u=0.001014 corr_abs=0.413564 dpar2=0.000992 dperp2=0.599913
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 136] lr=0.057304 train_loss=0.0253 loss_reg=0.0057 val_acc=0.7640 val_nlpd=0.8269 val_ece=0.0386 kl_weight=0.000000 loss_kl_raw=659452.0000 lambda_u=0.001011 corr_abs=0.412877 dpar2=0.000996 dperp2=0.600726
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 137] lr=0.056786 train_loss=0.0253 loss_reg=0.0058 val_acc=0.7629 val_nlpd=0.8285 val_ece=0.0383 kl_weight=0.000000 loss_kl_raw=660267.1250 lambda_u=0.001009 corr_abs=0.411833 dpar2=0.001000 dperp2=0.601529
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 138] lr=0.056267 train_loss=0.0252 loss_reg=0.0058 val_acc=0.7613 val_nlpd=0.8279 val_ece=0.0433 kl_weight=0.000000 loss_kl_raw=661070.2500 lambda_u=0.001007 corr_abs=0.410881 dpar2=0.001005 dperp2=0.602320
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 139] lr=0.055747 train_loss=0.0251 loss_reg=0.0059 val_acc=0.7613 val_nlpd=0.8270 val_ece=0.0401 kl_weight=0.000000 loss_kl_raw=661861.2500 lambda_u=0.001004 corr_abs=0.410121 dpar2=0.001009 dperp2=0.603099
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 140] lr=0.055226 train_loss=0.0252 loss_reg=0.0059 val_acc=0.7629 val_nlpd=0.8275 val_ece=0.0420 kl_weight=0.000000 loss_kl_raw=662641.1875 lambda_u=0.001002 corr_abs=0.409194 dpar2=0.001013 dperp2=0.603867
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 141] lr=0.054705 train_loss=0.0252 loss_reg=0.0060 val_acc=0.7629 val_nlpd=0.8267 val_ece=0.0408 kl_weight=0.000000 loss_kl_raw=663408.6250 lambda_u=0.001000 corr_abs=0.408474 dpar2=0.001017 dperp2=0.604623
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 142] lr=0.054184 train_loss=0.0251 loss_reg=0.0060 val_acc=0.7613 val_nlpd=0.8276 val_ece=0.0435 kl_weight=0.000000 loss_kl_raw=664165.2500 lambda_u=0.000998 corr_abs=0.407767 dpar2=0.001021 dperp2=0.605368
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 143] lr=0.053662 train_loss=0.0253 loss_reg=0.0061 val_acc=0.7634 val_nlpd=0.8272 val_ece=0.0370 kl_weight=0.000000 loss_kl_raw=664910.5000 lambda_u=0.000996 corr_abs=0.406826 dpar2=0.001025 dperp2=0.606102
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 144] lr=0.053140 train_loss=0.0250 loss_reg=0.0061 val_acc=0.7640 val_nlpd=0.8296 val_ece=0.0363 kl_weight=0.000000 loss_kl_raw=665645.5000 lambda_u=0.000994 corr_abs=0.405813 dpar2=0.001029 dperp2=0.606825
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 145] lr=0.052617 train_loss=0.0251 loss_reg=0.0062 val_acc=0.7645 val_nlpd=0.8263 val_ece=0.0365 kl_weight=0.000000 loss_kl_raw=666369.3750 lambda_u=0.000992 corr_abs=0.405316 dpar2=0.001033 dperp2=0.607538
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 146] lr=0.052094 train_loss=0.0250 loss_reg=0.0062 val_acc=0.7634 val_nlpd=0.8268 val_ece=0.0395 kl_weight=0.000000 loss_kl_raw=667082.6250 lambda_u=0.000990 corr_abs=0.404501 dpar2=0.001037 dperp2=0.608240
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 147] lr=0.051571 train_loss=0.0250 loss_reg=0.0063 val_acc=0.7629 val_nlpd=0.8294 val_ece=0.0395 kl_weight=0.000000 loss_kl_raw=667785.2500 lambda_u=0.000988 corr_abs=0.403195 dpar2=0.001041 dperp2=0.608932
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 148] lr=0.051047 train_loss=0.0250 loss_reg=0.0063 val_acc=0.7629 val_nlpd=0.8281 val_ece=0.0393 kl_weight=0.000000 loss_kl_raw=668476.8750 lambda_u=0.000986 corr_abs=0.402731 dpar2=0.001044 dperp2=0.609613
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 149] lr=0.050524 train_loss=0.0250 loss_reg=0.0064 val_acc=0.7629 val_nlpd=0.8270 val_ece=0.0392 kl_weight=0.000000 loss_kl_raw=669157.6250 lambda_u=0.000984 corr_abs=0.402247 dpar2=0.001048 dperp2=0.610284
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 150] lr=0.050000 train_loss=0.0250 loss_reg=0.0064 val_acc=0.7613 val_nlpd=0.8278 val_ece=0.0394 kl_weight=0.000000 loss_kl_raw=669828.1250 lambda_u=0.000982 corr_abs=0.401379 dpar2=0.001052 dperp2=0.610944
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 151] lr=0.049476 train_loss=0.0250 loss_reg=0.0065 val_acc=0.7640 val_nlpd=0.8288 val_ece=0.0390 kl_weight=0.000000 loss_kl_raw=670488.6875 lambda_u=0.000980 corr_abs=0.400792 dpar2=0.001056 dperp2=0.611594
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 152] lr=0.048953 train_loss=0.0249 loss_reg=0.0065 val_acc=0.7619 val_nlpd=0.8273 val_ece=0.0441 kl_weight=0.000000 loss_kl_raw=671139.0000 lambda_u=0.000978 corr_abs=0.399945 dpar2=0.001059 dperp2=0.612234
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 153] lr=0.048429 train_loss=0.0250 loss_reg=0.0066 val_acc=0.7613 val_nlpd=0.8289 val_ece=0.0412 kl_weight=0.000000 loss_kl_raw=671778.1875 lambda_u=0.000976 corr_abs=0.399220 dpar2=0.001063 dperp2=0.612864
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 154] lr=0.047906 train_loss=0.0249 loss_reg=0.0066 val_acc=0.7619 val_nlpd=0.8280 val_ece=0.0417 kl_weight=0.000000 loss_kl_raw=672406.8750 lambda_u=0.000975 corr_abs=0.398715 dpar2=0.001066 dperp2=0.613483
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 155] lr=0.047383 train_loss=0.0250 loss_reg=0.0067 val_acc=0.7634 val_nlpd=0.8297 val_ece=0.0379 kl_weight=0.000000 loss_kl_raw=673024.2500 lambda_u=0.000973 corr_abs=0.397962 dpar2=0.001070 dperp2=0.614091
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 156] lr=0.046860 train_loss=0.0250 loss_reg=0.0067 val_acc=0.7629 val_nlpd=0.8246 val_ece=0.0384 kl_weight=0.000000 loss_kl_raw=673631.8750 lambda_u=0.000971 corr_abs=0.397335 dpar2=0.001073 dperp2=0.614689
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 157] lr=0.046338 train_loss=0.0250 loss_reg=0.0068 val_acc=0.7619 val_nlpd=0.8267 val_ece=0.0401 kl_weight=0.000000 loss_kl_raw=674229.7500 lambda_u=0.000970 corr_abs=0.396839 dpar2=0.001076 dperp2=0.615277
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 158] lr=0.045816 train_loss=0.0250 loss_reg=0.0068 val_acc=0.7655 val_nlpd=0.8267 val_ece=0.0397 kl_weight=0.000000 loss_kl_raw=674818.5625 lambda_u=0.000968 corr_abs=0.395953 dpar2=0.001080 dperp2=0.615857
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 159] lr=0.045295 train_loss=0.0250 loss_reg=0.0069 val_acc=0.7640 val_nlpd=0.8277 val_ece=0.0393 kl_weight=0.000000 loss_kl_raw=675397.7500 lambda_u=0.000966 corr_abs=0.395430 dpar2=0.001083 dperp2=0.616427
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 160] lr=0.044774 train_loss=0.0250 loss_reg=0.0069 val_acc=0.7624 val_nlpd=0.8269 val_ece=0.0389 kl_weight=0.000000 loss_kl_raw=675968.7500 lambda_u=0.000965 corr_abs=0.394834 dpar2=0.001086 dperp2=0.616989
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 161] lr=0.044253 train_loss=0.0249 loss_reg=0.0070 val_acc=0.7629 val_nlpd=0.8266 val_ece=0.0393 kl_weight=0.000000 loss_kl_raw=676530.8750 lambda_u=0.000963 corr_abs=0.394295 dpar2=0.001089 dperp2=0.617543
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 162] lr=0.043733 train_loss=0.0250 loss_reg=0.0070 val_acc=0.7629 val_nlpd=0.8282 val_ece=0.0389 kl_weight=0.000000 loss_kl_raw=677084.0625 lambda_u=0.000962 corr_abs=0.393559 dpar2=0.001093 dperp2=0.618087
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 163] lr=0.043214 train_loss=0.0249 loss_reg=0.0071 val_acc=0.7613 val_nlpd=0.8276 val_ece=0.0404 kl_weight=0.000000 loss_kl_raw=677628.2500 lambda_u=0.000960 corr_abs=0.393221 dpar2=0.001096 dperp2=0.618623
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 164] lr=0.042696 train_loss=0.0250 loss_reg=0.0071 val_acc=0.7640 val_nlpd=0.8251 val_ece=0.0382 kl_weight=0.000000 loss_kl_raw=678164.3750 lambda_u=0.000959 corr_abs=0.392157 dpar2=0.001099 dperp2=0.619151
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 165] lr=0.042178 train_loss=0.0250 loss_reg=0.0072 val_acc=0.7640 val_nlpd=0.8261 val_ece=0.0415 kl_weight=0.000000 loss_kl_raw=678691.7500 lambda_u=0.000957 corr_abs=0.391788 dpar2=0.001102 dperp2=0.619670
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 166] lr=0.041662 train_loss=0.0250 loss_reg=0.0072 val_acc=0.7629 val_nlpd=0.8269 val_ece=0.0423 kl_weight=0.000000 loss_kl_raw=679210.5625 lambda_u=0.000956 corr_abs=0.391073 dpar2=0.001105 dperp2=0.620180
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 167] lr=0.041146 train_loss=0.0249 loss_reg=0.0073 val_acc=0.7608 val_nlpd=0.8279 val_ece=0.0436 kl_weight=0.000000 loss_kl_raw=679720.6250 lambda_u=0.000955 corr_abs=0.390904 dpar2=0.001108 dperp2=0.620683
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 168] lr=0.040631 train_loss=0.0249 loss_reg=0.0073 val_acc=0.7640 val_nlpd=0.8295 val_ece=0.0425 kl_weight=0.000000 loss_kl_raw=680221.9375 lambda_u=0.000953 corr_abs=0.390203 dpar2=0.001111 dperp2=0.621176
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 169] lr=0.040117 train_loss=0.0250 loss_reg=0.0074 val_acc=0.7634 val_nlpd=0.8290 val_ece=0.0412 kl_weight=0.000000 loss_kl_raw=680714.6250 lambda_u=0.000952 corr_abs=0.389770 dpar2=0.001113 dperp2=0.621661
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 170] lr=0.039604 train_loss=0.0250 loss_reg=0.0074 val_acc=0.7624 val_nlpd=0.8277 val_ece=0.0396 kl_weight=0.000000 loss_kl_raw=681199.2500 lambda_u=0.000951 corr_abs=0.389214 dpar2=0.001116 dperp2=0.622138
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 171] lr=0.039093 train_loss=0.0250 loss_reg=0.0075 val_acc=0.7624 val_nlpd=0.8268 val_ece=0.0398 kl_weight=0.000000 loss_kl_raw=681675.8750 lambda_u=0.000949 corr_abs=0.388574 dpar2=0.001119 dperp2=0.622607
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 172] lr=0.038582 train_loss=0.0251 loss_reg=0.0075 val_acc=0.7634 val_nlpd=0.8277 val_ece=0.0383 kl_weight=0.000000 loss_kl_raw=682143.8750 lambda_u=0.000948 corr_abs=0.388283 dpar2=0.001122 dperp2=0.623068
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 173] lr=0.038073 train_loss=0.0250 loss_reg=0.0076 val_acc=0.7613 val_nlpd=0.8263 val_ece=0.0406 kl_weight=0.000000 loss_kl_raw=682604.5000 lambda_u=0.000947 corr_abs=0.387658 dpar2=0.001125 dperp2=0.623521
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 174] lr=0.037566 train_loss=0.0250 loss_reg=0.0076 val_acc=0.7640 val_nlpd=0.8259 val_ece=0.0384 kl_weight=0.000000 loss_kl_raw=683057.7500 lambda_u=0.000946 corr_abs=0.387245 dpar2=0.001127 dperp2=0.623967
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 175] lr=0.037059 train_loss=0.0251 loss_reg=0.0077 val_acc=0.7634 val_nlpd=0.8263 val_ece=0.0388 kl_weight=0.000000 loss_kl_raw=683503.1250 lambda_u=0.000944 corr_abs=0.386932 dpar2=0.001130 dperp2=0.624405
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 176] lr=0.036554 train_loss=0.0250 loss_reg=0.0077 val_acc=0.7629 val_nlpd=0.8275 val_ece=0.0406 kl_weight=0.000000 loss_kl_raw=683940.7500 lambda_u=0.000943 corr_abs=0.386298 dpar2=0.001132 dperp2=0.624836
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 177] lr=0.036050 train_loss=0.0251 loss_reg=0.0078 val_acc=0.7603 val_nlpd=0.8278 val_ece=0.0419 kl_weight=0.000000 loss_kl_raw=684370.3750 lambda_u=0.000942 corr_abs=0.385989 dpar2=0.001135 dperp2=0.625259
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 178] lr=0.035548 train_loss=0.0252 loss_reg=0.0078 val_acc=0.7650 val_nlpd=0.8268 val_ece=0.0393 kl_weight=0.000000 loss_kl_raw=684792.1875 lambda_u=0.000941 corr_abs=0.385425 dpar2=0.001137 dperp2=0.625674
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 179] lr=0.035048 train_loss=0.0252 loss_reg=0.0079 val_acc=0.7629 val_nlpd=0.8275 val_ece=0.0416 kl_weight=0.000000 loss_kl_raw=685206.9375 lambda_u=0.000940 corr_abs=0.384764 dpar2=0.001140 dperp2=0.626082
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 180] lr=0.034549 train_loss=0.0252 loss_reg=0.0079 val_acc=0.7640 val_nlpd=0.8260 val_ece=0.0396 kl_weight=0.000000 loss_kl_raw=685614.3750 lambda_u=0.000939 corr_abs=0.384840 dpar2=0.001142 dperp2=0.626483
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 181] lr=0.034052 train_loss=0.0252 loss_reg=0.0080 val_acc=0.7634 val_nlpd=0.8276 val_ece=0.0405 kl_weight=0.000000 loss_kl_raw=686014.6250 lambda_u=0.000938 corr_abs=0.384079 dpar2=0.001145 dperp2=0.626877
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 182] lr=0.033557 train_loss=0.0253 loss_reg=0.0080 val_acc=0.7645 val_nlpd=0.8274 val_ece=0.0398 kl_weight=0.000000 loss_kl_raw=686408.1250 lambda_u=0.000936 corr_abs=0.383673 dpar2=0.001147 dperp2=0.627264
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 183] lr=0.033063 train_loss=0.0252 loss_reg=0.0081 val_acc=0.7640 val_nlpd=0.8253 val_ece=0.0387 kl_weight=0.000000 loss_kl_raw=686795.0000 lambda_u=0.000935 corr_abs=0.383285 dpar2=0.001149 dperp2=0.627645
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 184] lr=0.032571 train_loss=0.0252 loss_reg=0.0081 val_acc=0.7624 val_nlpd=0.8259 val_ece=0.0417 kl_weight=0.000000 loss_kl_raw=687174.4375 lambda_u=0.000934 corr_abs=0.382820 dpar2=0.001152 dperp2=0.628018
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 185] lr=0.032082 train_loss=0.0251 loss_reg=0.0082 val_acc=0.7645 val_nlpd=0.8262 val_ece=0.0389 kl_weight=0.000000 loss_kl_raw=687546.8750 lambda_u=0.000933 corr_abs=0.382529 dpar2=0.001154 dperp2=0.628385
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 186] lr=0.031594 train_loss=0.0252 loss_reg=0.0082 val_acc=0.7608 val_nlpd=0.8263 val_ece=0.0418 kl_weight=0.000000 loss_kl_raw=687911.8750 lambda_u=0.000932 corr_abs=0.382219 dpar2=0.001156 dperp2=0.628744
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 187] lr=0.031108 train_loss=0.0252 loss_reg=0.0083 val_acc=0.7640 val_nlpd=0.8275 val_ece=0.0388 kl_weight=0.000000 loss_kl_raw=688270.1250 lambda_u=0.000931 corr_abs=0.381710 dpar2=0.001158 dperp2=0.629097
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 188] lr=0.030624 train_loss=0.0252 loss_reg=0.0083 val_acc=0.7624 val_nlpd=0.8275 val_ece=0.0409 kl_weight=0.000000 loss_kl_raw=688621.6875 lambda_u=0.000930 corr_abs=0.381663 dpar2=0.001161 dperp2=0.629443
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 189] lr=0.030143 train_loss=0.0252 loss_reg=0.0083 val_acc=0.7655 val_nlpd=0.8265 val_ece=0.0370 kl_weight=0.000000 loss_kl_raw=688966.8125 lambda_u=0.000930 corr_abs=0.380876 dpar2=0.001163 dperp2=0.629782
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 190] lr=0.029663 train_loss=0.0253 loss_reg=0.0084 val_acc=0.7624 val_nlpd=0.8254 val_ece=0.0438 kl_weight=0.000000 loss_kl_raw=689304.8750 lambda_u=0.000929 corr_abs=0.380908 dpar2=0.001165 dperp2=0.630115
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 191] lr=0.029186 train_loss=0.0254 loss_reg=0.0084 val_acc=0.7645 val_nlpd=0.8251 val_ece=0.0384 kl_weight=0.000000 loss_kl_raw=689636.2500 lambda_u=0.000928 corr_abs=0.380436 dpar2=0.001167 dperp2=0.630441
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 192] lr=0.028711 train_loss=0.0253 loss_reg=0.0085 val_acc=0.7624 val_nlpd=0.8258 val_ece=0.0412 kl_weight=0.000000 loss_kl_raw=689961.6250 lambda_u=0.000927 corr_abs=0.380135 dpar2=0.001169 dperp2=0.630761
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 193] lr=0.028238 train_loss=0.0253 loss_reg=0.0085 val_acc=0.7634 val_nlpd=0.8247 val_ece=0.0415 kl_weight=0.000000 loss_kl_raw=690280.6250 lambda_u=0.000926 corr_abs=0.379393 dpar2=0.001171 dperp2=0.631075
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 194] lr=0.027768 train_loss=0.0253 loss_reg=0.0086 val_acc=0.7634 val_nlpd=0.8261 val_ece=0.0408 kl_weight=0.000000 loss_kl_raw=690593.5000 lambda_u=0.000925 corr_abs=0.379440 dpar2=0.001173 dperp2=0.631383
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 195] lr=0.027300 train_loss=0.0254 loss_reg=0.0086 val_acc=0.7619 val_nlpd=0.8280 val_ece=0.0418 kl_weight=0.000000 loss_kl_raw=690899.6250 lambda_u=0.000924 corr_abs=0.379071 dpar2=0.001175 dperp2=0.631684
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 196] lr=0.026835 train_loss=0.0254 loss_reg=0.0087 val_acc=0.7634 val_nlpd=0.8283 val_ece=0.0397 kl_weight=0.000000 loss_kl_raw=691199.6250 lambda_u=0.000924 corr_abs=0.378760 dpar2=0.001176 dperp2=0.631979
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 197] lr=0.026372 train_loss=0.0254 loss_reg=0.0087 val_acc=0.7634 val_nlpd=0.8267 val_ece=0.0411 kl_weight=0.000000 loss_kl_raw=691493.5000 lambda_u=0.000923 corr_abs=0.378522 dpar2=0.001178 dperp2=0.632268
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 198] lr=0.025912 train_loss=0.0256 loss_reg=0.0088 val_acc=0.7640 val_nlpd=0.8260 val_ece=0.0386 kl_weight=0.000000 loss_kl_raw=691781.5000 lambda_u=0.000922 corr_abs=0.378083 dpar2=0.001180 dperp2=0.632551
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 199] lr=0.025455 train_loss=0.0256 loss_reg=0.0088 val_acc=0.7634 val_nlpd=0.8264 val_ece=0.0396 kl_weight=0.000000 loss_kl_raw=692063.3125 lambda_u=0.000921 corr_abs=0.378014 dpar2=0.001182 dperp2=0.632829
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 200] lr=0.025000 train_loss=0.0256 loss_reg=0.0089 val_acc=0.7634 val_nlpd=0.8269 val_ece=0.0394 kl_weight=0.000000 loss_kl_raw=692339.5000 lambda_u=0.000920 corr_abs=0.377922 dpar2=0.001184 dperp2=0.633101
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 201] lr=0.024548 train_loss=0.0255 loss_reg=0.0089 val_acc=0.7613 val_nlpd=0.8280 val_ece=0.0414 kl_weight=0.000000 loss_kl_raw=692610.1250 lambda_u=0.000920 corr_abs=0.376957 dpar2=0.001185 dperp2=0.633367
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 202] lr=0.024099 train_loss=0.0255 loss_reg=0.0090 val_acc=0.7629 val_nlpd=0.8270 val_ece=0.0420 kl_weight=0.000000 loss_kl_raw=692874.9375 lambda_u=0.000919 corr_abs=0.377086 dpar2=0.001187 dperp2=0.633627
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 203] lr=0.023652 train_loss=0.0256 loss_reg=0.0090 val_acc=0.7655 val_nlpd=0.8251 val_ece=0.0377 kl_weight=0.000000 loss_kl_raw=693133.8750 lambda_u=0.000918 corr_abs=0.376488 dpar2=0.001189 dperp2=0.633882
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 204] lr=0.023209 train_loss=0.0255 loss_reg=0.0091 val_acc=0.7650 val_nlpd=0.8261 val_ece=0.0405 kl_weight=0.000000 loss_kl_raw=693387.1875 lambda_u=0.000918 corr_abs=0.376101 dpar2=0.001190 dperp2=0.634131
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 205] lr=0.022768 train_loss=0.0257 loss_reg=0.0091 val_acc=0.7629 val_nlpd=0.8262 val_ece=0.0404 kl_weight=0.000000 loss_kl_raw=693634.7500 lambda_u=0.000917 corr_abs=0.376161 dpar2=0.001192 dperp2=0.634375
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 206] lr=0.022330 train_loss=0.0257 loss_reg=0.0092 val_acc=0.7629 val_nlpd=0.8262 val_ece=0.0404 kl_weight=0.000000 loss_kl_raw=693877.1250 lambda_u=0.000916 corr_abs=0.376051 dpar2=0.001193 dperp2=0.634613
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 207] lr=0.021896 train_loss=0.0256 loss_reg=0.0092 val_acc=0.7629 val_nlpd=0.8258 val_ece=0.0402 kl_weight=0.000000 loss_kl_raw=694114.5000 lambda_u=0.000916 corr_abs=0.375635 dpar2=0.001195 dperp2=0.634847
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 208] lr=0.021464 train_loss=0.0257 loss_reg=0.0093 val_acc=0.7629 val_nlpd=0.8283 val_ece=0.0403 kl_weight=0.000000 loss_kl_raw=694346.1250 lambda_u=0.000915 corr_abs=0.375120 dpar2=0.001196 dperp2=0.635075
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 209] lr=0.021036 train_loss=0.0257 loss_reg=0.0093 val_acc=0.7645 val_nlpd=0.8249 val_ece=0.0384 kl_weight=0.000000 loss_kl_raw=694572.6875 lambda_u=0.000914 corr_abs=0.375501 dpar2=0.001198 dperp2=0.635297
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 210] lr=0.020611 train_loss=0.0259 loss_reg=0.0094 val_acc=0.7629 val_nlpd=0.8247 val_ece=0.0405 kl_weight=0.000000 loss_kl_raw=694794.1250 lambda_u=0.000914 corr_abs=0.374678 dpar2=0.001199 dperp2=0.635515
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 211] lr=0.020189 train_loss=0.0258 loss_reg=0.0094 val_acc=0.7640 val_nlpd=0.8289 val_ece=0.0390 kl_weight=0.000000 loss_kl_raw=695010.8125 lambda_u=0.000913 corr_abs=0.374525 dpar2=0.001200 dperp2=0.635728
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 212] lr=0.019770 train_loss=0.0259 loss_reg=0.0095 val_acc=0.7624 val_nlpd=0.8276 val_ece=0.0410 kl_weight=0.000000 loss_kl_raw=695222.0625 lambda_u=0.000913 corr_abs=0.374444 dpar2=0.001202 dperp2=0.635936
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 213] lr=0.019355 train_loss=0.0259 loss_reg=0.0095 val_acc=0.7650 val_nlpd=0.8263 val_ece=0.0383 kl_weight=0.000000 loss_kl_raw=695428.3750 lambda_u=0.000912 corr_abs=0.374080 dpar2=0.001203 dperp2=0.636139
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 214] lr=0.018943 train_loss=0.0259 loss_reg=0.0096 val_acc=0.7634 val_nlpd=0.8265 val_ece=0.0398 kl_weight=0.000000 loss_kl_raw=695629.6875 lambda_u=0.000912 corr_abs=0.374129 dpar2=0.001204 dperp2=0.636337
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 215] lr=0.018534 train_loss=0.0260 loss_reg=0.0096 val_acc=0.7629 val_nlpd=0.8254 val_ece=0.0404 kl_weight=0.000000 loss_kl_raw=695826.0000 lambda_u=0.000911 corr_abs=0.373721 dpar2=0.001206 dperp2=0.636530
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 216] lr=0.018129 train_loss=0.0259 loss_reg=0.0096 val_acc=0.7629 val_nlpd=0.8254 val_ece=0.0405 kl_weight=0.000000 loss_kl_raw=696017.7500 lambda_u=0.000910 corr_abs=0.373502 dpar2=0.001207 dperp2=0.636719
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 217] lr=0.017727 train_loss=0.0260 loss_reg=0.0097 val_acc=0.7629 val_nlpd=0.8260 val_ece=0.0413 kl_weight=0.000000 loss_kl_raw=696204.9375 lambda_u=0.000910 corr_abs=0.373067 dpar2=0.001208 dperp2=0.636903
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 218] lr=0.017329 train_loss=0.0261 loss_reg=0.0097 val_acc=0.7650 val_nlpd=0.8261 val_ece=0.0402 kl_weight=0.000000 loss_kl_raw=696387.3750 lambda_u=0.000909 corr_abs=0.373141 dpar2=0.001209 dperp2=0.637082
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 219] lr=0.016934 train_loss=0.0261 loss_reg=0.0098 val_acc=0.7624 val_nlpd=0.8273 val_ece=0.0420 kl_weight=0.000000 loss_kl_raw=696565.3750 lambda_u=0.000909 corr_abs=0.372996 dpar2=0.001211 dperp2=0.637258
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 220] lr=0.016543 train_loss=0.0261 loss_reg=0.0098 val_acc=0.7640 val_nlpd=0.8263 val_ece=0.0398 kl_weight=0.000000 loss_kl_raw=696739.0000 lambda_u=0.000908 corr_abs=0.372629 dpar2=0.001212 dperp2=0.637428
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 221] lr=0.016156 train_loss=0.0262 loss_reg=0.0099 val_acc=0.7619 val_nlpd=0.8260 val_ece=0.0414 kl_weight=0.000000 loss_kl_raw=696907.6875 lambda_u=0.000908 corr_abs=0.372533 dpar2=0.001213 dperp2=0.637594
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 222] lr=0.015773 train_loss=0.0262 loss_reg=0.0099 val_acc=0.7645 val_nlpd=0.8256 val_ece=0.0433 kl_weight=0.000000 loss_kl_raw=697072.1250 lambda_u=0.000908 corr_abs=0.372373 dpar2=0.001214 dperp2=0.637756
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 223] lr=0.015393 train_loss=0.0261 loss_reg=0.0100 val_acc=0.7619 val_nlpd=0.8261 val_ece=0.0414 kl_weight=0.000000 loss_kl_raw=697232.4375 lambda_u=0.000907 corr_abs=0.372345 dpar2=0.001215 dperp2=0.637914
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 224] lr=0.015017 train_loss=0.0263 loss_reg=0.0100 val_acc=0.7624 val_nlpd=0.8261 val_ece=0.0412 kl_weight=0.000000 loss_kl_raw=697388.0000 lambda_u=0.000907 corr_abs=0.372441 dpar2=0.001216 dperp2=0.638067
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 225] lr=0.014645 train_loss=0.0264 loss_reg=0.0101 val_acc=0.7629 val_nlpd=0.8259 val_ece=0.0413 kl_weight=0.000000 loss_kl_raw=697539.2500 lambda_u=0.000906 corr_abs=0.372207 dpar2=0.001217 dperp2=0.638215
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 226] lr=0.014276 train_loss=0.0263 loss_reg=0.0101 val_acc=0.7634 val_nlpd=0.8274 val_ece=0.0398 kl_weight=0.000000 loss_kl_raw=697686.4375 lambda_u=0.000906 corr_abs=0.371902 dpar2=0.001218 dperp2=0.638360
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 227] lr=0.013912 train_loss=0.0263 loss_reg=0.0102 val_acc=0.7629 val_nlpd=0.8265 val_ece=0.0408 kl_weight=0.000000 loss_kl_raw=697829.4375 lambda_u=0.000905 corr_abs=0.371528 dpar2=0.001219 dperp2=0.638501
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 228] lr=0.013552 train_loss=0.0264 loss_reg=0.0102 val_acc=0.7666 val_nlpd=0.8272 val_ece=0.0369 kl_weight=0.000000 loss_kl_raw=697968.1250 lambda_u=0.000905 corr_abs=0.371627 dpar2=0.001220 dperp2=0.638637
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 229] lr=0.013195 train_loss=0.0264 loss_reg=0.0103 val_acc=0.7645 val_nlpd=0.8258 val_ece=0.0409 kl_weight=0.000000 loss_kl_raw=698102.8125 lambda_u=0.000905 corr_abs=0.371350 dpar2=0.001221 dperp2=0.638770
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 230] lr=0.012843 train_loss=0.0265 loss_reg=0.0103 val_acc=0.7634 val_nlpd=0.8257 val_ece=0.0401 kl_weight=0.000000 loss_kl_raw=698233.7500 lambda_u=0.000904 corr_abs=0.371228 dpar2=0.001222 dperp2=0.638898
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 231] lr=0.012494 train_loss=0.0266 loss_reg=0.0104 val_acc=0.7634 val_nlpd=0.8254 val_ece=0.0404 kl_weight=0.000000 loss_kl_raw=698360.8750 lambda_u=0.000904 corr_abs=0.370891 dpar2=0.001222 dperp2=0.639023
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 232] lr=0.012150 train_loss=0.0266 loss_reg=0.0104 val_acc=0.7624 val_nlpd=0.8252 val_ece=0.0412 kl_weight=0.000000 loss_kl_raw=698484.5000 lambda_u=0.000904 corr_abs=0.371005 dpar2=0.001223 dperp2=0.639145
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 233] lr=0.011810 train_loss=0.0267 loss_reg=0.0104 val_acc=0.7624 val_nlpd=0.8266 val_ece=0.0414 kl_weight=0.000000 loss_kl_raw=698604.4375 lambda_u=0.000903 corr_abs=0.370780 dpar2=0.001224 dperp2=0.639263
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 234] lr=0.011474 train_loss=0.0267 loss_reg=0.0105 val_acc=0.7619 val_nlpd=0.8270 val_ece=0.0415 kl_weight=0.000000 loss_kl_raw=698720.8750 lambda_u=0.000903 corr_abs=0.370684 dpar2=0.001225 dperp2=0.639377
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 235] lr=0.011143 train_loss=0.0267 loss_reg=0.0105 val_acc=0.7634 val_nlpd=0.8241 val_ece=0.0402 kl_weight=0.000000 loss_kl_raw=698833.8750 lambda_u=0.000903 corr_abs=0.370778 dpar2=0.001226 dperp2=0.639489
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 236] lr=0.010815 train_loss=0.0266 loss_reg=0.0106 val_acc=0.7624 val_nlpd=0.8276 val_ece=0.0406 kl_weight=0.000000 loss_kl_raw=698943.4375 lambda_u=0.000902 corr_abs=0.370390 dpar2=0.001226 dperp2=0.639596
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 237] lr=0.010492 train_loss=0.0267 loss_reg=0.0106 val_acc=0.7624 val_nlpd=0.8257 val_ece=0.0411 kl_weight=0.000000 loss_kl_raw=699049.3750 lambda_u=0.000902 corr_abs=0.370401 dpar2=0.001227 dperp2=0.639700
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 238] lr=0.010174 train_loss=0.0269 loss_reg=0.0107 val_acc=0.7640 val_nlpd=0.8227 val_ece=0.0399 kl_weight=0.000000 loss_kl_raw=699151.8750 lambda_u=0.000902 corr_abs=0.370292 dpar2=0.001228 dperp2=0.639801
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 239] lr=0.009859 train_loss=0.0269 loss_reg=0.0107 val_acc=0.7629 val_nlpd=0.8265 val_ece=0.0409 kl_weight=0.000000 loss_kl_raw=699251.0000 lambda_u=0.000901 corr_abs=0.369997 dpar2=0.001228 dperp2=0.639899
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 240] lr=0.009549 train_loss=0.0268 loss_reg=0.0108 val_acc=0.7634 val_nlpd=0.8251 val_ece=0.0402 kl_weight=0.000000 loss_kl_raw=699347.1875 lambda_u=0.000901 corr_abs=0.369594 dpar2=0.001229 dperp2=0.639993
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 241] lr=0.009244 train_loss=0.0269 loss_reg=0.0108 val_acc=0.7634 val_nlpd=0.8255 val_ece=0.0403 kl_weight=0.000000 loss_kl_raw=699440.0000 lambda_u=0.000901 corr_abs=0.369835 dpar2=0.001230 dperp2=0.640085
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 242] lr=0.008943 train_loss=0.0269 loss_reg=0.0109 val_acc=0.7640 val_nlpd=0.8261 val_ece=0.0397 kl_weight=0.000000 loss_kl_raw=699529.8750 lambda_u=0.000901 corr_abs=0.369812 dpar2=0.001230 dperp2=0.640173
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 243] lr=0.008646 train_loss=0.0269 loss_reg=0.0109 val_acc=0.7624 val_nlpd=0.8279 val_ece=0.0413 kl_weight=0.000000 loss_kl_raw=699616.6250 lambda_u=0.000900 corr_abs=0.369352 dpar2=0.001231 dperp2=0.640258
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 244] lr=0.008354 train_loss=0.0271 loss_reg=0.0110 val_acc=0.7655 val_nlpd=0.8268 val_ece=0.0383 kl_weight=0.000000 loss_kl_raw=699700.2500 lambda_u=0.000900 corr_abs=0.369898 dpar2=0.001231 dperp2=0.640341
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 245] lr=0.008066 train_loss=0.0272 loss_reg=0.0110 val_acc=0.7640 val_nlpd=0.8266 val_ece=0.0398 kl_weight=0.000000 loss_kl_raw=699780.8750 lambda_u=0.000900 corr_abs=0.369484 dpar2=0.001232 dperp2=0.640420
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 246] lr=0.007784 train_loss=0.0272 loss_reg=0.0111 val_acc=0.7629 val_nlpd=0.8263 val_ece=0.0417 kl_weight=0.000000 loss_kl_raw=699858.7500 lambda_u=0.000900 corr_abs=0.369346 dpar2=0.001232 dperp2=0.640496
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 247] lr=0.007505 train_loss=0.0270 loss_reg=0.0111 val_acc=0.7619 val_nlpd=0.8259 val_ece=0.0463 kl_weight=0.000000 loss_kl_raw=699933.8750 lambda_u=0.000900 corr_abs=0.369359 dpar2=0.001233 dperp2=0.640570
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 248] lr=0.007232 train_loss=0.0271 loss_reg=0.0111 val_acc=0.7640 val_nlpd=0.8252 val_ece=0.0399 kl_weight=0.000000 loss_kl_raw=700006.2500 lambda_u=0.000899 corr_abs=0.369258 dpar2=0.001233 dperp2=0.640641
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 249] lr=0.006963 train_loss=0.0273 loss_reg=0.0112 val_acc=0.7629 val_nlpd=0.8258 val_ece=0.0418 kl_weight=0.000000 loss_kl_raw=700075.9375 lambda_u=0.000899 corr_abs=0.368964 dpar2=0.001234 dperp2=0.640710
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 250] lr=0.006699 train_loss=0.0273 loss_reg=0.0112 val_acc=0.7645 val_nlpd=0.8268 val_ece=0.0394 kl_weight=0.000000 loss_kl_raw=700142.8125 lambda_u=0.000899 corr_abs=0.368798 dpar2=0.001234 dperp2=0.640776
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 251] lr=0.006439 train_loss=0.0274 loss_reg=0.0113 val_acc=0.7629 val_nlpd=0.8250 val_ece=0.0408 kl_weight=0.000000 loss_kl_raw=700207.1250 lambda_u=0.000899 corr_abs=0.369037 dpar2=0.001235 dperp2=0.640839
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 252] lr=0.006185 train_loss=0.0273 loss_reg=0.0113 val_acc=0.7655 val_nlpd=0.8257 val_ece=0.0381 kl_weight=0.000000 loss_kl_raw=700268.7500 lambda_u=0.000899 corr_abs=0.368764 dpar2=0.001235 dperp2=0.640899
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 253] lr=0.005935 train_loss=0.0273 loss_reg=0.0114 val_acc=0.7661 val_nlpd=0.8240 val_ece=0.0379 kl_weight=0.000000 loss_kl_raw=700327.8750 lambda_u=0.000898 corr_abs=0.368835 dpar2=0.001236 dperp2=0.640958
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 254] lr=0.005690 train_loss=0.0274 loss_reg=0.0114 val_acc=0.7655 val_nlpd=0.8256 val_ece=0.0384 kl_weight=0.000000 loss_kl_raw=700384.7500 lambda_u=0.000898 corr_abs=0.368940 dpar2=0.001236 dperp2=0.641014
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 255] lr=0.005450 train_loss=0.0274 loss_reg=0.0115 val_acc=0.7645 val_nlpd=0.8265 val_ece=0.0391 kl_weight=0.000000 loss_kl_raw=700439.0625 lambda_u=0.000898 corr_abs=0.368857 dpar2=0.001236 dperp2=0.641067
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 256] lr=0.005214 train_loss=0.0275 loss_reg=0.0115 val_acc=0.7640 val_nlpd=0.8247 val_ece=0.0400 kl_weight=0.000000 loss_kl_raw=700491.0000 lambda_u=0.000898 corr_abs=0.368889 dpar2=0.001237 dperp2=0.641118
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 257] lr=0.004984 train_loss=0.0275 loss_reg=0.0116 val_acc=0.7645 val_nlpd=0.8260 val_ece=0.0446 kl_weight=0.000000 loss_kl_raw=700540.6250 lambda_u=0.000898 corr_abs=0.368477 dpar2=0.001237 dperp2=0.641167
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 258] lr=0.004759 train_loss=0.0276 loss_reg=0.0116 val_acc=0.7640 val_nlpd=0.8246 val_ece=0.0409 kl_weight=0.000000 loss_kl_raw=700587.8750 lambda_u=0.000898 corr_abs=0.368776 dpar2=0.001238 dperp2=0.641213
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 259] lr=0.004538 train_loss=0.0276 loss_reg=0.0117 val_acc=0.7640 val_nlpd=0.8249 val_ece=0.0400 kl_weight=0.000000 loss_kl_raw=700632.9375 lambda_u=0.000898 corr_abs=0.368567 dpar2=0.001238 dperp2=0.641258
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 260] lr=0.004323 train_loss=0.0277 loss_reg=0.0117 val_acc=0.7634 val_nlpd=0.8261 val_ece=0.0404 kl_weight=0.000000 loss_kl_raw=700675.8750 lambda_u=0.000897 corr_abs=0.368426 dpar2=0.001238 dperp2=0.641300
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 261] lr=0.004112 train_loss=0.0278 loss_reg=0.0117 val_acc=0.7661 val_nlpd=0.8247 val_ece=0.0379 kl_weight=0.000000 loss_kl_raw=700716.6875 lambda_u=0.000897 corr_abs=0.368300 dpar2=0.001238 dperp2=0.641340
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 262] lr=0.003907 train_loss=0.0276 loss_reg=0.0118 val_acc=0.7629 val_nlpd=0.8244 val_ece=0.0422 kl_weight=0.000000 loss_kl_raw=700755.5000 lambda_u=0.000897 corr_abs=0.368610 dpar2=0.001239 dperp2=0.641378
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 263] lr=0.003706 train_loss=0.0278 loss_reg=0.0118 val_acc=0.7640 val_nlpd=0.8277 val_ece=0.0396 kl_weight=0.000000 loss_kl_raw=700792.3125 lambda_u=0.000897 corr_abs=0.368108 dpar2=0.001239 dperp2=0.641414
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 264] lr=0.003511 train_loss=0.0278 loss_reg=0.0119 val_acc=0.7624 val_nlpd=0.8265 val_ece=0.0413 kl_weight=0.000000 loss_kl_raw=700827.2500 lambda_u=0.000897 corr_abs=0.368187 dpar2=0.001239 dperp2=0.641448
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 265] lr=0.003321 train_loss=0.0278 loss_reg=0.0119 val_acc=0.7619 val_nlpd=0.8260 val_ece=0.0417 kl_weight=0.000000 loss_kl_raw=700860.3125 lambda_u=0.000897 corr_abs=0.368290 dpar2=0.001239 dperp2=0.641481
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 266] lr=0.003136 train_loss=0.0279 loss_reg=0.0120 val_acc=0.7634 val_nlpd=0.8268 val_ece=0.0409 kl_weight=0.000000 loss_kl_raw=700891.5000 lambda_u=0.000897 corr_abs=0.368174 dpar2=0.001240 dperp2=0.641512
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 267] lr=0.002956 train_loss=0.0279 loss_reg=0.0120 val_acc=0.7619 val_nlpd=0.8254 val_ece=0.0422 kl_weight=0.000000 loss_kl_raw=700920.9375 lambda_u=0.000897 corr_abs=0.368004 dpar2=0.001240 dperp2=0.641541
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 268] lr=0.002781 train_loss=0.0279 loss_reg=0.0121 val_acc=0.7629 val_nlpd=0.8278 val_ece=0.0409 kl_weight=0.000000 loss_kl_raw=700948.6875 lambda_u=0.000897 corr_abs=0.368338 dpar2=0.001240 dperp2=0.641568
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 269] lr=0.002612 train_loss=0.0280 loss_reg=0.0121 val_acc=0.7629 val_nlpd=0.8264 val_ece=0.0407 kl_weight=0.000000 loss_kl_raw=700974.7500 lambda_u=0.000897 corr_abs=0.368495 dpar2=0.001240 dperp2=0.641594
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 270] lr=0.002447 train_loss=0.0281 loss_reg=0.0122 val_acc=0.7640 val_nlpd=0.8266 val_ece=0.0397 kl_weight=0.000000 loss_kl_raw=700999.1875 lambda_u=0.000896 corr_abs=0.368279 dpar2=0.001240 dperp2=0.641618
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 271] lr=0.002288 train_loss=0.0281 loss_reg=0.0122 val_acc=0.7640 val_nlpd=0.8256 val_ece=0.0400 kl_weight=0.000000 loss_kl_raw=701022.1250 lambda_u=0.000896 corr_abs=0.367921 dpar2=0.001241 dperp2=0.641640
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 272] lr=0.002134 train_loss=0.0283 loss_reg=0.0122 val_acc=0.7650 val_nlpd=0.8258 val_ece=0.0387 kl_weight=0.000000 loss_kl_raw=701043.5000 lambda_u=0.000896 corr_abs=0.368060 dpar2=0.001241 dperp2=0.641661
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 273] lr=0.001985 train_loss=0.0283 loss_reg=0.0123 val_acc=0.7640 val_nlpd=0.8256 val_ece=0.0396 kl_weight=0.000000 loss_kl_raw=701063.5625 lambda_u=0.000896 corr_abs=0.367739 dpar2=0.001241 dperp2=0.641681
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 274] lr=0.001842 train_loss=0.0282 loss_reg=0.0123 val_acc=0.7640 val_nlpd=0.8284 val_ece=0.0396 kl_weight=0.000000 loss_kl_raw=701082.1250 lambda_u=0.000896 corr_abs=0.368075 dpar2=0.001241 dperp2=0.641699
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 275] lr=0.001704 train_loss=0.0283 loss_reg=0.0124 val_acc=0.7624 val_nlpd=0.8248 val_ece=0.0413 kl_weight=0.000000 loss_kl_raw=701099.4375 lambda_u=0.000896 corr_abs=0.368057 dpar2=0.001241 dperp2=0.641716
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 276] lr=0.001571 train_loss=0.0283 loss_reg=0.0124 val_acc=0.7640 val_nlpd=0.8273 val_ece=0.0399 kl_weight=0.000000 loss_kl_raw=701115.3750 lambda_u=0.000896 corr_abs=0.368127 dpar2=0.001241 dperp2=0.641732
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 277] lr=0.001443 train_loss=0.0284 loss_reg=0.0125 val_acc=0.7629 val_nlpd=0.8265 val_ece=0.0407 kl_weight=0.000000 loss_kl_raw=701130.1250 lambda_u=0.000896 corr_abs=0.368286 dpar2=0.001241 dperp2=0.641746
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 278] lr=0.001321 train_loss=0.0285 loss_reg=0.0125 val_acc=0.7661 val_nlpd=0.8247 val_ece=0.0382 kl_weight=0.000000 loss_kl_raw=701143.6250 lambda_u=0.000896 corr_abs=0.367794 dpar2=0.001241 dperp2=0.641760
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 279] lr=0.001204 train_loss=0.0286 loss_reg=0.0126 val_acc=0.7666 val_nlpd=0.8250 val_ece=0.0385 kl_weight=0.000000 loss_kl_raw=701156.0625 lambda_u=0.000896 corr_abs=0.367835 dpar2=0.001242 dperp2=0.641772
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 280] lr=0.001093 train_loss=0.0285 loss_reg=0.0126 val_acc=0.7619 val_nlpd=0.8270 val_ece=0.0417 kl_weight=0.000000 loss_kl_raw=701167.3750 lambda_u=0.000896 corr_abs=0.367579 dpar2=0.001242 dperp2=0.641783
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 281] lr=0.000986 train_loss=0.0285 loss_reg=0.0127 val_acc=0.7619 val_nlpd=0.8276 val_ece=0.0417 kl_weight=0.000000 loss_kl_raw=701177.7500 lambda_u=0.000896 corr_abs=0.367976 dpar2=0.001242 dperp2=0.641793
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 282] lr=0.000886 train_loss=0.0285 loss_reg=0.0127 val_acc=0.7645 val_nlpd=0.8252 val_ece=0.0396 kl_weight=0.000000 loss_kl_raw=701187.1250 lambda_u=0.000896 corr_abs=0.367880 dpar2=0.001242 dperp2=0.641802
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 283] lr=0.000790 train_loss=0.0287 loss_reg=0.0127 val_acc=0.7645 val_nlpd=0.8252 val_ece=0.0396 kl_weight=0.000000 loss_kl_raw=701195.5000 lambda_u=0.000896 corr_abs=0.367726 dpar2=0.001242 dperp2=0.641810
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 284] lr=0.000700 train_loss=0.0288 loss_reg=0.0128 val_acc=0.7640 val_nlpd=0.8274 val_ece=0.0398 kl_weight=0.000000 loss_kl_raw=701203.0000 lambda_u=0.000896 corr_abs=0.367886 dpar2=0.001242 dperp2=0.641818
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 285] lr=0.000616 train_loss=0.0288 loss_reg=0.0128 val_acc=0.7645 val_nlpd=0.8260 val_ece=0.0400 kl_weight=0.000000 loss_kl_raw=701209.7500 lambda_u=0.000896 corr_abs=0.367621 dpar2=0.001242 dperp2=0.641825
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 286] lr=0.000536 train_loss=0.0289 loss_reg=0.0129 val_acc=0.7650 val_nlpd=0.8268 val_ece=0.0388 kl_weight=0.000000 loss_kl_raw=701215.7500 lambda_u=0.000896 corr_abs=0.368066 dpar2=0.001242 dperp2=0.641830
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 287] lr=0.000463 train_loss=0.0288 loss_reg=0.0129 val_acc=0.7640 val_nlpd=0.8247 val_ece=0.0398 kl_weight=0.000000 loss_kl_raw=701220.9375 lambda_u=0.000896 corr_abs=0.368222 dpar2=0.001242 dperp2=0.641836
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 288] lr=0.000394 train_loss=0.0290 loss_reg=0.0130 val_acc=0.7640 val_nlpd=0.8268 val_ece=0.0397 kl_weight=0.000000 loss_kl_raw=701225.5000 lambda_u=0.000896 corr_abs=0.367627 dpar2=0.001242 dperp2=0.641840
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 289] lr=0.000331 train_loss=0.0290 loss_reg=0.0130 val_acc=0.7650 val_nlpd=0.8268 val_ece=0.0386 kl_weight=0.000000 loss_kl_raw=701229.3750 lambda_u=0.000896 corr_abs=0.367817 dpar2=0.001242 dperp2=0.641844
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 290] lr=0.000274 train_loss=0.0290 loss_reg=0.0131 val_acc=0.7640 val_nlpd=0.8258 val_ece=0.0400 kl_weight=0.000000 loss_kl_raw=701232.7500 lambda_u=0.000896 corr_abs=0.367791 dpar2=0.001242 dperp2=0.641847
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 291] lr=0.000222 train_loss=0.0291 loss_reg=0.0131 val_acc=0.7629 val_nlpd=0.8257 val_ece=0.0408 kl_weight=0.000000 loss_kl_raw=701235.5000 lambda_u=0.000896 corr_abs=0.368052 dpar2=0.001242 dperp2=0.641850
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 292] lr=0.000175 train_loss=0.0291 loss_reg=0.0132 val_acc=0.7661 val_nlpd=0.8231 val_ece=0.0381 kl_weight=0.000000 loss_kl_raw=701237.8750 lambda_u=0.000896 corr_abs=0.368131 dpar2=0.001242 dperp2=0.641852
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 293] lr=0.000134 train_loss=0.0291 loss_reg=0.0132 val_acc=0.7640 val_nlpd=0.8237 val_ece=0.0397 kl_weight=0.000000 loss_kl_raw=701239.6875 lambda_u=0.000896 corr_abs=0.367992 dpar2=0.001242 dperp2=0.641854
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 294] lr=0.000099 train_loss=0.0291 loss_reg=0.0132 val_acc=0.7645 val_nlpd=0.8256 val_ece=0.0423 kl_weight=0.000000 loss_kl_raw=701241.1250 lambda_u=0.000896 corr_abs=0.367744 dpar2=0.001242 dperp2=0.641855
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 295] lr=0.000069 train_loss=0.0291 loss_reg=0.0133 val_acc=0.7640 val_nlpd=0.8268 val_ece=0.0399 kl_weight=0.000000 loss_kl_raw=701242.2500 lambda_u=0.000896 corr_abs=0.367333 dpar2=0.001242 dperp2=0.641856
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 296] lr=0.000044 train_loss=0.0292 loss_reg=0.0133 val_acc=0.7629 val_nlpd=0.8260 val_ece=0.0407 kl_weight=0.000000 loss_kl_raw=701243.1250 lambda_u=0.000896 corr_abs=0.367813 dpar2=0.001242 dperp2=0.641857
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 297] lr=0.000025 train_loss=0.0293 loss_reg=0.0134 val_acc=0.7624 val_nlpd=0.8280 val_ece=0.0414 kl_weight=0.000000 loss_kl_raw=701243.6250 lambda_u=0.000896 corr_abs=0.367881 dpar2=0.001242 dperp2=0.641858
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 298] lr=0.000011 train_loss=0.0293 loss_reg=0.0134 val_acc=0.7613 val_nlpd=0.8284 val_ece=0.0420 kl_weight=0.000000 loss_kl_raw=701244.0000 lambda_u=0.000896 corr_abs=0.367879 dpar2=0.001242 dperp2=0.641858
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 299] lr=0.000003 train_loss=0.0295 loss_reg=0.0135 val_acc=0.7634 val_nlpd=0.8266 val_ece=0.0402 kl_weight=0.000000 loss_kl_raw=701244.1250 lambda_u=0.000896 corr_abs=0.367794 dpar2=0.001242 dperp2=0.641858
+[eval] adapter_cls=UATangentBayesAdapterMin
+[eval] raw_logits_shape=(10, 256, 101)
+[eval] reduced_logits_shape=(256, 101)
+[Epoch 300] lr=0.000000 train_loss=0.0294 loss_reg=0.0135 val_acc=0.7645 val_nlpd=0.8267 val_ece=0.0394 kl_weight=0.000000 loss_kl_raw=701244.1250 lambda_u=0.000896 corr_abs=0.367986 dpar2=0.001242 dperp2=0.641858
+[done] training complete:
+{
+  "family": "vlm_adapter",
+  "variant": "UATB_MIN",
+  "protocol": "id",
+  "dataset": "ucf101",
+  "seed": 1,
+  "model_selection": "last",
+  "selection_metric": "acc",
+  "selection_mode": "max",
+  "best_epoch": 228,
+  "best_val_metrics_saved": {
+    "loss": 0.8288505316031871,
+    "acc": 0.7665964365005493,
+    "nlpd": 0.8272145390510559,
+    "ece": 0.03691620007157326,
+    "aece": 0.03848761718943951,
+    "raw_cov_99": 0.2687039077281952,
+    "sel_acc_99": 1.0,
+    "reliable_99": 1.0,
+    "cov_99": 0.2687039077281952,
+    "class_cov_99": 0.7029702970297029,
+    "raw_cov_95": 0.4251843988895416,
+    "sel_acc_95": 0.9888476133346558,
+    "reliable_95": 1.0,
+    "cov_95": 0.4251843988895416,
+    "class_cov_95": 0.9306930693069307,
+    "raw_cov_90": 0.5110642910003662,
+    "sel_acc_90": 0.9721649289131165,
+    "reliable_90": 1.0,
+    "cov_90": 0.5110642910003662,
+    "class_cov_90": 0.9603960396039604,
+    "raw_cov_85": 0.5769230723381042,
+    "sel_acc_85": 0.9570776224136353,
+    "reliable_85": 1.0,
+    "cov_85": 0.5769230723381042,
+    "class_cov_85": 1.0,
+    "raw_cov_80": 0.6285563707351685,
+    "sel_acc_80": 0.9379714727401733,
+    "reliable_80": 1.0,
+    "cov_80": 0.6285563707351685,
+    "class_cov_80": 1.0
+  },
+  "last_epoch": 300,
+  "last_val_metrics_saved": {
+    "loss": 0.8282954421510687,
+    "acc": 0.764488935470581,
+    "nlpd": 0.8267295956611633,
+    "ece": 0.03940925747156143,
+    "aece": 0.04093179664131964,
+    "raw_cov_99": 0.27081137895584106,
+    "sel_acc_99": 1.0,
+    "reliable_99": 1.0,
+    "cov_99": 0.27081137895584106,
+    "class_cov_99": 0.7128712871287128,
+    "raw_cov_95": 0.4251843988895416,
+    "sel_acc_95": 0.9900867342948914,
+    "reliable_95": 1.0,
+    "cov_95": 0.4251843988895416,
+    "class_cov_95": 0.9306930693069307,
+    "raw_cov_90": 0.5115911364555359,
+    "sel_acc_90": 0.9721935987472534,
+    "reliable_90": 1.0,
+    "cov_90": 0.5115911364555359,
+    "class_cov_90": 0.9504950495049505,
+    "raw_cov_85": 0.5774499177932739,
+    "sel_acc_85": 0.9552919864654541,
+    "reliable_85": 1.0,
+    "cov_85": 0.5774499177932739,
+    "class_cov_85": 1.0,
+    "raw_cov_80": 0.6275026202201843,
+    "sel_acc_80": 0.9370276927947998,
+    "reliable_80": 1.0,
+    "cov_80": 0.6275026202201843,
+    "class_cov_80": 1.0
+  },
+  "run_dir": "/root/autodl-tmp/BayesVLM/output/ablate_uatb_unc_only/id/ucf101/UATB_MIN/BAYESADAPTER/logit_scale_frozen/sigpar_0.01/sigperp_0.01/lu0_0.01/shot_2/seed_1",
+  "elapsed_seconds": 27.73,
+  "artifacts": {
+    "log_file": "train/train.log",
+    "config_file": "config/config.json",
+    "class_names_file": "config/class_names.json",
+    "metrics_csv_file": "train/metrics_history.csv",
+    "best_ckpt_file": "checkpoints/best_adapter.pt",
+    "last_ckpt_file": "checkpoints/last_adapter.pt"
+  }
+}

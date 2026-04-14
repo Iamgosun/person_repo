@@ -1039,18 +1039,21 @@ class UATangentBayesAdapterMin(BayesPaperAdapter):
 
 
 
-
         if lambda_u_init < 0.0:
             raise ValueError("lambda_u_init must be >= 0")
 
-        self.lambda_u_eps = 1e-12
-        self.lambda_u_max = float(max(lambda_u_max, self.lambda_u_eps))
+        # 不要把 0 映射到几乎无梯度区
+        self.lambda_u_eps = 1e-4
+        self.lambda_u_max = float(max(lambda_u_max, self.lambda_u_eps * 10.0))
 
-        if lambda_u_init == 0.0:
-            raw_init = -50.0   # softplus(-50) ~ 0
-        else:
-            init_val = float(min(lambda_u_init, self.lambda_u_max))
-            raw_init = math.log(math.expm1(init_val))
+        # 用 sigmoid 参数化到 [0, lambda_u_max]
+        init_val = float(lambda_u_init)
+        init_val = max(init_val, self.lambda_u_eps)
+        init_val = min(init_val, self.lambda_u_max - self.lambda_u_eps)
+
+        ratio = init_val / self.lambda_u_max
+        ratio = min(max(ratio, 1e-6), 1.0 - 1e-6)
+        raw_init = math.log(ratio / (1.0 - ratio))
 
         raw_tensor = torch.tensor(
             raw_init,
@@ -1063,23 +1066,10 @@ class UATangentBayesAdapterMin(BayesPaperAdapter):
         else:
             self.register_buffer("raw_lambda_u", raw_tensor)
 
-
-
-        raw_tensor = torch.tensor(
-            raw_init,
-            device=self.variational_mu.device,
-            dtype=self.variational_mu.dtype,
-        )
-        if lambda_u_learnable:
-            self.raw_lambda_u = nn.Parameter(raw_tensor)
-        else:
-            self.register_buffer("raw_lambda_u", raw_tensor)
 
 
     def _lambda_u(self) -> torch.Tensor:
-        lam = F.softplus(self.raw_lambda_u)
-        lam = torch.clamp(lam, min=0.0, max=self.lambda_u_max)
-        return lam
+        return self.lambda_u_max * torch.sigmoid(self.raw_lambda_u)
 
 
     def _prior_geometry_stats(self) -> Dict[str, torch.Tensor]:

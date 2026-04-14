@@ -15,7 +15,7 @@
   <uatb_prior_sigma_perp>0.01</uatb_prior_sigma_perp>
 
   <uatb_use_feature_uncertainty>true</uatb_use_feature_uncertainty>
-  <uatb_lambda_u_init>0.0</uatb_lambda_u_init>
+  <uatb_lambda_u_init>0.01</uatb_lambda_u_init>
   <uatb_lambda_u_max>1.0</uatb_lambda_u_max>
   <uatb_lambda_u_learnable>true</uatb_lambda_u_learnable>
 

@@ -26,7 +26,7 @@ export PYTHONPATH="${ROOT_DIR}:${PYTHONPATH:-}"
 #!/usr/bin/env bash
 
 
-PLAN_NAME="${PLAN_NAME:-bayesadapter_id}"
+PLAN_NAME="${PLAN_NAME:-ablate_uatb_unc_only_id}"
 STAGE="${STAGE:-all}"
 DRY_RUN="${DRY_RUN:-0}"
 ONLY_INDEX="${ONLY_INDEX:-}"
