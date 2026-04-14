@@ -39,7 +39,11 @@ def reduce_logits_for_inference(logits: torch.Tensor) -> torch.Tensor:
     """
     统一推理语义：
     - [B, C] -> 原样返回
-    - [S, B, C] -> 按官方 BayesAdapter 逻辑，对 MC 维求均值
+    - [S, B, C] -> 按当前仓库既有逻辑，对 MC 维求均值
+
+    注意：
+    这里暂时保持原逻辑不变，
+    当前这一轮优先先把 VMFPROTO 跑成可信版本。
     """
     if logits.dim() == 2:
         return logits
@@ -167,12 +171,30 @@ def evaluate_vlm_adapter(
     all_probs = []
     all_labels = []
     total_loss = 0.0
+    debug_printed = False
 
     for batch in loader:
         labels = batch["class_id"].to(device)
         raw_logits = model(batch=batch)
         logits = reduce_logits_for_inference(raw_logits)
         probs = torch.softmax(logits, dim=-1)
+
+        if not debug_printed:
+            print(f"[eval] adapter_cls={type(model.adapter).__name__}")
+            print(f"[eval] raw_logits_shape={tuple(raw_logits.shape)}")
+            print(f"[eval] reduced_logits_shape={tuple(logits.shape)}")
+
+            first_ce = compute_classification_loss_from_logits(raw_logits, labels).item()
+            first_nlpd = (
+                -torch.log(
+                    probs[torch.arange(labels.size(0), device=labels.device), labels] + 1e-12
+                )
+            ).mean().item()
+
+            print(f"[eval] first_batch_ce={first_ce:.6f}")
+            print(f"[eval] first_batch_nlpd={first_nlpd:.6f}")
+            print(f"[eval] ce_nlpd_gap={abs(first_ce - first_nlpd):.6f}")
+            debug_printed = True
 
         all_probs.append(probs.detach().cpu())
         all_labels.append(labels.detach().cpu())

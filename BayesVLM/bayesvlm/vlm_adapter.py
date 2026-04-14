@@ -48,13 +48,10 @@ class VLMAdapter(nn.Module):
         self.classnames = [str(x) for x in classnames]
         self.text_covariance = text_covariance
 
-
         self.adapter_name = str(self._cfg_get("adapter_name", "LP")).upper()
         self.initialization = str(self._cfg_get("initialization", "MEAN"))
         self.dataset_name = str(self._cfg_get("datasetname", self._cfg_get("dataset", "")))
         self.train_logit_scale = bool(self._cfg_get("train_logit_scale", False))
-
-
 
         if self.adapter_name not in ADAPTER_REGISTRY:
             raise ValueError(
@@ -81,7 +78,6 @@ class VLMAdapter(nn.Module):
         self.logit_scale = self.vlm.logit_scale
         self.logit_bias = getattr(self.vlm, "logit_bias", None)
 
-
     def _cfg_tensor(self, key: str) -> torch.Tensor | None:
         value = self._cfg_get(key, None)
         if value is None:
@@ -98,7 +94,6 @@ class VLMAdapter(nn.Module):
             device=self.base_text_features.device,
             dtype=self.base_text_features.dtype,
         )
-
 
     def _cfg_get(self, key: str, default=None):
         if isinstance(self.cfg, dict):
@@ -128,8 +123,6 @@ class VLMAdapter(nn.Module):
         )
         return image_encoder, text_encoder, vlm
 
-
-
     def _freeze_backbones(self):
         if hasattr(self.image_encoder, "freeze_all_layers"):
             self.image_encoder.freeze_all_layers()
@@ -154,8 +147,6 @@ class VLMAdapter(nn.Module):
         self.image_encoder.eval()
         self.text_encoder.eval()
         self.vlm.eval()
-
-
 
     def train(self, mode: bool = True):
         """
@@ -208,7 +199,6 @@ class VLMAdapter(nn.Module):
             class_features.append(text_embeds.mean(dim=0))
 
         return torch.stack(class_features, dim=0)
-
 
     def _adapter_kwargs(self) -> dict:
         kwargs = {}
@@ -281,10 +271,9 @@ class VLMAdapter(nn.Module):
             kwargs["B_img_inv"] = B_img_inv
             kwargs["kappa_scale"] = float(self._cfg_get("vmf_kappa_scale", 1.0))
             kwargs["eps"] = float(self._cfg_get("vmf_eps", 1e-6))
+            kwargs["kappa_max"] = float(self._cfg_get("vmf_kappa_max", 500.0))
 
         return kwargs
-
-
 
     def _build_adapter(self) -> nn.Module:
         if self.adapter_input_kind != "vector":
@@ -299,8 +288,6 @@ class VLMAdapter(nn.Module):
             **self._adapter_kwargs(),
         )
 
-
-
     def trainable_parameters(self):
         params = list(self.adapter.parameters())
         if (
@@ -310,8 +297,6 @@ class VLMAdapter(nn.Module):
         ):
             params.append(self.vlm.logit_scale)
         return params
-
-
 
     def set_epoch(self, epoch: int) -> None:
         if hasattr(self.adapter, "set_epoch"):
@@ -337,7 +322,6 @@ class VLMAdapter(nn.Module):
 
     def _coerce_feature_tensor(self, features: torch.Tensor) -> torch.Tensor:
         return features.to(device=self._runtime_device(), dtype=torch.float32)
-
 
     def _extract_image_state(
         self,
@@ -389,8 +373,6 @@ class VLMAdapter(nn.Module):
             "activations": self._coerce_feature_tensor(encoded.activations),
             "residuals": self._coerce_feature_tensor(encoded.residuals),
         }
-
-
 
     def _extract_image_features(
         self,
@@ -444,7 +426,6 @@ class VLMAdapter(nn.Module):
             )
         return logits
 
-
     def forward(
         self,
         batch=None,
@@ -467,8 +448,6 @@ class VLMAdapter(nn.Module):
         if return_features:
             return logits, feats
         return logits
-
-
 
     def forward_features(self, features: torch.Tensor) -> torch.Tensor:
         features = self._coerce_feature_tensor(features)

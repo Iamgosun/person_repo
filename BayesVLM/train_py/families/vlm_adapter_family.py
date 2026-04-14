@@ -25,6 +25,7 @@ from train_py.families.base_family import BaseFamily
 from train_py.runtime.common_context import resolve_existing_path
 from train_py.train_runtime import build_optimizer_from_args
 
+
 def _slugify_path_part(text: str) -> str:
     text = str(text).strip()
     if not text:
@@ -102,6 +103,7 @@ def _compute_kappa_from_mu_and_alpha(
     B_inv: torch.Tensor,
     kappa_scale: float,
     eps: float,
+    kappa_max: float,
 ) -> torch.Tensor:
     mu = mu.float()
     alpha = alpha.float().clamp_min(0.0)
@@ -120,7 +122,8 @@ def _compute_kappa_from_mu_and_alpha(
 
     rho = alpha * (tr_B - uBu).clamp_min(0.0) / ((float(dim - 1) * mu_norm2) + eps)
     kappa = float(kappa_scale) / (rho + eps)
-    return kappa.clamp_min(eps)
+    kappa = kappa.clamp(min=eps, max=float(kappa_max))
+    return kappa
 
 
 @torch.no_grad()
@@ -132,6 +135,7 @@ def _build_template_vmf_prior(ctx, args, cov_txt) -> torch.Tensor:
     device = torch.device(args.device)
     eps = float(getattr(args, "vmf_eps", 1e-6))
     kappa_scale = float(getattr(args, "vmf_kappa_scale", 1.0))
+    kappa_max = float(getattr(args, "vmf_kappa_max", 500.0))
 
     templates = _build_templates(str(args.dataset))
     if not templates:
@@ -156,9 +160,20 @@ def _build_template_vmf_prior(ctx, args, cov_txt) -> torch.Tensor:
             B_inv=B_txt_inv,
             kappa_scale=kappa_scale,
             eps=eps,
+            kappa_max=kappa_max,
         )
         u = _normalize_rows(mu, eps)
         eta_c = (kappa[:, None] * u).sum(dim=0)
+
+        print(
+            f"[vmf/text-prior] class={class_name} "
+            f"num_prompts={len(prompts)} "
+            f"kappa_min={kappa.min().item():.4f} "
+            f"kappa_mean={kappa.mean().item():.4f} "
+            f"kappa_max={kappa.max().item():.4f} "
+            f"eta_norm={eta_c.norm().item():.4f}"
+        )
+
         eta_list.append(eta_c)
 
     return torch.stack(eta_list, dim=0)
@@ -174,11 +189,13 @@ def _update_vmf_posterior_from_support(
     device = torch.device(args.device)
     eps = float(getattr(args, "vmf_eps", 1e-6))
     kappa_scale = float(getattr(args, "vmf_kappa_scale", 1.0))
+    kappa_max = float(getattr(args, "vmf_kappa_max", 500.0))
 
     A_img_inv = cov_img.A_inv.to(device)
     B_img_inv = cov_img.B_inv.to(device)
 
     eta = eta0.to(device=device, dtype=torch.float32).clone()
+    support_count_per_class = torch.zeros(eta.shape[0], device=device, dtype=torch.long)
 
     for batch in loader:
         if "image_embeds" not in batch or "activations" not in batch:
@@ -195,9 +212,27 @@ def _update_vmf_posterior_from_support(
             B_inv=B_img_inv,
             kappa_scale=kappa_scale,
             eps=eps,
+            kappa_max=kappa_max,
         )
         u = _normalize_rows(mu, eps)
         eta.index_add_(0, labels, kappa[:, None] * u)
+        support_count_per_class.index_add_(0, labels, torch.ones_like(labels, dtype=torch.long))
+
+        print(
+            f"[vmf/support-batch] "
+            f"labels_unique={labels.unique(sorted=True).tolist()} "
+            f"kappa_min={kappa.min().item():.4f} "
+            f"kappa_mean={kappa.mean().item():.4f} "
+            f"kappa_max={kappa.max().item():.4f}"
+        )
+
+    eta_norms = eta.norm(dim=-1)
+    print(f"[vmf/support-final] support_count_per_class={support_count_per_class.detach().cpu().tolist()}")
+    print(
+        f"[vmf/support-final] eta_norm_min={eta_norms.min().item():.4f} "
+        f"eta_norm_mean={eta_norms.mean().item():.4f} "
+        f"eta_norm_max={eta_norms.max().item():.4f}"
+    )
 
     return eta
 
@@ -228,10 +263,10 @@ def _build_vmfproto_payload(ctx, args) -> dict[str, Any]:
             "hessian_dir": str(hessian_dir),
             "text_prior_source": "template_prompts",
             "kappa_scale": float(getattr(args, "vmf_kappa_scale", 1.0)),
+            "kappa_max": float(getattr(args, "vmf_kappa_max", 500.0)),
             "eps": float(getattr(args, "vmf_eps", 1e-6)),
         },
     }
-
 
 
 @torch.no_grad()
@@ -339,7 +374,6 @@ def _build_text_only_bayesadapter_prior(ctx, args) -> dict[str, Any] | None:
         lambda_txt=lambda_txt,
     )
 
-
     prompt_learner, text_only_model = build_text_only_bayes_coop_model(
         class_names=ctx.class_names,
         text_encoder=ctx.text_encoder,
@@ -354,7 +388,6 @@ def _build_text_only_bayesadapter_prior(ctx, args) -> dict[str, Any] | None:
         train_logit_scale=bool(text_only_cfg.get("train_logit_scale", False)),
         device=args.device,
     )
-
 
     ckpt_path = _resolve_text_only_ckpt_path(run_dir, text_only_cfg, str(getattr(args, "bayesadapter_text_only_ckpt", "auto")))
     ckpt_obj = torch.load(ckpt_path, map_location=args.device)
@@ -460,8 +493,6 @@ class VLMAdapterFamily(BaseFamily):
         parts.append(f"shot_{args.shots_per_class}")
         return parts
 
-
-
     def validate_and_note(self, args) -> None:
         if getattr(args, "hessian_dir", None) and str(args.variant).upper() != "VMFPROTO":
             print(f"[note] hessian_dir={args.hessian_dir} is ignored for variant={args.variant}.")
@@ -488,9 +519,11 @@ class VLMAdapterFamily(BaseFamily):
                 raise ValueError("VMFPROTO requires hessian_dir")
             print(f"[note] VMFPROTO hessian_dir={args.hessian_dir}")
             print(f"[note] VMFPROTO text prior source=template prompts")
-            print(f"[note] VMFPROTO kappa_scale={getattr(args, 'vmf_kappa_scale', 1.0)} eps={getattr(args, 'vmf_eps', 1e-6)}")
-
-
+            print(
+                f"[note] VMFPROTO kappa_scale={getattr(args, 'vmf_kappa_scale', 1.0)} "
+                f"kappa_max={getattr(args, 'vmf_kappa_max', 500.0)} "
+                f"eps={getattr(args, 'vmf_eps', 1e-6)}"
+            )
 
     def build_state(self, ctx, args) -> dict[str, Any]:
         text_only_source_payload = _build_text_only_bayesadapter_prior(ctx, args)
@@ -552,8 +585,6 @@ class VLMAdapterFamily(BaseFamily):
             "train_logit_scale": bool(getattr(args, "train_logit_scale", False)),
         }
 
-
-
     def build_config_extra(self, state, ctx, args):
         del ctx
         extra = {
@@ -571,9 +602,6 @@ class VLMAdapterFamily(BaseFamily):
         if vmfproto_meta is not None:
             extra["vmfproto_meta"] = vmfproto_meta
         return extra
-
-
-
 
     def train_one_epoch(self, state, ctx, args, epoch):
         model = state["model"]
@@ -635,7 +663,6 @@ class VLMAdapterFamily(BaseFamily):
 
         return row
 
-
     def evaluate_split(self, state, loader, class_names, ctx, args):
         del ctx
         return evaluate_vlm_adapter(model=state["model"], loader=loader, num_classes=len(class_names), device=args.device)
@@ -694,7 +721,6 @@ class VLMAdapterFamily(BaseFamily):
             log_msg += f" loss_kl_raw={row['loss_kl_raw']:.4f}"
         return log_msg
 
-
     def build_best_state(self, state, ctx, args, epoch, val_metrics):
         del ctx, args
         train_logit_scale = bool(state.get("train_logit_scale", False))
@@ -709,7 +735,6 @@ class VLMAdapterFamily(BaseFamily):
             "best_val_metrics": val_metrics,
         }
 
-
     def load_best_state(self, state, best_state, ctx, args):
         del ctx, args
         state["model"].adapter.load_state_dict(best_state["adapter"])
@@ -720,8 +745,6 @@ class VLMAdapterFamily(BaseFamily):
                     dtype=state["model"].logit_scale.dtype,
                 )
             )
-
-
 
     def build_summary_extra(self, state, selected_state, ctx, args):
         del selected_state, ctx

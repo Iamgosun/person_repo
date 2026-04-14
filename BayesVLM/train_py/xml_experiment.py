@@ -57,6 +57,7 @@ FLOAT_KEYS = {
     "bayesadapter_text_only_mu_blend_lambda",
     "vmf_kappa_scale",
     "vmf_eps",
+    "vmf_kappa_max",
 }
 
 LIST_INT_KEYS = {
@@ -386,6 +387,10 @@ def _validate_value_ranges(cfg: dict[str, Any]) -> None:
         lam = float(cfg["bayesadapter_text_only_mu_blend_lambda"])
         if not (0.0 <= lam <= 1.0):
             raise ValueError("bayesadapter_text_only_mu_blend_lambda must be in [0, 1]")
+
+    if "vmf_kappa_max" in cfg:
+        if float(cfg["vmf_kappa_max"]) <= 0:
+            raise ValueError("vmf_kappa_max must be > 0")
 
 
 def _validate_enums(cfg: dict[str, Any]) -> None:

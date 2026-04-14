@@ -7,13 +7,23 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+# 中文说明：
+# 这里优先使用 scipy.special.ive 来稳定计算 vMF 的 log normalizer。
+# 如果环境里没有 scipy，则退回到原先的近似实现，但会打印 backend=fallback_asymptotic。
+try:
+    import numpy as np
+    from scipy.special import ive as scipy_ive
+except Exception:  # pragma: no cover
+    np = None
+    scipy_ive = None
+
 
 TextStateKind = Literal["vector", "distribution"]
 
 
 class AdapterMethod(nn.Module):
     """
-    Base class for CLIP/SigLIP adapters.
+    Base class for CLIP/SigLIP adapters。
 
     说明
     ----
@@ -120,7 +130,7 @@ class LinearProbeAdapter(AdapterMethod):
 
 class CrossModalAdapter(LinearProbeAdapter):
     """
-    Same parameterization as LP.
+    Same parameterization as LP。
 
     CrossModal 的关键差异主要在 trainer 侧：
     额外采样文本 prototype 作为监督，不在 head 结构本身。
@@ -138,7 +148,7 @@ class CrossModalAdapter(LinearProbeAdapter):
 
 class TaskResidualAdapter(AdapterMethod):
     """
-    TaskRes-style residual adapter.
+    TaskRes-style residual adapter。
 
     logits(x) = sim(x, base_text + alpha * residual)
     """
@@ -297,7 +307,7 @@ class TipAdapter(AdapterMethod):
 
 class GaussianPerClassAdapter(AdapterMethod):
     """
-    Per-class Gaussian adapter.
+    Per-class Gaussian adapter。
 
     这里不再把“冻结 deterministic CLIP backbone”误解成
     “adapter 也必须默认走 posterior mean 的纯确定性前向”。
@@ -419,26 +429,12 @@ class GaussianPerClassAdapter(AdapterMethod):
         logits = torch.einsum("bd,scd->sbc", image_features_norm, prototypes) * scale
         return logits
 
-
-
-    # def forward(
-    #     self,
-    #     image_features: torch.Tensor,
-    #     logit_scale: torch.Tensor,
-    # ) -> torch.Tensor:
-    #     return self.mc_logits(
-    #         image_features=image_features,
-    #         logit_scale=logit_scale,
-    #         n_samples=self.mc_samples,
-    #     )
-
     def forward(self, image_features: torch.Tensor, logit_scale: torch.Tensor) -> torch.Tensor:
         return self.mc_logits(
             image_features=image_features,
             logit_scale=logit_scale,
             n_samples=self.train_mc_samples if self.training else self.eval_mc_samples,
         )
-
 
     def regularization_loss(self) -> Tuple[torch.Tensor, Dict[str, float]]:
         kl = self.kl_divergence()
@@ -452,7 +448,7 @@ class GaussianPerClassAdapter(AdapterMethod):
 
 class BayesPaperAdapter(AdapterMethod):
     """
-    BayesAdapter.
+    BayesAdapter。
 
     支持两种 covariance mode:
     1) paper_scalar:
@@ -664,7 +660,6 @@ class BayesPaperAdapter(AdapterMethod):
 
         return kl_trace + kl_diff_sq + kl_logdet
 
-
     def mc_logits(self, image_features, logit_scale, n_samples=None):
         n_samples = int(
             n_samples or (self.train_mc_samples if self.training else self.eval_mc_samples)
@@ -689,12 +684,6 @@ class BayesPaperAdapter(AdapterMethod):
         logits = torch.einsum("bd,scd->sbc", image_features_norm, prototypes) * scale
         return logits
 
-
-
-
-
-
-
     def forward(
         self,
         image_features: torch.Tensor,
@@ -716,11 +705,9 @@ class BayesPaperAdapter(AdapterMethod):
         }
 
 
-
-
 class VMFPrototypeAdapter(AdapterMethod):
     """
-    Training-free spherical prototype adapter.
+    Training-free spherical prototype adapter。
 
     - posterior_eta: [C, D], already includes
         template-text prior + support updates
@@ -729,7 +716,8 @@ class VMFPrototypeAdapter(AdapterMethod):
 
     注意：
     1) 这里不走 text-only run prior，text prior 已在 family 侧直接由模板 prompts 构造好；
-    2) 为了保持依赖最小，这里使用 dependency-free 的 log C_d(kappa) 近似；
+    2) 这里优先使用 scipy.special.ive 稳定计算 log C_d(kappa)；
+       如果环境里没有 scipy，则退回到原来的近似实现；
     3) forward 需要 activations，因此通过 forward_with_aux 调用。
     """
 
@@ -744,6 +732,7 @@ class VMFPrototypeAdapter(AdapterMethod):
         B_img_inv: Optional[torch.Tensor] = None,
         kappa_scale: float = 1.0,
         eps: float = 1e-6,
+        kappa_max: float = 500.0,
     ):
         super().__init__(initialization)
 
@@ -779,23 +768,36 @@ class VMFPrototypeAdapter(AdapterMethod):
 
         self.kappa_scale = float(kappa_scale)
         self.eps = float(eps)
+        self.kappa_max = float(kappa_max)
         self.feat_dim = int(posterior_eta.shape[-1])
 
-        kappa_post = posterior_eta.norm(dim=-1).clamp_min(self.eps)
-        mu_post = posterior_eta / kappa_post.unsqueeze(-1)
+        eta_norm = posterior_eta.norm(dim=-1).clamp_min(self.eps)
+        mu_post = posterior_eta / eta_norm.unsqueeze(-1)
+        kappa_post = eta_norm
 
         self.register_buffer("kappa_post", kappa_post)
         self.register_buffer("mu_post", mu_post)
-        self.register_buffer("logC_post", self._approx_log_vmf_C(kappa_post, self.feat_dim))
+        self.register_buffer("logC_post", self._log_vmf_C(kappa_post, self.feat_dim))
+
+        self._debug_printed = False
+        self._logc_backend = "scipy_ive" if (np is not None and scipy_ive is not None) else "fallback_asymptotic"
+
+        print(
+            f"[vmf/init] feat_dim={self.feat_dim} "
+            f"logC_backend={self._logc_backend} "
+            f"kappa_post_min={self.kappa_post.min().item():.4f} "
+            f"kappa_post_mean={self.kappa_post.mean().item():.4f} "
+            f"kappa_post_max={self.kappa_post.max().item():.4f}"
+        )
 
     def _normalize_rows(self, x: torch.Tensor) -> torch.Tensor:
         return x / x.norm(dim=-1, keepdim=True).clamp_min(self.eps)
 
-    def _approx_log_vmf_C(self, kappa: torch.Tensor, dim: int) -> torch.Tensor:
+    def _approx_log_vmf_C_fallback(self, kappa: torch.Tensor, dim: int) -> torch.Tensor:
         """
-        dependency-free 近似：
-        - 小 kappa：退化到球面均匀分布的常数
-        - 中大 kappa：使用大 kappa 渐近式
+        中文说明：
+        这是无 scipy 时的后备近似实现。
+        只用于环境缺少 scipy 的情况。
         """
         kappa = kappa.clamp_min(self.eps)
         dtype = kappa.dtype
@@ -807,6 +809,60 @@ class VMFPrototypeAdapter(AdapterMethod):
 
         approx = 0.5 * float(dim - 1) * (torch.log(kappa) - math.log(2.0 * math.pi)) - kappa
         return torch.where(kappa < 1e-4, log_c0, approx)
+
+    def _log_vmf_C(self, kappa: torch.Tensor, dim: int) -> torch.Tensor:
+        """
+        稳定计算 log C_d(kappa)
+
+        C_d(kappa) = kappa^{nu} / ((2pi)^{d/2} I_nu(kappa))
+        其中 nu = d/2 - 1
+
+        数值策略：
+        1) 很小 kappa：使用 kappa->0 的极限（均匀球面）
+        2) 其他区间：优先使用 scipy.special.ive
+           ive(nu, kappa) = exp(-|kappa|) * I_nu(kappa)
+           对正 kappa，有 log I_nu(kappa) = log ive(nu, kappa) + kappa
+        3) 如果 scipy 不可用，则退回到 fallback 近似
+        """
+        kappa = kappa.clamp_min(self.eps)
+
+        if np is None or scipy_ive is None:
+            return self._approx_log_vmf_C_fallback(kappa, dim)
+
+        dtype = kappa.dtype
+        device = kappa.device
+        nu = 0.5 * float(dim) - 1.0
+
+        half_d = torch.tensor(0.5 * float(dim), device=device, dtype=torch.float64)
+        log_c0 = torch.lgamma(half_d) - math.log(2.0) - half_d * math.log(math.pi)
+
+        kappa_np = (
+            kappa.detach()
+            .to(dtype=torch.float64)
+            .cpu()
+            .contiguous()
+            .view(-1)
+            .numpy()
+        )
+
+        out = np.empty_like(kappa_np, dtype=np.float64)
+
+        small_mask = kappa_np < 1e-6
+        out[small_mask] = float(log_c0.item())
+
+        if (~small_mask).any():
+            ks = kappa_np[~small_mask]
+            ive_val = scipy_ive(nu, ks)
+            ive_val = np.maximum(ive_val, 1e-300)
+            log_I = np.log(ive_val) + ks
+            out[~small_mask] = (
+                nu * np.log(ks)
+                - 0.5 * float(dim) * np.log(2.0 * np.pi)
+                - log_I
+            )
+
+        out = torch.from_numpy(out.reshape(tuple(kappa.shape))).to(device=device, dtype=dtype)
+        return out
 
     def _query_kappa(
         self,
@@ -828,7 +884,7 @@ class VMFPrototypeAdapter(AdapterMethod):
             (float(self.feat_dim - 1) * mu_norm2) + self.eps
         )
         kappa = self.kappa_scale / (rho + self.eps)
-        return kappa.clamp_min(self.eps)
+        return kappa.clamp(min=self.eps, max=self.kappa_max)
 
     def forward_with_aux(
         self,
@@ -851,7 +907,28 @@ class VMFPrototypeAdapter(AdapterMethod):
             dim=-1,
         )                                                                 # [B, C]
 
-        logits = self.logC_post.to(device=r.device, dtype=r.dtype).unsqueeze(0) - self._approx_log_vmf_C(r, self.feat_dim)
+        logits = self.logC_post.to(device=r.device, dtype=r.dtype).unsqueeze(0) - self._log_vmf_C(r, self.feat_dim)
+
+        if not self._debug_printed:
+            finite_logits = torch.isfinite(logits)
+            print(
+                f"[vmf/query] kappa_q_min={kappa_q.min().item():.4f} "
+                f"kappa_q_mean={kappa_q.mean().item():.4f} "
+                f"kappa_q_max={kappa_q.max().item():.4f}"
+            )
+            print(
+                f"[vmf/query] r_min={r.min().item():.4f} "
+                f"r_mean={r.mean().item():.4f} "
+                f"r_max={r.max().item():.4f}"
+            )
+            print(
+                f"[vmf/query] logit_min={logits.min().item():.4f} "
+                f"logit_mean={logits.mean().item():.4f} "
+                f"logit_max={logits.max().item():.4f} "
+                f"finite_ratio={finite_logits.float().mean().item():.6f}"
+            )
+            self._debug_printed = True
+
         return logits
 
     def forward(
@@ -865,7 +942,6 @@ class VMFPrototypeAdapter(AdapterMethod):
     def regularization_loss(self) -> Tuple[torch.Tensor, Dict[str, float]]:
         zero = torch.zeros((), device=self.posterior_eta.device, dtype=torch.float32)
         return zero, {}
-
 
 
 ADAPTER_REGISTRY = {
